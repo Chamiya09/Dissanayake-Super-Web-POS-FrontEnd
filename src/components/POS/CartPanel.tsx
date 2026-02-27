@@ -21,89 +21,127 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem }: CartPanelPr
     setTimeout(() => setProcessing(false), 2000);
   };
 
-  return (
-    <div className="flex h-full flex-col rounded-2xl border border-border/50 bg-card shadow-sm">
-      {/* Header */}
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Active Basket</h2>
-        <p className="text-xs text-muted-foreground">{items.length} item{items.length !== 1 ? "s" : ""}</p>
-      </div>
+  const categoryEmoji: Record<string, string> = {
+    Fruits: "🍎", Dairy: "🧀", Beverages: "🥤",
+    Bakery: "🥐", Snacks: "🥜", Meat: "🥩", Vegetables: "🥦",
+  };
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
-            <ShoppingBag className="h-12 w-12 opacity-30" />
-            <p className="text-sm">Scan or add items to begin</p>
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border bg-white px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ShoppingBag className="h-3.5 w-3.5" />
           </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {items.map((item) => (
-              <div
-                key={item.product.id}
-                className="flex items-center gap-3 rounded-xl bg-secondary/40 p-2.5"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.product.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ${item.product.price.toFixed(2)} × {item.quantity}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, -1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="w-6 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <p className="w-16 text-right text-sm font-semibold tabular-nums">
-                  ${(item.product.price * item.quantity).toFixed(2)}
-                </p>
-                <button
-                  onClick={() => onRemoveItem(item.product.id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+          <div>
+            <h2 className="text-[13px] font-bold leading-none text-foreground">Active Basket</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {items.length === 0 ? "No items yet" : `${items.length} item${items.length !== 1 ? "s" : ""}`}
+            </p>
           </div>
+        </div>
+        {items.length > 0 && (
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
+            {items.length}
+          </span>
         )}
       </div>
 
-      {/* Checkout Footer */}
-      <div className="border-t p-4 space-y-3">
-        <div className="space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="tabular-nums">${subtotal.toFixed(2)}</span>
+      {/* Items list */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {items.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 py-12">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/8 to-secondary shadow-inner">
+              <ShoppingBag className="h-9 w-9 text-muted-foreground/30" />
+            </div>
+            <div className="text-center">
+              <p className="text-[13px] font-semibold text-foreground/80">Basket is empty</p>
+              <p className="mt-1 text-[11px] text-muted-foreground/60">Tap a product to add it</p>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax (15%)</span>
-            <span className="tabular-nums">${tax.toFixed(2)}</span>
+        ) : (
+          items.map((item) => (
+            <div
+              key={item.product.id}
+              className="group flex items-center gap-2.5 rounded-lg border border-border bg-secondary/40 p-2.5 transition-colors duration-150 hover:bg-blue-50 hover:border-blue-200"
+            >
+              {/* Emoji badge */}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[18px] shadow-sm border border-border">
+                {categoryEmoji[item.product.category] ?? "🛒"}
+              </div>
+
+              {/* Name + price */}
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-[12.5px] font-semibold leading-tight text-foreground">{item.product.name}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
+                  ${item.product.price.toFixed(2)} ea.
+                </p>
+              </div>
+
+              {/* Qty stepper */}
+              <div className="flex items-center rounded-lg border border-border bg-white overflow-hidden shadow-sm">
+                <button
+                  onClick={() => onUpdateQuantity(item.product.id, -1)}
+                  className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Minus className="h-3 w-3 stroke-[2.5]" />
+                </button>
+                <span className="w-7 border-x border-border/50 text-center text-[12px] font-bold tabular-nums text-foreground">{item.quantity}</span>
+                <button
+                  onClick={() => onUpdateQuantity(item.product.id, 1)}
+                  className="flex h-7 w-7 items-center justify-center text-primary transition-colors hover:bg-primary/10"
+                >
+                  <Plus className="h-3 w-3 stroke-[2.5]" />
+                </button>
+              </div>
+
+              {/* Line total */}
+              <p className="w-14 text-right text-[12.5px] font-bold tabular-nums text-foreground">
+                ${(item.product.price * item.quantity).toFixed(2)}
+              </p>
+
+              {/* Remove */}
+              <button
+                onClick={() => onRemoveItem(item.product.id)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Checkout footer */}
+      <div className="border-t border-border p-4 space-y-3 bg-white">
+        {/* Totals */}
+        <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden text-[12.5px]">
+          <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
+            <span>Subtotal</span>
+            <span className="tabular-nums font-semibold text-foreground">${subtotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-base font-bold pt-1 border-t">
-            <span>Total</span>
-            <span className="tabular-nums">${total.toFixed(2)}</span>
+          <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
+            <span>Tax (15%)</span>
+            <span className="tabular-nums font-semibold text-foreground">${tax.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 border-t border-blue-100">
+            <span className="text-[13px] font-bold text-foreground">Total</span>
+            <span className="tabular-nums text-[15px] font-extrabold text-primary">${total.toFixed(2)}</span>
           </div>
         </div>
+
+        {/* Pay button */}
         <Button
           onClick={handlePayment}
           disabled={items.length === 0 || processing}
-          className="w-full h-12 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+          className="w-full h-11 rounded-lg bg-primary text-white font-semibold text-[13px] tracking-wide hover:bg-accent transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {processing ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
           ) : (
-            `Process Payment — $${total.toFixed(2)}`
+            <>Charge&nbsp;<span className="tabular-nums">${total.toFixed(2)}</span></>
           )}
         </Button>
       </div>

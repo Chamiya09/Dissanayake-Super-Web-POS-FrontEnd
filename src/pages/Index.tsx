@@ -34,15 +34,15 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-background">
       <POSHeader />
       <div className="flex flex-1 overflow-hidden">
         {/* Left — Product Discovery */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <div className="flex-1 overflow-y-auto bg-background p-5 lg:p-6">
           <ProductGrid onAddToCart={addToCart} />
         </div>
         {/* Right — Cart */}
-        <div className="hidden w-[380px] shrink-0 border-l p-4 md:flex">
+        <div className="hidden w-[360px] shrink-0 border-l border-border bg-white p-4 md:flex">
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
