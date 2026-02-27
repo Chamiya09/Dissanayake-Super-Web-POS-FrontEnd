@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
+import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Supplier } from "@/data/suppliers";
 
 export default function Suppliers() {
+  const [addOpen, setAddOpen] = useState(false);
+
   const handleEdit = (supplier: Supplier) => {
     // Edit modal will be wired up in next step
     console.log("Edit:", supplier);
@@ -34,7 +38,7 @@ export default function Suppliers() {
             </div>
           </div>
 
-          <Button className="gap-2 shadow-sm">
+          <Button onClick={() => setAddOpen(true)} className="gap-2 shadow-sm">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Add Supplier</span>
             <span className="sm:hidden">Add</span>
@@ -44,6 +48,9 @@ export default function Suppliers() {
         {/* Table */}
         <SupplierTable onEdit={handleEdit} onDelete={handleDelete} />
       </div>
+
+      {/* Add Supplier Modal */}
+      <AddSupplierModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }
