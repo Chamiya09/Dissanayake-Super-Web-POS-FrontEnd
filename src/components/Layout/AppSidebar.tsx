@@ -33,10 +33,10 @@ export function AppSidebar() {
               className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm"
             />
             <div className="flex flex-col leading-tight">
-              <span className="text-[15px] font-bold text-sidebar-foreground tracking-tight">
+              <span className="text-[15px] font-bold text-sidebar-foreground tracking-widest uppercase">
                 Dissanayaka
               </span>
-              <span className="text-[11px] font-medium text-muted-foreground tracking-widest uppercase">
+              <span className="text-[11px] font-semibold text-muted-foreground tracking-widest uppercase">
                 Super
               </span>
             </div>
