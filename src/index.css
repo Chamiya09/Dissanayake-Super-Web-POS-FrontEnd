@@ -1,68 +1,145 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
+  /* ──────────────────────────────────────────────────────────
+     SuperMart Color System
+     Primary Blue:      #3B82F6  (217 91% 60%)
+     Primary Hover:     #2563EB  (221 83% 53%)
+     Success Green:     #22C55E  (142 71% 45%)
+     Main Background:   #F9FAFB  (220 14% 97%)
+     Sidebar Background:#F3F4F6  (220 9%  95%)
+     Card Background:   #FFFFFF  (0   0%  100%)
+     Main Text:         #111827  (222 47% 11%)
+     Secondary Text:    #6B7280  (220 9%  46%)
+     Border Color:      #E5E7EB  (220 13% 91%)
+  ────────────────────────────────────────────────────────── */
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --background: 220 14% 97%;          /* #F9FAFB */
+    --foreground: 222 47% 11%;          /* #111827 */
+
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 60%;             /* #3B82F6 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 9% 95%;            /* #F3F4F6 */
+    --secondary-foreground: 220 9% 40%;
+
+    --muted: 220 9% 95%;
+    --muted-foreground: 220 9% 46%;     /* #6B7280 */
+
+    --accent: 221 83% 53%;              /* #2563EB  hover/darker blue */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;           /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;              /* #E5E7EB */
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;                  /* 12px */
+
+    /* ── Sidebar: slightly darker gray (#F3F4F6) ── */
+    --sidebar-background: 220 9% 95%;   /* #F3F4F6 */
+    --sidebar-foreground: 222 47% 20%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 100% 97%;     /* #EFF6FF  active item bg */
+    --sidebar-accent-foreground: 221 83% 40%; /* blue text */
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+
+    --success: 142 71% 45%;             /* #22C55E */
+    --success-foreground: 0 0% 100%;
   }
-  a:hover {
-    color: #747bff;
+
+  .dark {
+    --background: 222 47% 8%;           /* #0F172A */
+    --foreground: 210 40% 95%;          /* #F1F5F9 */
+
+    --card: 222 47% 13%;                /* #1E293B */
+    --card-foreground: 210 40% 95%;
+
+    --popover: 222 47% 13%;
+    --popover-foreground: 210 40% 95%;
+
+    --primary: 213 94% 68%;             /* #60A5FA — lighter blue for dark bg */
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 33% 17%;           /* #1E2D40 */
+    --secondary-foreground: 215 20% 65%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;    /* #94A3B8 */
+
+    --accent: 213 94% 68%;
+    --accent-foreground: 222 47% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 25%;              /* #334155 */
+    --input: 217 33% 25%;
+    --ring: 213 94% 68%;
+
+    --sidebar-background: 222 47% 11%;  /* #162032 */
+    --sidebar-foreground: 210 40% 85%;
+    --sidebar-primary: 213 94% 68%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 217 33% 20%;
+    --sidebar-accent-foreground: 213 94% 78%;
+    --sidebar-border: 217 33% 22%;
+    --sidebar-ring: 213 94% 68%;
+
+    --success: 142 76% 55%;
+    --success-foreground: 0 0% 100%;
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-primary/20; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-primary/35; }
+}
+
+@layer utilities {
+  .scanner-pulse {
+    animation: scanner-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes scanner-glow {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+  }
+
+  .animate-highlight {
+    animation: cart-highlight 0.65s ease-out forwards;
+  }
+
+  @keyframes cart-highlight {
+    0%   { background-color: hsl(217 91% 92%); box-shadow: 0 0 0 2px hsl(217 91% 60% / 0.4); }
+    100% { background-color: transparent;      box-shadow: none; }
   }
 }

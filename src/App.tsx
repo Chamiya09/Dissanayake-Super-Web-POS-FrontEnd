@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/Layout/AppSidebar";
+import { AppHeader } from "@/components/Layout/AppHeader";
+import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import NotFound from "./pages/NotFound";
 
-function App() {
-  const [count, setCount] = useState(0)
+const queryClient = new QueryClient();
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+/** Generic placeholder for stub pages */
+const PlaceholderPage = ({ title }: { title: string }) => (
+  <div className="flex h-screen flex-col bg-background">
+    <AppHeader />
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
+      <p className="text-xl font-bold text-foreground">{title}</p>
+      <p className="text-sm">This section is coming soon.</p>
+    </div>
+  </div>
+);
 
-export default App
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full">
+            <AppSidebar />
+            <main className="flex-1 overflow-hidden">
+              <Routes>
+                <Route path="/"           element={<Index />} />
+                <Route path="/dashboard"  element={<Dashboard />} />
+                <Route path="/products"   element={<PlaceholderPage title="Products" />} />
+                <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
+                <Route path="/sales"      element={<PlaceholderPage title="Sales & Returns" />} />
+                <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
+                <Route path="/suppliers"  element={<PlaceholderPage title="Suppliers" />} />
+                <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
+                <Route path="/users"      element={<PlaceholderPage title="Users" />} />
+                <Route path="*"           element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
+        </SidebarProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
