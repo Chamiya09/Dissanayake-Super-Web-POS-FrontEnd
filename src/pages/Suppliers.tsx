@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
@@ -6,60 +6,119 @@ import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Supplier } from "@/data/suppliers";
+import { suppliers as initialSuppliers, type Supplier } from "@/data/suppliers";
+
+/* ── Generate a simple incremental ID ── */
+let nextIdCounter = initialSuppliers.length + 1;
+const generateId = () => {
+  const id = `SUP-${String(nextIdCounter).padStart(3, "0")}`;
+  nextIdCounter++;
+  return id;
+};
 
 export default function Suppliers() {
-  const [addOpen, setAddOpen]           = useState(false);
+  /* ── Master list (single source of truth) ── */
+  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+
+  /* ── Modal visibility / target state ── */
+  const [isAddOpen, setIsAddOpen]       = useState(false);
   const [editTarget, setEditTarget]     = useState<Supplier | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
+
+  const isEditOpen   = editTarget   !== null;
+  const isDeleteOpen = deleteTarget !== null;
+
+  /* ── CRUD handlers ── */
+  const handleAdd = useCallback((data: Omit<Supplier, "id">) => {
+    const newSupplier: Supplier = { id: generateId(), ...data };
+    setSuppliers((prev) => [...prev, newSupplier]);
+  }, []);
+
+  const handleEdit = useCallback((updated: Supplier) => {
+    setSuppliers((prev) =>
+      prev.map((s) => (s.id === updated.id ? updated : s))
+    );
+  }, []);
+
+  const handleDelete = useCallback(() => {
+    if (!deleteTarget) return;
+    setSuppliers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+  }, [deleteTarget]);
 
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Page header */}
-        <div className="flex items-center justify-between gap-4">
+
+        {/* ── Page header ── */}
+        <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">Suppliers</h1>
+              <h1 className="text-2xl font-bold text-foreground leading-tight">
+                Supplier Management
+              </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Manage your product suppliers and lead times.
+                {suppliers.length} supplier{suppliers.length !== 1 ? "s" : ""} registered
               </p>
             </div>
           </div>
 
-          <Button onClick={() => setAddOpen(true)} className="gap-2 shadow-sm">
+          <Button
+            onClick={() => setIsAddOpen(true)}
+            className="gap-2 shadow-sm shrink-0"
+          >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Supplier</span>
+            <span className="hidden sm:inline">Add New Supplier</span>
             <span className="sm:hidden">Add</span>
           </Button>
         </div>
 
-        {/* Table */}
+        {/* ── Stats strip ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Total Suppliers",    value: suppliers.length },
+            { label: "Fast (≤ 1 day)",     value: suppliers.filter((s) => s.leadTime <= 1).length },
+            { label: "Slow (> 3 days)",    value: suppliers.filter((s) => s.leadTime > 3).length },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+            >
+              <p className="text-[22px] font-bold text-foreground tabular-nums">{stat.value}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Table ── */}
         <SupplierTable
+          suppliers={suppliers}
           onEdit={(s) => setEditTarget(s)}
           onDelete={(s) => setDeleteTarget(s)}
         />
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <AddSupplierModal
-        isOpen={addOpen}
-        onClose={() => setAddOpen(false)}
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSave={handleAdd}
       />
       <EditSupplierModal
-        isOpen={editTarget !== null}
+        isOpen={isEditOpen}
         onClose={() => setEditTarget(null)}
         supplier={editTarget}
+        onSave={handleEdit}
       />
       <DeleteConfirmModal
-        isOpen={deleteTarget !== null}
+        isOpen={isDeleteOpen}
         onClose={() => setDeleteTarget(null)}
         supplier={deleteTarget}
+        onConfirm={handleDelete}
       />
     </div>
   );

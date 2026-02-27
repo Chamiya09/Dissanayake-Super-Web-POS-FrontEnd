@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { Pencil, Trash2, Clock, Mail, Phone, User, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { suppliers as initialSuppliers, type Supplier } from "@/data/suppliers";
+import type { Supplier } from "@/data/suppliers";
 
 /* ── Lead-time badge colour helper ── */
 function LeadTimeBadge({ days }: { days: number }) {
@@ -43,12 +41,12 @@ function CompanyAvatar({ name }: { name: string }) {
 }
 
 interface SupplierTableProps {
+  suppliers: Supplier[];
   onEdit: (supplier: Supplier) => void;
   onDelete: (supplier: Supplier) => void;
 }
 
-export function SupplierTable({ onEdit, onDelete }: SupplierTableProps) {
-  const [suppliers] = useState<Supplier[]>(initialSuppliers);
+export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">

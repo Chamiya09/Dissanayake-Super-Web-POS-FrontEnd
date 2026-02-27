@@ -10,6 +10,7 @@ interface EditSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
+  onSave: (updated: Supplier) => void;
 }
 
 interface FormFields {
@@ -48,7 +49,7 @@ function FormRow({
   );
 }
 
-export function EditSupplierModal({ isOpen, onClose, supplier }: EditSupplierModalProps) {
+export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSupplierModalProps) {
   const [form, setForm] = useState<FormFields>({
     companyName: "",
     contactPerson: "",
@@ -113,11 +114,18 @@ export function EditSupplierModal({ isOpen, onClose, supplier }: EditSupplierMod
   const handleUpdate = () => {
     if (!validate()) return;
     setSaving(true);
-    // Simulate async update — real API call will be added later
     setTimeout(() => {
+      onSave({
+        id:            supplier!.id,
+        companyName:   form.companyName.trim(),
+        contactPerson: form.contactPerson.trim(),
+        email:         form.email.trim(),
+        phone:         form.phone.trim(),
+        leadTime:      Number(form.leadTime),
+      });
       setSaving(false);
       onClose();
-    }, 800);
+    }, 400);
   };
 
   if (!isOpen || !supplier) return null;

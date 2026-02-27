@@ -8,7 +8,10 @@ import { cn } from "@/lib/utils";
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: Omit<Supplier, "id">) => void;
 }
+
+import type { Supplier } from "@/data/suppliers";
 
 interface FormFields {
   companyName: string;
@@ -54,7 +57,7 @@ function FormRow({
   );
 }
 
-export function AddSupplierModal({ isOpen, onClose }: AddSupplierModalProps) {
+export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalProps) {
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
@@ -107,11 +110,17 @@ export function AddSupplierModal({ isOpen, onClose }: AddSupplierModalProps) {
   const handleSave = () => {
     if (!validate()) return;
     setSaving(true);
-    // Simulate async save — real API call will be added later
     setTimeout(() => {
+      onSave({
+        companyName:   form.companyName.trim(),
+        contactPerson: form.contactPerson.trim(),
+        email:         form.email.trim(),
+        phone:         form.phone.trim(),
+        leadTime:      Number(form.leadTime),
+      });
       setSaving(false);
       onClose();
-    }, 800);
+    }, 400);
   };
 
   if (!isOpen) return null;

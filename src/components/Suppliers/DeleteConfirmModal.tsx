@@ -8,9 +8,10 @@ interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
+  onConfirm: () => void;
 }
 
-export function DeleteConfirmModal({ isOpen, onClose, supplier }: DeleteConfirmModalProps) {
+export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: DeleteConfirmModalProps) {
   const [deleting, setDeleting] = useState(false);
 
   /* Reset state every time the modal opens */
@@ -30,11 +31,11 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier }: DeleteConfirmM
 
   const handleConfirmDelete = () => {
     setDeleting(true);
-    // Simulate async delete — real API call will be added later
     setTimeout(() => {
+      onConfirm();
       setDeleting(false);
       onClose();
-    }, 800);
+    }, 400);
   };
 
   if (!isOpen || !supplier) return null;
