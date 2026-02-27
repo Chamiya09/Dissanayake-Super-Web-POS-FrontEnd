@@ -62,10 +62,10 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
           <button
             key={product.id}
             onClick={() => onAddToCart(product)}
-            className="group relative flex flex-col items-start rounded-2xl border border-border/50 bg-card p-3 text-left shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+            className="group relative flex aspect-square flex-col items-start rounded-2xl border border-border/50 bg-card p-3 text-left shadow-sm transition-all hover:shadow-md hover:border-primary/30"
           >
             {/* Image placeholder */}
-            <div className="mb-3 flex h-20 w-full items-center justify-center rounded-xl bg-secondary/60 text-3xl">
+            <div className="mb-2 flex flex-1 w-full items-center justify-center rounded-xl bg-secondary/60 text-4xl">
               {product.category === "Fruits" ? "🍎" :
                product.category === "Dairy" ? "🧀" :
                product.category === "Beverages" ? "🥤" :
@@ -73,11 +73,17 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
                product.category === "Snacks" ? "🥜" :
                product.category === "Meat" ? "🥩" : "🛒"}
             </div>
-            <p className="text-sm font-medium leading-tight">{product.name}</p>
-            <p className="text-xs text-muted-foreground">/{product.unit}</p>
-            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
-              ${product.price.toFixed(2)}
-            </span>
+
+            {/* Info */}
+            <div className="w-full shrink-0">
+              <p className="truncate text-sm font-medium leading-tight">{product.name}</p>
+              <div className="mt-1 flex items-center justify-between gap-1">
+                <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                  ${product.price.toFixed(2)}
+                </span>
+                <p className="text-xs text-muted-foreground">/{product.unit}</p>
+              </div>
+            </div>
 
             {/* Quick Add overlay */}
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100">
