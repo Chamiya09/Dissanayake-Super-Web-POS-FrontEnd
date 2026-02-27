@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { POSHeader } from "@/components/POS/POSHeader";
+import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
@@ -113,7 +113,7 @@ const Index = () => {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <POSHeader />
+      <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Product Grid */}
