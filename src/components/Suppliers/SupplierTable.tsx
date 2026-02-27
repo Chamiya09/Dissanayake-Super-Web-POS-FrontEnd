@@ -1,5 +1,14 @@
-import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Sparkles, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
 
@@ -68,9 +77,78 @@ interface SupplierTableProps {
 }
 
 export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: SupplierTableProps) {
+  const [search, setSearch]           = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  /* ── Client-side filtering ── */
+  const filtered = suppliers.filter((s) => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      !q ||
+      s.companyName.toLowerCase().includes(q) ||
+      s.contactPerson.toLowerCase().includes(q) ||
+      s.email.toLowerCase().includes(q) ||
+      s.phone.includes(q) ||
+      s.id.toLowerCase().includes(q);
+
+    const matchesStatus =
+      filterStatus === "all"          ? true :
+      filterStatus === "fast"         ? s.leadTime <= 2 :
+      filterStatus === "normal"       ? s.leadTime >= 3 && s.leadTime <= 5 :
+      filterStatus === "slow"         ? s.leadTime > 5 :
+      filterStatus === "auto-reorder" ? s.isAutoReorderEnabled :
+      true;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const hasActiveFilters = search !== "" || filterStatus !== "all";
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+
+      {/* ── Search & Filter toolbar ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-4 py-3 border-b border-border bg-muted/20">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search suppliers…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm bg-background"
+          />
+        </div>
+
+        {/* Status filter */}
+        <div className="flex items-center gap-2 shrink-0">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-9 w-44 text-sm bg-background">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="fast">Fast (1–2 days)</SelectItem>
+              <SelectItem value="normal">Normal (3–5 days)</SelectItem>
+              <SelectItem value="slow">Slow (&gt; 5 days)</SelectItem>
+              <SelectItem value="auto-reorder">AI Auto-Reorder</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Clear filters — only visible when active */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 px-3 text-[12px] text-muted-foreground hover:text-foreground shrink-0"
+            onClick={() => { setSearch(""); setFilterStatus("all"); }}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
       {/* ── Desktop table ── */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
@@ -100,7 +178,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {suppliers.map((supplier, idx) => (
+            {filtered.map((supplier, idx) => (
               <tr
                 key={supplier.id}
                 className={cn(
@@ -198,7 +276,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
 
       {/* ── Mobile card list ── */}
       <div className="md:hidden divide-y divide-border">
-        {suppliers.map((supplier) => (
+        {filtered.map((supplier) => (
           <div key={supplier.id} className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -265,11 +343,20 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
       </div>
 
       {/* ── Empty state ── */}
-      {suppliers.length === 0 && (
+      {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Building2 className="h-10 w-10 mb-3 opacity-30" />
-          <p className="text-sm font-medium">No suppliers found</p>
-          <p className="text-xs mt-1">Add your first supplier to get started.</p>
+          {hasActiveFilters ? (
+            <>
+              <p className="text-sm font-medium">No suppliers match your search</p>
+              <p className="text-xs mt-1">Try adjusting your search term or clearing the filters.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium">No suppliers found</p>
+              <p className="text-xs mt-1">Add your first supplier to get started.</p>
+            </>
+          )}
         </div>
       )}
     </div>
