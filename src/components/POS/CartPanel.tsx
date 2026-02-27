@@ -17,12 +17,14 @@ function SwipeableItem({
   onUpdateQuantity,
   onRemoveItem,
   highlight,
+  focused,
   emoji,
 }: {
   item: CartItem;
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
   highlight: boolean;
+  focused: boolean;
   emoji: string;
 }) {
   const [offsetX, setOffsetX] = useState(0);
@@ -49,7 +51,10 @@ function SwipeableItem({
   }, [offsetX, item.product.id, onRemoveItem]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className={cn(
+      "relative overflow-hidden rounded-lg transition-all duration-100",
+      focused && "ring-2 ring-primary ring-offset-1"
+    )}>
       {/* Red swipe-reveal background */}
       <div
         className="absolute inset-y-0 right-0 flex w-16 items-center justify-center rounded-lg bg-red-500"
@@ -126,6 +131,24 @@ function SwipeableItem({
 /* ── CartPanel ─────────────────────────────────────────────────── */
 export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
+  const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
+  const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Stable refs to avoid stale closures
+  const cartFocusedIdxRef = useRef(cartFocusedIdx);
+  const cartItemsRef = useRef(items);
+  useEffect(() => { cartFocusedIdxRef.current = cartFocusedIdx; }, [cartFocusedIdx]);
+  useEffect(() => { cartItemsRef.current = items; });
+
+  // Reset focus when item count changes
+  useEffect(() => { setCartFocusedIdx(-1); }, [items.length]);
+
+  // Scroll focused row into view
+  useEffect(() => {
+    if (cartFocusedIdx >= 0) {
+      cartRowRefs.current[cartFocusedIdx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [cartFocusedIdx]);
 
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const tax = subtotal * 0.15;
@@ -136,7 +159,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
     setTimeout(() => setProcessing(false), 2000);
   }, []);
 
-  // [Space] → trigger charge when not typing in an input
+  // [Space] → trigger charge when not typing
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -153,6 +176,39 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [items.length, processing, handlePayment]);
+
+  // Cart navigation: Alt+↑↓ move · - decrease · +/= increase · Delete remove
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isInInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+      if (isInInput) return;
+
+      const cur   = cartFocusedIdxRef.current;
+      const cItems = cartItemsRef.current;
+
+      if (e.altKey && e.key === "ArrowDown") {
+        e.preventDefault();
+        setCartFocusedIdx(cur < 0 ? 0 : Math.min(cur + 1, cItems.length - 1));
+      } else if (e.altKey && e.key === "ArrowUp") {
+        e.preventDefault();
+        setCartFocusedIdx(cur <= 0 ? 0 : cur - 1);
+      } else if (!e.altKey && (e.key === "-" || e.key === "_") && cur >= 0 && cItems[cur]) {
+        e.preventDefault();
+        onUpdateQuantity(cItems[cur].product.id, -1);
+      } else if (!e.altKey && (e.key === "+" || e.key === "=") && cur >= 0 && cItems[cur]) {
+        e.preventDefault();
+        onUpdateQuantity(cItems[cur].product.id, 1);
+      } else if (e.key === "Delete" && cur >= 0 && cItems[cur]) {
+        e.preventDefault();
+        onRemoveItem(cItems[cur].product.id);
+        setCartFocusedIdx(Math.min(cur, cItems.length - 2));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onUpdateQuantity, onRemoveItem]);
 
   const categoryEmoji: Record<string, string> = {
     Fruits: "🍎", Dairy: "🧀", Beverages: "🥤",
@@ -176,13 +232,25 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
           </div>
         </div>
         {items.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
-              {items.length}
-            </span>
-            <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/60 select-none">
-              Esc&nbsp;clear
-            </kbd>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
+                {items.length}
+              </span>
+              <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/60 select-none">
+                Esc&nbsp;clear
+              </kbd>
+            </div>
+            <p className="hidden sm:flex items-center gap-1 text-[9px] text-muted-foreground/45 select-none">
+              <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">Alt+↑↓</kbd>
+              <span>select</span>
+              <span className="mx-0.5">&middot;</span>
+              <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">+&nbsp;-</kbd>
+              <span>qty</span>
+              <span className="mx-0.5">&middot;</span>
+              <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">Del</kbd>
+              <span>remove</span>
+            </p>
           </div>
         )}
       </div>
@@ -200,15 +268,17 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
             </div>
           </div>
         ) : (
-          items.map((item) => (
-            <SwipeableItem
-              key={item.product.id}
-              item={item}
-              onUpdateQuantity={onUpdateQuantity}
-              onRemoveItem={onRemoveItem}
-              highlight={highlightId === item.product.id}
-              emoji={categoryEmoji[item.product.category] ?? "🛒"}
-            />
+          items.map((item, idx) => (
+            <div key={item.product.id} ref={(el) => { cartRowRefs.current[idx] = el; }}>
+              <SwipeableItem
+                item={item}
+                onUpdateQuantity={onUpdateQuantity}
+                onRemoveItem={onRemoveItem}
+                highlight={highlightId === item.product.id}
+                focused={cartFocusedIdx === idx}
+                emoji={categoryEmoji[item.product.category] ?? "🛒"}
+              />
+            </div>
           ))
         )}
       </div>
