@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { POSHeader } from "@/components/POS/POSHeader";
@@ -6,11 +6,54 @@ import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
 
+/* ── Flying dot that animates from click position to cart icon ── */
+function FlyingDot({
+  startX,
+  startY,
+  targetX,
+  targetY,
+  onDone,
+}: {
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  onDone: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Force initial paint, then apply transition to target
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transition = "transform 0.55s cubic-bezier(0.2, 0.8, 0.4, 1), opacity 0.55s ease";
+        el.style.transform = `translate(${targetX - startX}px, ${targetY - startY}px) scale(0.15)`;
+        el.style.opacity = "0";
+      });
+    });
+    const t = setTimeout(onDone, 600);
+    return () => clearTimeout(t);
+  }, [startX, startY, targetX, targetY, onDone]);
+
+  return (
+    <div
+      ref={ref}
+      className="pointer-events-none fixed z-[9999] h-6 w-6 rounded-full bg-primary shadow-lg ring-2 ring-white"
+      style={{ left: startX - 12, top: startY - 12, opacity: 1 }}
+    />
+  );
+}
+
 const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
+  const cartIconRef = useRef<HTMLDivElement>(null);
 
-  const addToCart = useCallback((product: Product) => {
+  const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -20,6 +63,16 @@ const Index = () => {
       }
       return [...prev, { product, quantity: 1 }];
     });
+
+    // Highlight the row briefly
+    setHighlightId(product.id);
+    setTimeout(() => setHighlightId(null), 700);
+
+    // Launch a flying dot if we have a click position
+    if (e) {
+      const dot = { id: Date.now(), x: e.clientX, y: e.clientY };
+      setFlyDots((prev) => [...prev, dot]);
+    }
   }, []);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
@@ -47,17 +100,21 @@ const Index = () => {
       <POSHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Product Grid — takes all space on mobile, shrinks on desktop */}
+        {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
           <ProductGrid onAddToCart={addToCart} />
         </div>
 
-        {/* Cart Panel — fixed right sidebar on md+ only */}
-        <div className="hidden md:flex w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-white p-4">
+        {/* Cart Panel — desktop sidebar; ref used for flying dot target */}
+        <div
+          ref={cartIconRef}
+          className="hidden md:flex w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-white p-4"
+        >
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
+            highlightId={highlightId}
           />
         </div>
       </div>
@@ -95,9 +152,27 @@ const Index = () => {
             items={cart}
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
+            highlightId={highlightId}
           />
         </SheetContent>
       </Sheet>
+
+      {/* Flying dots — one per click */}
+      {flyDots.map((dot) => {
+        const rect = cartIconRef.current?.getBoundingClientRect();
+        const tx = rect ? rect.left + rect.width / 2 : window.innerWidth - 160;
+        const ty = rect ? rect.top + 40 : 80;
+        return (
+          <FlyingDot
+            key={dot.id}
+            startX={dot.x}
+            startY={dot.y}
+            targetX={tx}
+            targetY={ty}
+            onDone={() => setFlyDots((prev) => prev.filter((d) => d.id !== dot.id))}
+          />
+        );
+      })}
     </div>
   );
 };

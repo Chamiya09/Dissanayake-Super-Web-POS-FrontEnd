@@ -1,15 +1,130 @@
 import { ShoppingBag, Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 interface CartPanelProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
+  highlightId?: string | null;
 }
 
-export function CartPanel({ items, onUpdateQuantity, onRemoveItem }: CartPanelProps) {
+/* ── Swipeable row ─────────────────────────────────────────────── */
+function SwipeableItem({
+  item,
+  onUpdateQuantity,
+  onRemoveItem,
+  highlight,
+  emoji,
+}: {
+  item: CartItem;
+  onUpdateQuantity: (id: string, delta: number) => void;
+  onRemoveItem: (id: string) => void;
+  highlight: boolean;
+  emoji: string;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const startX = useRef<number | null>(null);
+  const dragging = useRef(false);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    dragging.current = true;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!dragging.current || startX.current === null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (dx < 0) setOffsetX(Math.max(dx, -90));
+  };
+  const onTouchEnd = useCallback(() => {
+    dragging.current = false;
+    startX.current = null;
+    if (offsetX < -60) {
+      onRemoveItem(item.product.id);
+    } else {
+      setOffsetX(0);
+    }
+  }, [offsetX, item.product.id, onRemoveItem]);
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Red swipe-reveal background */}
+      <div
+        className="absolute inset-y-0 right-0 flex w-16 items-center justify-center rounded-lg bg-red-500"
+        style={{ opacity: Math.min(Math.abs(offsetX) / 60, 1) }}
+      >
+        <Trash2 className="h-4 w-4 text-white" />
+      </div>
+
+      {/* Item row */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: offsetX === 0 ? "transform 0.2s ease" : "none",
+        }}
+        className={cn(
+          "group flex items-center gap-2.5 rounded-lg border border-border bg-secondary/40 p-2.5 transition-colors duration-150 hover:bg-blue-50 hover:border-blue-200",
+          highlight && "animate-highlight"
+        )}
+      >
+        {/* Emoji badge */}
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[18px] shadow-sm border border-border">
+          {emoji}
+        </div>
+
+        {/* Name + price */}
+        <div className="flex-1 min-w-0">
+          <p className="truncate text-[12.5px] font-semibold leading-tight text-foreground">
+            {item.product.name}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
+            ${item.product.price.toFixed(2)} ea.
+          </p>
+        </div>
+
+        {/* Qty stepper */}
+        <div className="flex items-center rounded-lg border border-border bg-white overflow-hidden shadow-sm">
+          <button
+            onClick={() => onUpdateQuantity(item.product.id, -1)}
+            className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Minus className="h-3 w-3 stroke-[2.5]" />
+          </button>
+          <span className="w-7 border-x border-border/50 text-center text-[12px] font-bold tabular-nums text-foreground">
+            {item.quantity}
+          </span>
+          <button
+            onClick={() => onUpdateQuantity(item.product.id, 1)}
+            className="flex h-7 w-7 items-center justify-center text-primary transition-colors hover:bg-primary/10"
+          >
+            <Plus className="h-3 w-3 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* Line total */}
+        <p className="w-14 text-right text-[12.5px] font-bold tabular-nums text-foreground">
+          ${(item.product.price * item.quantity).toFixed(2)}
+        </p>
+
+        {/* Remove (hover, desktop) */}
+        <button
+          onClick={() => onRemoveItem(item.product.id)}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── CartPanel ─────────────────────────────────────────────────── */
+export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
 
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
@@ -63,53 +178,14 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem }: CartPanelPr
           </div>
         ) : (
           items.map((item) => (
-            <div
+            <SwipeableItem
               key={item.product.id}
-              className="group flex items-center gap-2.5 rounded-lg border border-border bg-secondary/40 p-2.5 transition-colors duration-150 hover:bg-blue-50 hover:border-blue-200"
-            >
-              {/* Emoji badge */}
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[18px] shadow-sm border border-border">
-                {categoryEmoji[item.product.category] ?? "🛒"}
-              </div>
-
-              {/* Name + price */}
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[12.5px] font-semibold leading-tight text-foreground">{item.product.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-                  ${item.product.price.toFixed(2)} ea.
-                </p>
-              </div>
-
-              {/* Qty stepper */}
-              <div className="flex items-center rounded-lg border border-border bg-white overflow-hidden shadow-sm">
-                <button
-                  onClick={() => onUpdateQuantity(item.product.id, -1)}
-                  className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Minus className="h-3 w-3 stroke-[2.5]" />
-                </button>
-                <span className="w-7 border-x border-border/50 text-center text-[12px] font-bold tabular-nums text-foreground">{item.quantity}</span>
-                <button
-                  onClick={() => onUpdateQuantity(item.product.id, 1)}
-                  className="flex h-7 w-7 items-center justify-center text-primary transition-colors hover:bg-primary/10"
-                >
-                  <Plus className="h-3 w-3 stroke-[2.5]" />
-                </button>
-              </div>
-
-              {/* Line total */}
-              <p className="w-14 text-right text-[12.5px] font-bold tabular-nums text-foreground">
-                ${(item.product.price * item.quantity).toFixed(2)}
-              </p>
-
-              {/* Remove */}
-              <button
-                onClick={() => onRemoveItem(item.product.id)}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
+              item={item}
+              onUpdateQuantity={onUpdateQuantity}
+              onRemoveItem={onRemoveItem}
+              highlight={highlightId === item.product.id}
+              emoji={categoryEmoji[item.product.category] ?? "🛒"}
+            />
           ))
         )}
       </div>
