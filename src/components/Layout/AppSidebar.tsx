@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import {
 const navItems = [
   { title: "Dashboard",    url: "/dashboard", icon: LayoutDashboard },
   { title: "POS Checkout", url: "/",          icon: ShoppingCart    },
+  { title: "Suppliers",    url: "/suppliers", icon: Building2       },
 ];
 
 export function AppSidebar() {
