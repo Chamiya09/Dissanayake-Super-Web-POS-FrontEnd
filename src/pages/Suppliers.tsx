@@ -4,6 +4,7 @@ import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
+import { AssignProductsModal } from "@/components/Suppliers/AssignProductsModal";
 import { Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { suppliers as initialSuppliers, type Supplier } from "@/data/suppliers";
@@ -21,12 +22,14 @@ export default function Suppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
 
   /* ── Modal visibility / target state ── */
-  const [isAddOpen, setIsAddOpen]       = useState(false);
-  const [editTarget, setEditTarget]     = useState<Supplier | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
+  const [isAddOpen, setIsAddOpen]         = useState(false);
+  const [editTarget, setEditTarget]       = useState<Supplier | null>(null);
+  const [deleteTarget, setDeleteTarget]   = useState<Supplier | null>(null);
+  const [assignTarget, setAssignTarget]   = useState<Supplier | null>(null);
 
   const isEditOpen   = editTarget   !== null;
   const isDeleteOpen = deleteTarget !== null;
+  const isAssignOpen = assignTarget !== null;
 
   /* ── CRUD handlers ── */
   const handleAdd = useCallback((data: Omit<Supplier, "id">) => {
@@ -99,6 +102,7 @@ export default function Suppliers() {
           suppliers={suppliers}
           onEdit={(s) => setEditTarget(s)}
           onDelete={(s) => setDeleteTarget(s)}
+          onAssign={(s) => setAssignTarget(s)}
         />
       </div>
 
@@ -119,6 +123,11 @@ export default function Suppliers() {
         onClose={() => setDeleteTarget(null)}
         supplier={deleteTarget}
         onConfirm={handleDelete}
+      />
+      <AssignProductsModal
+        isOpen={isAssignOpen}
+        onClose={() => setAssignTarget(null)}
+        supplier={assignTarget}
       />
     </div>
   );

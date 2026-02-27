@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Clock, Mail, Phone, User, Building2 } from "lucide-react";
+import { Pencil, Trash2, Clock, Mail, Phone, User, Building2, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
@@ -44,9 +44,10 @@ interface SupplierTableProps {
   suppliers: Supplier[];
   onEdit: (supplier: Supplier) => void;
   onDelete: (supplier: Supplier) => void;
+  onAssign: (supplier: Supplier) => void;
 }
 
-export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProps) {
+export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: SupplierTableProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -135,6 +136,15 @@ export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProp
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => onAssign(supplier)}
+                      className="h-8 gap-1.5 text-[12px] hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-300 dark:hover:text-emerald-400"
+                    >
+                      <PackageCheck className="h-3.5 w-3.5" />
+                      Assign
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => onEdit(supplier)}
                       className="h-8 gap-1.5 text-[12px] hover:bg-primary/10 hover:text-primary hover:border-primary/40"
                     >
@@ -190,7 +200,16 @@ export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProp
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2 pt-1 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onAssign(supplier)}
+                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-300 dark:hover:text-emerald-400"
+              >
+                <PackageCheck className="h-3.5 w-3.5" />
+                Assign
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
