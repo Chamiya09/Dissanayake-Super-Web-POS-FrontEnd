@@ -164,7 +164,7 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
   const handleSave = () => {
     setSaving(true);
     setTimeout(() => {
-      console.log("Products assigned in UI");
+      if (onAssign) onAssign([...selected]);
       setSaving(false);
       onClose();
     }, 400);
