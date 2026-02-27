@@ -30,10 +30,10 @@ export function POSHeader() {
 
       {/* Center — Clock */}
       <div className="flex flex-1 flex-col items-center justify-center gap-0.5 text-center">
-        <p className="text-[20px] font-bold tabular-nums tracking-tight leading-none text-primary">
+        <p className="text-[16px] sm:text-[20px] font-bold tabular-nums tracking-tight leading-none text-primary">
           {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </p>
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.12em]">
+        <p className="hidden sm:block text-[10px] font-medium text-muted-foreground uppercase tracking-[0.12em]">
           {time.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
         </p>
       </div>

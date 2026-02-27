@@ -6,6 +6,9 @@ export interface Product {
   image?: string;
   unit: string;
   barcode: string;
+  discount?: number;   // percentage off e.g. 20 = 20%
+  isPromo?: boolean;   // "Hot Deal" badge
+  isNew?: boolean;     // "New" badge
 }
 
 export interface CartItem {
@@ -25,16 +28,16 @@ export const categories = [
 ] as const;
 
 export const products: Product[] = [
-  { id: "1", name: "Organic Bananas", price: 1.29, category: "Fruits", unit: "bunch", barcode: "4011" },
-  { id: "2", name: "Fuji Apples", price: 3.49, category: "Fruits", unit: "kg", barcode: "4131" },
-  { id: "3", name: "Fresh Strawberries", price: 4.99, category: "Fruits", unit: "pack", barcode: "4150" },
-  { id: "4", name: "Whole Milk", price: 3.79, category: "Dairy", unit: "gal", barcode: "7001" },
-  { id: "5", name: "Greek Yogurt", price: 5.49, category: "Dairy", unit: "tub", barcode: "7042" },
-  { id: "6", name: "Cheddar Cheese", price: 6.29, category: "Dairy", unit: "block", barcode: "7088" },
-  { id: "7", name: "Orange Juice", price: 4.29, category: "Beverages", unit: "bottle", barcode: "8010" },
-  { id: "8", name: "Sparkling Water", price: 1.99, category: "Beverages", unit: "can", barcode: "8055" },
-  { id: "9", name: "Sourdough Bread", price: 5.99, category: "Bakery", unit: "loaf", barcode: "9001" },
-  { id: "10", name: "Croissants", price: 3.99, category: "Bakery", unit: "pack", barcode: "9020" },
-  { id: "11", name: "Trail Mix", price: 7.49, category: "Snacks", unit: "bag", barcode: "6010" },
-  { id: "12", name: "Chicken Breast", price: 9.99, category: "Meat", unit: "kg", barcode: "5001" },
+  { id: "1",  name: "Organic Bananas",    price: 1.29, category: "Fruits",     unit: "bunch",  barcode: "4011", discount: 15, isPromo: true },
+  { id: "2",  name: "Fuji Apples",        price: 3.49, category: "Fruits",     unit: "kg",     barcode: "4131" },
+  { id: "3",  name: "Fresh Strawberries", price: 4.99, category: "Fruits",     unit: "pack",   barcode: "4150", isNew: true },
+  { id: "4",  name: "Whole Milk",         price: 3.79, category: "Dairy",      unit: "gal",    barcode: "7001", discount: 10 },
+  { id: "5",  name: "Greek Yogurt",       price: 5.49, category: "Dairy",      unit: "tub",    barcode: "7042", isPromo: true },
+  { id: "6",  name: "Cheddar Cheese",     price: 6.29, category: "Dairy",      unit: "block",  barcode: "7088" },
+  { id: "7",  name: "Orange Juice",       price: 4.29, category: "Beverages",  unit: "bottle", barcode: "8010", discount: 20, isPromo: true },
+  { id: "8",  name: "Sparkling Water",    price: 1.99, category: "Beverages",  unit: "can",    barcode: "8055", isNew: true },
+  { id: "9",  name: "Sourdough Bread",    price: 5.99, category: "Bakery",     unit: "loaf",   barcode: "9001" },
+  { id: "10", name: "Croissants",         price: 3.99, category: "Bakery",     unit: "pack",   barcode: "9020", discount: 5 },
+  { id: "11", name: "Trail Mix",          price: 7.49, category: "Snacks",     unit: "bag",    barcode: "6010", isNew: true },
+  { id: "12", name: "Chicken Breast",     price: 9.99, category: "Meat",       unit: "kg",     barcode: "5001", discount: 12, isPromo: true },
 ];
