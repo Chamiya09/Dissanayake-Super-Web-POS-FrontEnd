@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Suppliers from "./pages/Suppliers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,7 +41,7 @@ const App = () => (
                 <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
                 <Route path="/sales"      element={<PlaceholderPage title="Sales & Returns" />} />
                 <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
-                <Route path="/suppliers"  element={<PlaceholderPage title="Suppliers" />} />
+                <Route path="/suppliers"  element={<Suppliers />} />
                 <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                 <Route path="/users"      element={<PlaceholderPage title="Users" />} />
                 <Route path="*"           element={<NotFound />} />
