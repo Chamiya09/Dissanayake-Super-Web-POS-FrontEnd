@@ -2,22 +2,16 @@ import { useState } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
+import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
+import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { Building2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Supplier } from "@/data/suppliers";
 
 export default function Suppliers() {
-  const [addOpen, setAddOpen] = useState(false);
-
-  const handleEdit = (supplier: Supplier) => {
-    // Edit modal will be wired up in next step
-    console.log("Edit:", supplier);
-  };
-
-  const handleDelete = (supplier: Supplier) => {
-    // Delete modal will be wired up in next step
-    console.log("Delete:", supplier);
-  };
+  const [addOpen, setAddOpen]           = useState(false);
+  const [editTarget, setEditTarget]     = useState<Supplier | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -46,11 +40,27 @@ export default function Suppliers() {
         </div>
 
         {/* Table */}
-        <SupplierTable onEdit={handleEdit} onDelete={handleDelete} />
+        <SupplierTable
+          onEdit={(s) => setEditTarget(s)}
+          onDelete={(s) => setDeleteTarget(s)}
+        />
       </div>
 
-      {/* Add Supplier Modal */}
-      <AddSupplierModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
+      {/* Modals */}
+      <AddSupplierModal
+        isOpen={addOpen}
+        onClose={() => setAddOpen(false)}
+      />
+      <EditSupplierModal
+        isOpen={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        supplier={editTarget}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        supplier={deleteTarget}
+      />
     </div>
   );
 }
