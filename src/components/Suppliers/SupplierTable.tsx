@@ -1,26 +1,31 @@
-import { Pencil, Trash2, Clock, Mail, Phone, User, Building2, PackageCheck } from "lucide-react";
+import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
 
-/* ── Lead-time badge colour helper ── */
+/* ── Lead-time badge ── */
 function LeadTimeBadge({ days }: { days: number }) {
-  const colour =
-    days <= 1
-      ? "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
-      : days <= 3
-      ? "bg-amber-500/10 text-amber-600 border-amber-200 dark:text-amber-400 dark:border-amber-800"
-      : "bg-red-500/10 text-red-600 border-red-200 dark:text-red-400 dark:border-red-800";
+  const fast   = days <= 2;
+  const normal = days >= 3 && days <= 5;
+  // slow = days > 5
+
+  const label  = fast ? "Fast" : normal ? "Normal" : "Slow";
+  const dot    = fast ? "bg-emerald-500" : normal ? "bg-amber-500" : "bg-red-500";
+  const colour = fast
+    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
+    : normal
+    ? "bg-amber-500/10 text-amber-700 border-amber-200 dark:text-amber-400 dark:border-amber-800"
+    : "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
         colour
       )}
     >
-      <Clock className="h-3 w-3" />
-      {days} {days === 1 ? "day" : "days"}
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
+      {label} ({days} {days === 1 ? "day" : "days"})
     </span>
   );
 }
