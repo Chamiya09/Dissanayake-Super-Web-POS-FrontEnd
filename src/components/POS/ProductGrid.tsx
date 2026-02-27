@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Search, Plus,
@@ -64,6 +64,21 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   };
 
   const PLACEHOLDER = "/placeholder.svg";
+  const isSearching = search.trim().length > 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // [F1] → focus the search bar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "F1") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -73,38 +88,52 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search products or scan barcode&hellip;"
+          ref={inputRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 rounded-lg border border-border bg-white pl-10 pr-4 text-sm shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-10 rounded-lg border border-border bg-card pl-10 pr-12 text-sm shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
+        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 pointer-events-none select-none">
+          F1
+        </kbd>
       </div>
 
-      {/* â”€â”€ Category filter pills â”€â”€ */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
-              activeCategory === cat
-                ? "bg-primary text-white shadow-sm"
-                : "bg-white border border-border text-muted-foreground hover:border-primary hover:text-primary"
-            )}
-          >
-            {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
-            {cat}
-          </button>
-        ))}
+
+      {/* Category pills - slides away while searching */}
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300",
+          isSearching ? "max-h-0 opacity-0 pointer-events-none" : "max-h-16 opacity-100"
+        )}
+      >
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={cn(
+                "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
+                activeCategory === cat
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-white border border-border text-muted-foreground hover:border-primary hover:text-primary"
+              )}
+            >
+              {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* â”€â”€ Results count â”€â”€ */}
+      {/* Results count */}
       <p className="text-[12px] text-muted-foreground">
         <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
         {filtered.length !== 1 ? "products" : "product"}
-        {activeCategory !== "All" && (
+        {isSearching ? (
+          <span className="text-primary font-medium"> &middot; search results</span>
+        ) : activeCategory !== "All" ? (
           <span className="text-primary font-medium"> &middot; {activeCategory}</span>
-        )}
+        ) : null}
       </p>
 
       {/* â”€â”€ Product grid â”€â”€ */}

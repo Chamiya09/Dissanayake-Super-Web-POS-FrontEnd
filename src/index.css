@@ -61,34 +61,44 @@
   }
 
   .dark {
-    --background: 220 14% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 9% 95%;
-    --secondary-foreground: 220 9% 40%;
-    --muted: 220 9% 95%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 221 83% 53%;
-    --accent-foreground: 0 0% 100%;
+    --background: 222 47% 8%;           /* #0F172A */
+    --foreground: 210 40% 95%;          /* #F1F5F9 */
+
+    --card: 222 47% 13%;                /* #1E293B */
+    --card-foreground: 210 40% 95%;
+
+    --popover: 222 47% 13%;
+    --popover-foreground: 210 40% 95%;
+
+    --primary: 213 94% 68%;             /* #60A5FA — lighter blue for dark bg */
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 33% 17%;           /* #1E2D40 */
+    --secondary-foreground: 215 20% 65%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;    /* #94A3B8 */
+
+    --accent: 213 94% 68%;
+    --accent-foreground: 222 47% 8%;
+
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
-    --sidebar-background: 220 9% 95%;
-    --sidebar-foreground: 222 47% 20%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 100% 97%;
-    --sidebar-accent-foreground: 221 83% 40%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
-    --success: 142 71% 45%;
+
+    --border: 217 33% 25%;              /* #334155 */
+    --input: 217 33% 25%;
+    --ring: 213 94% 68%;
+
+    --sidebar-background: 222 47% 11%;  /* #162032 */
+    --sidebar-foreground: 210 40% 85%;
+    --sidebar-primary: 213 94% 68%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 217 33% 20%;
+    --sidebar-accent-foreground: 213 94% 78%;
+    --sidebar-border: 217 33% 22%;
+    --sidebar-ring: 213 94% 68%;
+
+    --success: 142 76% 55%;
     --success-foreground: 0 0% 100%;
   }
 }
@@ -105,6 +115,7 @@
 
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.2s ease;
   }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }

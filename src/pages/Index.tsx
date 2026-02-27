@@ -90,6 +90,22 @@ const Index = () => {
   }, []);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
+
+  // [Esc] → clear basket when not focused inside an input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (
+        e.key === "Escape" &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement) &&
+        cart.length > 0
+      ) {
+        setCart([]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [cart.length]);
   const total = useMemo(() => {
     const sub = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
     return sub * 1.15;

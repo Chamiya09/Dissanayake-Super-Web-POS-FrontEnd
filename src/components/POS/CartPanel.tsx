@@ -1,7 +1,7 @@
 import { ShoppingBag, Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface CartPanelProps {
@@ -131,10 +131,28 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
   const tax = subtotal * 0.15;
   const total = subtotal + tax;
 
-  const handlePayment = () => {
+  const handlePayment = useCallback(() => {
     setProcessing(true);
     setTimeout(() => setProcessing(false), 2000);
-  };
+  }, []);
+
+  // [Space] → trigger charge when not typing in an input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (
+        e.code === "Space" &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement) &&
+        items.length > 0 &&
+        !processing
+      ) {
+        e.preventDefault();
+        handlePayment();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [items.length, processing, handlePayment]);
 
   const categoryEmoji: Record<string, string> = {
     Fruits: "🍎", Dairy: "🧀", Beverages: "🥤",
@@ -145,7 +163,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
     <div className="flex h-full flex-col rounded-xl border border-border bg-white shadow-sm overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-white px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <ShoppingBag className="h-3.5 w-3.5" />
@@ -158,9 +176,14 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
           </div>
         </div>
         {items.length > 0 && (
-          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
-            {items.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
+              {items.length}
+            </span>
+            <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/60 select-none">
+              Esc&nbsp;clear
+            </kbd>
+          </div>
         )}
       </div>
 
@@ -191,7 +214,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
       </div>
 
       {/* Checkout footer */}
-      <div className="border-t border-border p-4 space-y-3 bg-white">
+      <div className="border-t border-border p-4 space-y-3 bg-card">
         {/* Totals */}
         <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden text-[12.5px]">
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
@@ -212,12 +235,18 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
         <Button
           onClick={handlePayment}
           disabled={items.length === 0 || processing}
-          className="w-full h-11 rounded-lg bg-primary text-white font-semibold text-[13px] tracking-wide hover:bg-accent transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="relative w-full h-14 rounded-xl bg-emerald-600 text-white font-bold text-[15px] tracking-wide hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150 shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {processing ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processing…</>
+            <><Loader2 className="h-5 w-5 animate-spin mr-2" />Processing&hellip;</>
           ) : (
-            <>Charge&nbsp;<span className="tabular-nums">${total.toFixed(2)}</span></>
+            <>
+              <span>Charge</span>
+              <span className="ml-2 tabular-nums text-[18px] font-extrabold">${total.toFixed(2)}</span>
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono text-white/80 select-none">
+                Space
+              </kbd>
+            </>
           )}
         </Button>
       </div>
