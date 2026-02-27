@@ -124,7 +124,7 @@ const Index = () => {
         {/* Cart Panel — desktop sidebar; ref used for flying dot target */}
         <div
           ref={cartIconRef}
-          className="hidden md:flex w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-white p-4"
+          className="hidden md:flex h-full w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-card p-4 items-stretch"
         >
           <CartPanel
             items={cart}

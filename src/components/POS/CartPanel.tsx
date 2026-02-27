@@ -160,7 +160,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
   };
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+    <div className="flex h-full w-full flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">

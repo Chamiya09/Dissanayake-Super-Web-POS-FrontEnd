@@ -16,6 +16,7 @@ interface ProductGridProps {
 export function ProductGrid({ onAddToCart }: ProductGridProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const filtered = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -65,20 +66,89 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
 
   const PLACEHOLDER = "/placeholder.svg";
   const isSearching = search.trim().length > 0;
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const gridRef   = useRef<HTMLDivElement>(null);
+  const cardRefs  = useRef<(HTMLDivElement | null)[]>([]);
 
-  // [F1] → focus the search bar
+  // Keep stable refs for use inside event handlers (avoid stale closures)
+  const focusedIdxRef = useRef(focusedIndex);
+  const filteredRef   = useRef(filtered);
+  useEffect(() => { focusedIdxRef.current = focusedIndex; }, [focusedIndex]);
+  useEffect(() => { filteredRef.current   = filtered;     });
+
+  // Reset keyboard focus when the visible list changes
+  useEffect(() => { setFocusedIndex(-1); }, [search, activeCategory]);
+
+  // Scroll focused card into view
+  useEffect(() => {
+    if (focusedIndex >= 0) {
+      cardRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [focusedIndex]);
+
+  // Derive column count from the live CSS grid
+  const getColCount = () => {
+    if (!gridRef.current) return 2;
+    return window.getComputedStyle(gridRef.current).gridTemplateColumns.split(" ").length;
+  };
+
+  // Keyboard handler: F1 search · arrows navigate · Enter add
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const isInInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+
+      // F1 → focus search
       if (e.key === "F1") {
         e.preventDefault();
         inputRef.current?.focus();
         inputRef.current?.select();
+        return;
+      }
+
+      // ArrowDown from search box → jump to first grid card
+      if (e.key === "ArrowDown" && isInInput) {
+        e.preventDefault();
+        (e.target as HTMLElement).blur();
+        setFocusedIndex(0);
+        return;
+      }
+
+      if (isInInput) return; // let the search input handle other keys normally
+
+      const cols = getColCount();
+      const len  = filteredRef.current.length;
+      const cur  = focusedIdxRef.current;
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setFocusedIndex(cur < 0 ? 0 : Math.min(cur + 1, len - 1));
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setFocusedIndex(cur <= 0 ? 0 : cur - 1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIndex(cur < 0 ? 0 : Math.min(cur + cols, len - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIndex(cur <= 0 ? 0 : Math.max(cur - cols, 0));
+      } else if (e.key === "Enter" && cur >= 0) {
+        const product = filteredRef.current[cur];
+        if (product && product.stock > 0) {
+          const card = cardRefs.current[cur];
+          const rect = card?.getBoundingClientRect();
+          onAddToCart(product, {
+            clientX: rect ? rect.left + rect.width  / 2 : window.innerWidth  / 2,
+            clientY: rect ? rect.top  + rect.height / 2 : window.innerHeight / 2,
+          } as React.MouseEvent);
+        }
       }
     };
+
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [onAddToCart]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -125,35 +195,47 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
         </div>
       </div>
 
-      {/* Results count */}
-      <p className="text-[12px] text-muted-foreground">
-        <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
-        {filtered.length !== 1 ? "products" : "product"}
-        {isSearching ? (
-          <span className="text-primary font-medium"> &middot; search results</span>
-        ) : activeCategory !== "All" ? (
-          <span className="text-primary font-medium"> &middot; {activeCategory}</span>
-        ) : null}
-      </p>
+      {/* Results count + keyboard hint */}
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] text-muted-foreground">
+          <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
+          {filtered.length !== 1 ? "products" : "product"}
+          {isSearching ? (
+            <span className="text-primary font-medium"> &middot; search results</span>
+          ) : activeCategory !== "All" ? (
+            <span className="text-primary font-medium"> &middot; {activeCategory}</span>
+          ) : null}
+        </p>
+        <p className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground/50 select-none">
+          <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">&#8593;&#8595;&#8592;&#8594;</kbd>
+          <span>navigate</span>
+          <span className="mx-0.5">&middot;</span>
+          <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">Enter</kbd>
+          <span>add</span>
+        </p>
+      </div>
 
       {/* â”€â”€ Product grid â”€â”€ */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((product) => {
+      <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filtered.map((product, idx) => {
           const outOfStock = product.stock === 0;
           const { label: stockLabel, cls: stockCls } = stockBadge(product.stock);
           const salePrice = product.discount
             ? product.price * (1 - product.discount / 100)
             : null;
+          const isFocused = focusedIndex === idx;
 
           return (
           <div
             key={product.id}
+            ref={(el) => { cardRefs.current[idx] = el; }}
             className={cn(
-              "group flex flex-col rounded-xl border-t-[3px] border border-border bg-white shadow-sm overflow-hidden transition-all duration-150",
+              "group flex flex-col rounded-xl border-t-[3px] border border-border bg-card shadow-sm overflow-hidden transition-all duration-150",
               outOfStock
                 ? "opacity-60 cursor-not-allowed border-t-gray-300"
                 : "hover:shadow-md hover:border-primary/30 cursor-pointer",
-              !outOfStock && (categoryBorder[product.category] ?? "border-t-primary")
+              !outOfStock && (categoryBorder[product.category] ?? "border-t-primary"),
+              isFocused && !outOfStock && "ring-2 ring-primary ring-offset-2 shadow-lg"
             )}
           >
             {/* Compact image strip */}
