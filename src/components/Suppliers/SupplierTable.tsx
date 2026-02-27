@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck } from "lucide-react";
+import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
@@ -26,6 +26,21 @@ function LeadTimeBadge({ days }: { days: number }) {
     >
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
       {label} ({days} {days === 1 ? "day" : "days"})
+    </span>
+  );
+}
+
+/* ── Auto-Reorder status badge ── */
+function AutoReorderBadge({ enabled }: { enabled: boolean }) {
+  return enabled ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-400 whitespace-nowrap">
+      <Sparkles className="h-3 w-3" />
+      Active
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+      Inactive
     </span>
   );
 }
@@ -75,6 +90,9 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
               </th>
               <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Lead Time
+              </th>
+              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Auto-Reorder
               </th>
               <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Actions
@@ -135,6 +153,11 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
                   <LeadTimeBadge days={supplier.leadTime} />
                 </td>
 
+                {/* Auto-Reorder */}
+                <td className="px-5 py-4">
+                  <AutoReorderBadge enabled={supplier.isAutoReorderEnabled} />
+                </td>
+
                 {/* Actions */}
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-2">
@@ -185,7 +208,10 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
                   <p className="text-[11px] text-muted-foreground mt-0.5">{supplier.id}</p>
                 </div>
               </div>
-              <LeadTimeBadge days={supplier.leadTime} />
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <LeadTimeBadge days={supplier.leadTime} />
+                <AutoReorderBadge enabled={supplier.isAutoReorderEnabled} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-1.5 text-[13px]">

@@ -5,6 +5,7 @@ export interface Supplier {
   email: string;
   phone: string;
   leadTime: number; // days
+  isAutoReorderEnabled: boolean;
 }
 
 export const suppliers: Supplier[] = [
@@ -15,6 +16,7 @@ export const suppliers: Supplier[] = [
     email: "kamal@freshfarms.lk",
     phone: "0112 345 678",
     leadTime: 2,
+    isAutoReorderEnabled: true,
   },
   {
     id: "SUP-002",
@@ -23,6 +25,7 @@ export const suppliers: Supplier[] = [
     email: "nimasha@ceylondairy.lk",
     phone: "0117 891 234",
     leadTime: 1,
+    isAutoReorderEnabled: true,
   },
   {
     id: "SUP-003",
@@ -31,6 +34,7 @@ export const suppliers: Supplier[] = [
     email: "rajan@islandbev.lk",
     phone: "0113 456 789",
     leadTime: 3,
+    isAutoReorderEnabled: false,
   },
   {
     id: "SUP-004",
@@ -39,6 +43,7 @@ export const suppliers: Supplier[] = [
     email: "thilani@goldenbakery.lk",
     phone: "0114 567 890",
     leadTime: 1,
+    isAutoReorderEnabled: false,
   },
   {
     id: "SUP-005",
@@ -47,5 +52,6 @@ export const suppliers: Supplier[] = [
     email: "asanka@tropicalharvest.lk",
     phone: "0115 678 901",
     leadTime: 5,
+    isAutoReorderEnabled: true,
   },
 ];

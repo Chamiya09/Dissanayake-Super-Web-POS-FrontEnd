@@ -83,9 +83,9 @@ export default function Suppliers() {
         {/* ── Stats strip ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Total Suppliers",    value: suppliers.length },
-            { label: "Fast (≤ 1 day)",     value: suppliers.filter((s) => s.leadTime <= 1).length },
-            { label: "Slow (> 3 days)",    value: suppliers.filter((s) => s.leadTime > 3).length },
+            { label: "Total Suppliers",  value: suppliers.length },
+            { label: "AI Auto-Reorder",  value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
+            { label: "Slow (> 5 days)",  value: suppliers.filter((s) => s.leadTime > 5).length },
           ].map((stat) => (
             <div
               key={stat.label}

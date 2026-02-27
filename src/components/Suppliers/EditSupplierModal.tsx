@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Building2, User, Mail, Phone, Clock, Loader2 } from "lucide-react";
+import { X, Building2, User, Mail, Phone, Clock, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +58,7 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
     leadTime: "",
   });
   const [errors, setErrors] = useState<Partial<FormFields>>({});
+  const [autoReorder, setAutoReorder] = useState(false);
   const [saving, setSaving] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,7 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
         phone:         supplier.phone,
         leadTime:      String(supplier.leadTime),
       });
+      setAutoReorder(supplier.isAutoReorderEnabled);
       setErrors({});
       setSaving(false);
       setTimeout(() => firstInputRef.current?.focus(), 80);
@@ -116,12 +118,13 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
     setSaving(true);
     setTimeout(() => {
       onSave({
-        id:            supplier!.id,
-        companyName:   form.companyName.trim(),
-        contactPerson: form.contactPerson.trim(),
-        email:         form.email.trim(),
-        phone:         form.phone.trim(),
-        leadTime:      Number(form.leadTime),
+        id:                   supplier!.id,
+        companyName:          form.companyName.trim(),
+        contactPerson:        form.contactPerson.trim(),
+        email:                form.email.trim(),
+        phone:                form.phone.trim(),
+        leadTime:             Number(form.leadTime),
+        isAutoReorderEnabled: autoReorder,
       });
       setSaving(false);
       onClose();
@@ -268,6 +271,46 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
               </span>
             </div>
           </FormRow>
+
+          {/* AI Auto-Reorder toggle */}
+          <div className={cn(
+            "flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition-colors",
+            autoReorder
+              ? "border-emerald-300 bg-emerald-500/5 dark:border-emerald-800"
+              : "border-border bg-muted/30"
+          )}>
+            <div className="flex items-center gap-2.5">
+              <div className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                autoReorder ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+              )}>
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-foreground leading-tight">Enable AI Auto-Reorder</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Automatically reorder stock for this supplier</p>
+              </div>
+            </div>
+            {/* Toggle switch */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoReorder}
+              onClick={() => setAutoReorder((v) => !v)}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent",
+                "transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                autoReorder ? "bg-emerald-500" : "bg-muted-foreground/30"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out",
+                  autoReorder ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Footer */}
