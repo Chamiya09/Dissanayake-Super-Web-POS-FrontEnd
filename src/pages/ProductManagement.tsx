@@ -36,7 +36,7 @@ export default function ProductManagement() {
       const data = await productApi.getAll();
       setProducts(data);
     } catch {
-      setFetchError("Failed to load products. Make sure the backend is running on port 8081.");
+      setFetchError("Failed to load products. Make sure the backend is running on port 8080.");
     } finally {
       setLoading(false);
     }
