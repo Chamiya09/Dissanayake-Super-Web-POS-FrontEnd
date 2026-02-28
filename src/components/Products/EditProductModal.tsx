@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Package, X, Tag, Hash, Layers,
-  DollarSign, Loader2, ShoppingBag,
+  DollarSign, Loader2, ShoppingBag, Ruler,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
   EMPTY_FORM,
   validateForm,
   CATEGORIES,
+  UNITS,
 } from "@/components/Products/AddProductModal";
 import type { FormFields } from "@/components/Products/AddProductModal";
 
@@ -53,6 +54,7 @@ export function EditProductModal({
         category:     product.category,
         buyingPrice:  String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
+        unit:         product.unit ?? "",
       });
       setErrors({});
       setSaving(false);
@@ -85,6 +87,7 @@ export function EditProductModal({
         category:     form.category,
         buyingPrice:  Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
+        unit:         form.unit || undefined,
       });
       setSaving(false);
       onClose();
@@ -242,6 +245,20 @@ export function EditProductModal({
               </div>
             </FormRow>
           </div>
+
+          {/* Unit — optional, full width */}
+          <FormRow id="edit-unit" label="Unit (optional)" icon={Ruler}>
+            <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+              <SelectTrigger id="edit-unit" className="h-10 text-[13px]">
+                <SelectValue placeholder="Select unit of measurement" />
+              </SelectTrigger>
+              <SelectContent>
+                {UNITS.map((u) => (
+                  <SelectItem key={u} value={u}>{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormRow>
         </div>
 
         {/* ── Footer ── */}

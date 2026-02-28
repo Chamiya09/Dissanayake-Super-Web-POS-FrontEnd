@@ -194,6 +194,9 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Category
               </th>
+              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Unit
+              </th>
               <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Buying Price
               </th>
@@ -240,6 +243,17 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 {/* Category */}
                 <td className="px-5 py-4">
                   <CategoryChip category={product.category} />
+                </td>
+
+                {/* Unit */}
+                <td className="px-5 py-4">
+                  {product.unit ? (
+                    <span className="inline-flex items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-mono font-medium text-muted-foreground">
+                      {product.unit}
+                    </span>
+                  ) : (
+                    <span className="text-[12px] text-muted-foreground/40">—</span>
+                  )}
                 </td>
 
                 {/* Buying price */}
@@ -311,6 +325,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 </p>
                 <span className="font-mono font-medium text-foreground text-[12px]">
                   {product.sku}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                  Unit
+                </p>
+                <span className="font-mono font-medium text-foreground text-[12px]">
+                  {product.unit ?? "—"}
                 </span>
               </div>
               <div>
