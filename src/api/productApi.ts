@@ -1,26 +1,53 @@
-import axios from "axios";
 import type { Product } from "@/data/product-management";
 
-/** Backend runs on port 8081; frontend dev server is on 8080 */
-const BASE_URL = "http://localhost:8081/api/products";
+const BASE_URL = "http://localhost:8080/api/products";
 
 /** Shape sent on create / update — id and createdAt are NOT sent to backend */
 export type ProductPayload = Omit<Product, "id">;
 
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let message = `Request failed: ${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      if (body?.detail || body?.message) message = body.detail ?? body.message;
+    } catch {
+      // ignore JSON parse error
+    }
+    throw new Error(message);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
 export const productApi = {
   /** GET /api/products — fetch all products */
-  getAll: (): Promise<Product[]> =>
-    axios.get<Product[]>(BASE_URL).then((r) => r.data),
+  getAll(): Promise<Product[]> {
+    return fetch(BASE_URL).then((r) => handleResponse<Product[]>(r));
+  },
 
   /** POST /api/products — create a new product */
-  create: (payload: ProductPayload): Promise<Product> =>
-    axios.post<Product>(BASE_URL, payload).then((r) => r.data),
+  create(payload: ProductPayload): Promise<Product> {
+    return fetch(BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => handleResponse<Product>(r));
+  },
 
   /** PUT /api/products/{id} — update an existing product */
-  update: (id: number, payload: ProductPayload): Promise<Product> =>
-    axios.put<Product>(`${BASE_URL}/${id}`, payload).then((r) => r.data),
+  update(id: number, payload: ProductPayload): Promise<Product> {
+    return fetch(`${BASE_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => handleResponse<Product>(r));
+  },
 
   /** DELETE /api/products/{id} — delete a product */
-  remove: (id: number): Promise<void> =>
-    axios.delete(`${BASE_URL}/${id}`).then(() => undefined),
+  remove(id: number): Promise<void> {
+    return fetch(`${BASE_URL}/${id}`, { method: "DELETE" }).then((r) =>
+      handleResponse<void>(r)
+    );
+  },
 };
