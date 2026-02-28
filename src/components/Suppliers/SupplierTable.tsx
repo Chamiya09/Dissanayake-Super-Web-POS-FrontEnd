@@ -89,7 +89,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
       s.contactPerson.toLowerCase().includes(q) ||
       s.email.toLowerCase().includes(q) ||
       s.phone.includes(q) ||
-      s.id.toLowerCase().includes(q);
+      String(s.id).includes(q);
 
     const matchesStatus =
       filterStatus === "all"          ? true :

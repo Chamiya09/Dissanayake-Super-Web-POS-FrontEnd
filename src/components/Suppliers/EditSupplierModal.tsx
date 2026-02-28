@@ -10,7 +10,7 @@ interface EditSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
-  onSave: (updated: Supplier) => void;
+  onSave: (updated: Supplier) => Promise<void>;
 }
 
 interface FormFields {
@@ -60,6 +60,7 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [autoReorder, setAutoReorder] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   /* Pre-fill form whenever a supplier is passed in */
@@ -74,6 +75,7 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
       });
       setAutoReorder(supplier.isAutoReorderEnabled);
       setErrors({});
+      setApiError(null);
       setSaving(false);
       setTimeout(() => firstInputRef.current?.focus(), 80);
     }
@@ -113,11 +115,12 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!validate()) return;
     setSaving(true);
-    setTimeout(() => {
-      onSave({
+    setApiError(null);
+    try {
+      await onSave({
         id:                   supplier!.id,
         companyName:          form.companyName.trim(),
         contactPerson:        form.contactPerson.trim(),
@@ -126,9 +129,12 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
         leadTime:             Number(form.leadTime),
         isAutoReorderEnabled: autoReorder,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Failed to update supplier.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isOpen || !supplier) return null;
@@ -191,6 +197,12 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
 
         {/* Form body */}
         <div className="px-6 py-4 space-y-4">
+          {/* API error */}
+          {apiError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+              {apiError}
+            </div>
+          )}
           {/* Company Name */}
           <FormRow id="edit-companyName" label="Company Name" icon={Building2} error={errors.companyName}>
             <Input
