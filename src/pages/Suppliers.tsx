@@ -11,6 +11,19 @@ import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
 
+/** Converts an AxiosError or plain Error into a user-readable string. */
+function extractApiError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data;
+    return (
+      data?.message ??
+      data?.detail ??
+      `Server error (${err.response?.status ?? "unknown"})`
+    );
+  }
+  return err instanceof Error ? err.message : "An unexpected error occurred.";
+}
+
 export default function Suppliers() {
   /* ── Master list & async state ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -50,23 +63,36 @@ export default function Suppliers() {
 
   /* ── POST ── */
   const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
-    const created = await supplierApi.create(data);
-    setSuppliers((prev) => [...prev, created]);
-  }, []);
+    try {
+      await supplierApi.create(data);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [fetchSuppliers]);
 
   /* ── PUT ── */
   const handleEdit = useCallback(async (updated: Supplier) => {
-    const { id, createdAt, ...payload } = updated;
-    const saved = await supplierApi.update(id, payload);
-    setSuppliers((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-  }, []);
+    try {
+      const { id, createdAt: _createdAt, ...payload } = updated;
+      await supplierApi.update(id, payload);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [fetchSuppliers]);
 
   /* ── DELETE ── */
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
-    await supplierApi.remove(deleteTarget.id);
-    setSuppliers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-  }, [deleteTarget]);
+    try {
+      await supplierApi.remove(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [deleteTarget, fetchSuppliers]);
 
   return (
     <div className="flex h-screen flex-col bg-background">
