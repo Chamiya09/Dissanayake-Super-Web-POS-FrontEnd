@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
+import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { Package, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/product-management";
@@ -37,10 +38,12 @@ export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   /* ── Modal state ── */
-  const [isAddOpen,  setIsAddOpen]  = useState(false);
-  const [editTarget, setEditTarget] = useState<Product | null>(null);
+  const [isAddOpen,     setIsAddOpen]     = useState(false);
+  const [editTarget,    setEditTarget]    = useState<Product | null>(null);
+  const [deleteTarget,  setDeleteTarget]  = useState<Product | null>(null);
 
-  const isEditOpen = editTarget !== null;
+  const isEditOpen   = editTarget   !== null;
+  const isDeleteOpen = deleteTarget !== null;
 
   /* ── CRUD handlers ── */
   const handleAdd = useCallback((data: Omit<Product, "id">) => {
@@ -51,11 +54,10 @@ export default function ProductManagement() {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
   }, []);
 
-  const handleDelete = useCallback((product: Product) => {
-    if (window.confirm(`Delete "${product.productName}"? This cannot be undone.`)) {
-      setProducts((prev) => prev.filter((p) => p.id !== product.id));
-    }
-  }, []);
+  const handleDelete = useCallback(() => {
+    if (!deleteTarget) return;
+    setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+  }, [deleteTarget]);
 
   /* ── Derived stats ── */
   const avgMargin =
@@ -121,7 +123,7 @@ export default function ProductManagement() {
         <ProductTable
           products={products}
           onEdit={(p) => setEditTarget(p)}
-          onDelete={handleDelete}
+          onDelete={(p) => setDeleteTarget(p)}
         />
       </div>
 
@@ -136,6 +138,12 @@ export default function ProductManagement() {
         onClose={() => setEditTarget(null)}
         product={editTarget}
         onSave={handleEdit}
+      />
+      <DeleteProductModal
+        isOpen={isDeleteOpen}
+        onClose={() => setDeleteTarget(null)}
+        product={deleteTarget}
+        onConfirm={handleDelete}
       />
     </div>
   );
