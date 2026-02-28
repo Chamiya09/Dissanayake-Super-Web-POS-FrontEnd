@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import axios from "axios";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
@@ -34,7 +35,12 @@ export default function Suppliers() {
       const data = await supplierApi.getAll();
       setSuppliers(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load suppliers.");
+      if (axios.isAxiosError(err)) {
+        const serverMsg = err.response?.data?.message ?? err.response?.data?.detail;
+        setError(serverMsg ?? "Unable to connect to the server. Please check your connection.");
+      } else {
+        setError("Unable to connect to the server. Please check your connection.");
+      }
     } finally {
       setLoading(false);
     }
