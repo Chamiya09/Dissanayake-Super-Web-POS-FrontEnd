@@ -1,61 +1,64 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
-import { Package, Plus } from "lucide-react";
+import { Package, Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/product-management";
+import { productApi } from "@/api/productApi";
 export type { Product };
-
-/* ── Mock seed data ── */
-const INITIAL_PRODUCTS: Product[] = [
-  { id: "PRD-001", productName: "Organic Bananas",   sku: "4011", category: "Fruits",     buyingPrice: 0.80, sellingPrice: 1.29 },
-  { id: "PRD-002", productName: "Whole Milk",        sku: "7001", category: "Dairy",      buyingPrice: 2.50, sellingPrice: 3.79 },
-  { id: "PRD-003", productName: "Orange Juice",      sku: "8010", category: "Beverages",  buyingPrice: 2.80, sellingPrice: 4.29 },
-  { id: "PRD-004", productName: "Sourdough Bread",   sku: "9001", category: "Bakery",     buyingPrice: 3.50, sellingPrice: 5.99 },
-  { id: "PRD-005", productName: "Chicken Breast",    sku: "5001", category: "Meat",       buyingPrice: 6.50, sellingPrice: 9.99 },
-];
-
-/* ── Simple ID generator ── */
-let nextId = INITIAL_PRODUCTS.length + 1;
-const generateId = () => {
-  const id = `PRD-${String(nextId).padStart(3, "0")}`;
-  nextId++;
-  return id;
-};
-
-
-
 
 
 /* ─────────────────────────────────────────────────────────────────────────
    ProductManagement  —  main page
    ───────────────────────────────────────────────────────────────────────── */
 export default function ProductManagement() {
-  /* ── Master list (single source of truth, no backend) ── */
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  /* ── Server state ── */
+  const [products,  setProducts]  = useState<Product[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   /* ── Modal state ── */
-  const [isAddOpen,     setIsAddOpen]     = useState(false);
-  const [editTarget,    setEditTarget]    = useState<Product | null>(null);
-  const [deleteTarget,  setDeleteTarget]  = useState<Product | null>(null);
+  const [isAddOpen,    setIsAddOpen]    = useState(false);
+  const [editTarget,   setEditTarget]   = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   const isEditOpen   = editTarget   !== null;
   const isDeleteOpen = deleteTarget !== null;
 
+  /* ── Initial fetch ── */
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const data = await productApi.getAll();
+      setProducts(data);
+    } catch {
+      setFetchError("Failed to load products. Make sure the backend is running on port 8081.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
   /* ── CRUD handlers ── */
-  const handleAdd = useCallback((data: Omit<Product, "id">) => {
-    setProducts((prev) => [...prev, { id: generateId(), ...data }]);
+  const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
+    const created = await productApi.create(data);
+    setProducts((prev) => [...prev, created]);
   }, []);
 
-  const handleEdit = useCallback((updated: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  const handleEdit = useCallback(async (updated: Product) => {
+    const { id, ...payload } = updated;
+    const saved = await productApi.update(id, payload);
+    setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
   }, []);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
+    await productApi.remove(deleteTarget.id);
     setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
   }, [deleteTarget]);
 
@@ -87,13 +90,17 @@ export default function ProductManagement() {
                 Product Management
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {products.length} product{products.length !== 1 ? "s" : ""} registered
+                {loading
+                  ? "Loading products…"
+                  : `${products.length} product${products.length !== 1 ? "s" : ""} registered`
+                }
               </p>
             </div>
           </div>
 
           <Button
             onClick={() => setIsAddOpen(true)}
+            disabled={loading}
             className="gap-2 shadow-sm shrink-0"
           >
             <Plus className="h-4 w-4" />
@@ -105,9 +112,9 @@ export default function ProductManagement() {
         {/* ── Stats strip ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Total Products",   value: products.length },
-            { label: "Categories",       value: categories },
-            { label: "Avg. Margin",      value: `${avgMargin.toFixed(1)}%` },
+            { label: "Total Products", value: loading ? "—" : products.length },
+            { label: "Categories",     value: loading ? "—" : categories },
+            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%` },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -119,12 +126,41 @@ export default function ProductManagement() {
           ))}
         </div>
 
+        {/* ── Loading state ── */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">Loading products…</p>
+          </div>
+        )}
+
+        {/* ── Error state ── */}
+        {!loading && fetchError && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-6 py-5 flex items-start gap-3 max-w-md w-full">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">
+                  Could not fetch products
+                </p>
+                <p className="text-[12px] text-red-600/80 dark:text-red-400/80">{fetchError}</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={fetchProducts} className="gap-2 text-[13px]">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Retry
+            </Button>
+          </div>
+        )}
+
         {/* ── Table ── */}
-        <ProductTable
-          products={products}
-          onEdit={(p) => setEditTarget(p)}
-          onDelete={(p) => setDeleteTarget(p)}
-        />
+        {!loading && !fetchError && (
+          <ProductTable
+            products={products}
+            onEdit={(p) => setEditTarget(p)}
+            onDelete={(p) => setDeleteTarget(p)}
+          />
+        )}
       </div>
 
       {/* ── Modals ── */}
