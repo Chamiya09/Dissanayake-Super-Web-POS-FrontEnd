@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Package, X, Tag, Hash, Layers,
   DollarSign, Loader2, ShoppingBag,
-  Barcode, ScanLine, CheckCircle2, AlertCircle,
+  Wifi, ScanLine, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,7 +134,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
   const [errors,        setErrors]      = useState<Partial<FormFields>>({});
   const [saving,        setSaving]      = useState(false);
   const [barcodeInput,  setBarcodeInput] = useState("");
-  const [scanStatus,    setScanStatus]  = useState<"idle" | "found" | "notfound">("idle");
+  const [scanStatus,    setScanStatus]  = useState<"idle" | "found" | "notfound" | "scanning">("idle");
   const barcodeRef = useRef<HTMLInputElement>(null);
   const firstRef   = useRef<HTMLInputElement>(null);
 
@@ -151,10 +151,10 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
   }, [isOpen]);
 
   /* Barcode lookup — auto-fills all form fields if found */
-  const handleBarcodeLookup = () => {
-    const code = barcodeInput.trim();
-    if (!code) return;
-    const match = BARCODE_DB[code];
+  const handleBarcodeLookup = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    const match = BARCODE_DB[trimmed];
     if (match) {
       setForm({
         productName:  match.productName,
@@ -167,11 +167,20 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
       setScanStatus("found");
     } else {
       // Unknown barcode — pre-fill SKU and let user complete the rest
-      setForm((prev) => ({ ...prev, sku: code }));
+      setForm((prev) => ({ ...prev, sku: trimmed }));
       setScanStatus("notfound");
       setTimeout(() => firstRef.current?.focus(), 50);
     }
   };
+
+  /* Debounce auto-lookup: fires 300 ms after scanner stops typing */
+  useEffect(() => {
+    if (!barcodeInput.trim()) return;
+    setScanStatus("scanning");
+    const timer = setTimeout(() => handleBarcodeLookup(barcodeInput), 300);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barcodeInput]);
 
   /* Close on Escape */
   useEffect(() => {
@@ -266,37 +275,48 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
           <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Barcode className="h-3.5 w-3.5" />
+                <ScanLine className="h-3.5 w-3.5" />
               </div>
-              <span className="text-[13px] font-semibold text-foreground">Scan / Enter Barcode</span>
-              <span className="ml-auto text-[11px] text-muted-foreground">Press Enter or click Lookup</span>
+              <span className="text-[13px] font-semibold text-foreground">Scan Barcode</span>
+              <span className="ml-auto text-[11px] text-muted-foreground">Point scanner at barcode</span>
             </div>
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <ScanLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  ref={barcodeRef}
-                  value={barcodeInput}
-                  onChange={(e) => { setBarcodeInput(e.target.value); setScanStatus("idle"); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleBarcodeLookup(); } }}
-                  placeholder="Scan or type barcode number…"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-[13px] font-mono pl-9 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBarcodeLookup}
-                disabled={!barcodeInput.trim()}
-                className="h-10 px-4 text-[13px] gap-1.5 shrink-0"
-              >
-                <Barcode className="h-3.5 w-3.5" />
-                Lookup
-              </Button>
+            {/* Scanner input — full width, captures scanner keystrokes */}
+            <div className="relative">
+              <ScanLine
+                className={cn(
+                  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
+                  scanStatus === "scanning" ? "text-primary animate-pulse" : "text-muted-foreground"
+                )}
+              />
+              {scanStatus === "scanning" && (
+                <Wifi className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
+              )}
+              <input
+                ref={barcodeRef}
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                placeholder="Ready to scan…"
+                autoComplete="off"
+                className={cn(
+                  "flex h-11 w-full rounded-md border bg-background px-3 py-2 text-[13px] font-mono pl-9 pr-9",
+                  "ring-offset-background placeholder:text-muted-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  scanStatus === "scanning" && "border-primary/60",
+                  scanStatus === "found"    && "border-emerald-500 focus-visible:ring-emerald-400",
+                  scanStatus === "notfound" && "border-amber-400 focus-visible:ring-amber-400",
+                  scanStatus === "idle"     && "border-input"
+                )}
+              />
             </div>
 
-            {/* Scan status */}
+            {/* Scan status banners */}
+            {scanStatus === "scanning" && (
+              <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+                <span className="text-[12px] text-primary font-medium">Scanning…</span>
+              </div>
+            )}
             {scanStatus === "found" && (
               <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
