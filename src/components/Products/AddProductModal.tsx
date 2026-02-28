@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Package, X, Tag, Hash, Layers,
   DollarSign, Loader2, ShoppingBag,
+  Barcode, ScanLine, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,33 @@ import type { Product } from "@/data/product-management";
 export const CATEGORIES = [
   "Fruits", "Dairy", "Beverages", "Bakery", "Snacks", "Meat", "Vegetables",
 ] as const;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Barcode lookup database — maps barcode → product defaults
+   In a real app this would hit a backend/Open Food Facts API.
+   ───────────────────────────────────────────────────────────────────────── */
+type BarcodeEntry = {
+  sku:          string;
+  productName:  string;
+  category:     string;
+  buyingPrice:  number;
+  sellingPrice: number;
+};
+
+const BARCODE_DB: Record<string, BarcodeEntry> = {
+  "4011":  { sku: "4011",  productName: "Organic Bananas",       category: "Fruits",     buyingPrice: 0.80, sellingPrice: 1.29 },
+  "7001":  { sku: "7001",  productName: "Whole Milk 1L",         category: "Dairy",      buyingPrice: 2.50, sellingPrice: 3.79 },
+  "8010":  { sku: "8010",  productName: "Orange Juice 1L",       category: "Beverages",  buyingPrice: 2.80, sellingPrice: 4.29 },
+  "9001":  { sku: "9001",  productName: "Sourdough Bread",       category: "Bakery",     buyingPrice: 3.50, sellingPrice: 5.99 },
+  "5001":  { sku: "5001",  productName: "Chicken Breast 1kg",    category: "Meat",       buyingPrice: 6.50, sellingPrice: 9.99 },
+  "1234":  { sku: "1234",  productName: "Cheddar Cheese 250g",   category: "Dairy",      buyingPrice: 3.20, sellingPrice: 5.49 },
+  "5678":  { sku: "5678",  productName: "Apple Juice 500ml",     category: "Beverages",  buyingPrice: 1.10, sellingPrice: 1.99 },
+  "9012":  { sku: "9012",  productName: "Greek Yogurt 200g",     category: "Dairy",      buyingPrice: 1.80, sellingPrice: 2.99 },
+  "3456":  { sku: "3456",  productName: "Sweet Potatoes 500g",   category: "Vegetables", buyingPrice: 1.20, sellingPrice: 2.49 },
+  "7890":  { sku: "7890",  productName: "Potato Chips 150g",     category: "Snacks",     buyingPrice: 0.90, sellingPrice: 1.79 },
+  "2345":  { sku: "2345",  productName: "Whole Wheat Bread",     category: "Bakery",     buyingPrice: 2.10, sellingPrice: 3.49 },
+  "6789":  { sku: "6789",  productName: "Fresh Strawberries",    category: "Fruits",     buyingPrice: 2.60, sellingPrice: 4.29 },
+};
 
 export type FormFields = {
   productName:  string;
@@ -102,20 +130,48 @@ export interface AddProductModalProps {
 }
 
 export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProps) {
-  const [form,   setForm]   = useState<FormFields>(EMPTY_FORM);
-  const [errors, setErrors] = useState<Partial<FormFields>>({});
-  const [saving, setSaving] = useState(false);
-  const firstRef = useRef<HTMLInputElement>(null);
+  const [form,          setForm]        = useState<FormFields>(EMPTY_FORM);
+  const [errors,        setErrors]      = useState<Partial<FormFields>>({});
+  const [saving,        setSaving]      = useState(false);
+  const [barcodeInput,  setBarcodeInput] = useState("");
+  const [scanStatus,    setScanStatus]  = useState<"idle" | "found" | "notfound">("idle");
+  const barcodeRef = useRef<HTMLInputElement>(null);
+  const firstRef   = useRef<HTMLInputElement>(null);
 
-  /* Reset form and focus first field on every open */
+  /* Reset form and focus barcode input on every open */
   useEffect(() => {
     if (isOpen) {
       setForm(EMPTY_FORM);
       setErrors({});
       setSaving(false);
-      setTimeout(() => firstRef.current?.focus(), 80);
+      setBarcodeInput("");
+      setScanStatus("idle");
+      setTimeout(() => barcodeRef.current?.focus(), 80);
     }
   }, [isOpen]);
+
+  /* Barcode lookup — auto-fills all form fields if found */
+  const handleBarcodeLookup = () => {
+    const code = barcodeInput.trim();
+    if (!code) return;
+    const match = BARCODE_DB[code];
+    if (match) {
+      setForm({
+        productName:  match.productName,
+        sku:          match.sku,
+        category:     match.category,
+        buyingPrice:  String(match.buyingPrice),
+        sellingPrice: String(match.sellingPrice),
+      });
+      setErrors({});
+      setScanStatus("found");
+    } else {
+      // Unknown barcode — pre-fill SKU and let user complete the rest
+      setForm((prev) => ({ ...prev, sku: code }));
+      setScanStatus("notfound");
+      setTimeout(() => firstRef.current?.focus(), 50);
+    }
+  };
 
   /* Close on Escape */
   useEffect(() => {
@@ -205,6 +261,66 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
         {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
+
+          {/* ── Barcode Scan Section ── */}
+          <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Barcode className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[13px] font-semibold text-foreground">Scan / Enter Barcode</span>
+              <span className="ml-auto text-[11px] text-muted-foreground">Press Enter or click Lookup</span>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <ScanLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  ref={barcodeRef}
+                  value={barcodeInput}
+                  onChange={(e) => { setBarcodeInput(e.target.value); setScanStatus("idle"); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleBarcodeLookup(); } }}
+                  placeholder="Scan or type barcode number…"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-[13px] font-mono pl-9 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBarcodeLookup}
+                disabled={!barcodeInput.trim()}
+                className="h-10 px-4 text-[13px] gap-1.5 shrink-0"
+              >
+                <Barcode className="h-3.5 w-3.5" />
+                Lookup
+              </Button>
+            </div>
+
+            {/* Scan status */}
+            {scanStatus === "found" && (
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-[12px] text-emerald-700 dark:text-emerald-400 font-medium">
+                  Product found — details auto-filled below. Review and save.
+                </span>
+              </div>
+            )}
+            {scanStatus === "notfound" && (
+              <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-[12px] text-amber-700 dark:text-amber-400 font-medium">
+                  Barcode not in database — SKU pre-filled. Complete the remaining fields.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Product Details</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
 
           {/* Product Name — full width */}
           <FormRow id="productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
