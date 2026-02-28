@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Package, X, Tag, Hash, Layers,
   DollarSign, Loader2, ShoppingBag,
-  Wifi, ScanLine, CheckCircle2, AlertCircle,
+  Wifi, ScanLine, CheckCircle2, AlertCircle, Ruler,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,10 @@ import type { Product } from "@/data/product-management";
 
 export const CATEGORIES = [
   "Fruits", "Dairy", "Beverages", "Bakery", "Snacks", "Meat", "Vegetables",
+] as const;
+
+export const UNITS = [
+  "kg", "g", "L", "ml", "pieces", "bottles", "packets", "box",
 ] as const;
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -58,6 +62,7 @@ export type FormFields = {
   category:     string;
   buyingPrice:  string;
   sellingPrice: string;
+  unit:         string;
 };
 
 export const EMPTY_FORM: FormFields = {
@@ -66,6 +71,7 @@ export const EMPTY_FORM: FormFields = {
   category:     "",
   buyingPrice:  "",
   sellingPrice: "",
+  unit:         "",
 };
 
 export function validateForm(form: FormFields): Partial<FormFields> {
@@ -162,6 +168,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
         category:     match.category,
         buyingPrice:  String(match.buyingPrice),
         sellingPrice: String(match.sellingPrice),
+        unit:         form.unit,
       });
       setErrors({});
       setScanStatus("found");
@@ -208,6 +215,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
         category:     form.category,
         buyingPrice:  Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
+        unit:         form.unit || undefined,
       });
       setSaving(false);
       onClose();
@@ -436,6 +444,20 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
               </div>
             </FormRow>
           </div>
+
+          {/* Unit — optional, full width */}
+          <FormRow id="unit" label="Unit (optional)" icon={Ruler}>
+            <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+              <SelectTrigger id="unit" className="h-10 text-[13px]">
+                <SelectValue placeholder="Select unit of measurement" />
+              </SelectTrigger>
+              <SelectContent>
+                {UNITS.map((u) => (
+                  <SelectItem key={u} value={u}>{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormRow>
         </div>
 
         {/* ── Footer ── */}

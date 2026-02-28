@@ -7,4 +7,5 @@ export interface Product {
   category:     string;
   buyingPrice:  number;
   sellingPrice: number;
+  unit?:        string;   // kg, g, L, ml, pieces, bottles, packets, box
 }
