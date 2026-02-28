@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import axios from "axios";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
@@ -9,6 +10,19 @@ import { Building2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
+
+/** Converts an AxiosError or plain Error into a user-readable string. */
+function extractApiError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data;
+    return (
+      data?.message ??
+      data?.detail ??
+      `Server error (${err.response?.status ?? "unknown"})`
+    );
+  }
+  return err instanceof Error ? err.message : "An unexpected error occurred.";
+}
 
 export default function Suppliers() {
   /* ── Master list & async state ── */
@@ -34,7 +48,12 @@ export default function Suppliers() {
       const data = await supplierApi.getAll();
       setSuppliers(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load suppliers.");
+      if (axios.isAxiosError(err)) {
+        const serverMsg = err.response?.data?.message ?? err.response?.data?.detail;
+        setError(serverMsg ?? "Unable to connect to the server. Please check your connection.");
+      } else {
+        setError("Unable to connect to the server. Please check your connection.");
+      }
     } finally {
       setLoading(false);
     }
@@ -44,23 +63,36 @@ export default function Suppliers() {
 
   /* ── POST ── */
   const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
-    const created = await supplierApi.create(data);
-    setSuppliers((prev) => [...prev, created]);
-  }, []);
+    try {
+      await supplierApi.create(data);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [fetchSuppliers]);
 
   /* ── PUT ── */
   const handleEdit = useCallback(async (updated: Supplier) => {
-    const { id, createdAt, ...payload } = updated;
-    const saved = await supplierApi.update(id, payload);
-    setSuppliers((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-  }, []);
+    try {
+      const { id, createdAt: _createdAt, ...payload } = updated;
+      await supplierApi.update(id, payload);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [fetchSuppliers]);
 
   /* ── DELETE ── */
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
-    await supplierApi.remove(deleteTarget.id);
-    setSuppliers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-  }, [deleteTarget]);
+    try {
+      await supplierApi.remove(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchSuppliers();
+    } catch (err) {
+      throw new Error(extractApiError(err));
+    }
+  }, [deleteTarget, fetchSuppliers]);
 
   return (
     <div className="flex h-screen flex-col bg-background">
