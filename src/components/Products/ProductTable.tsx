@@ -121,7 +121,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       p.productName.toLowerCase().includes(q) ||
       p.sku.toLowerCase().includes(q) ||
       p.category.toLowerCase().includes(q) ||
-      p.id.toLowerCase().includes(q);
+      String(p.id).toLowerCase().includes(q);
 
     const matchesCategory =
       filterCategory === "All" || p.category === filterCategory;
