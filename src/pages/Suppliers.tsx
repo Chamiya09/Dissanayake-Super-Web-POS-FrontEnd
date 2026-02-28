@@ -1,50 +1,64 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal } from "@/components/Suppliers/AssignProductsModal";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { suppliers as initialSuppliers, type Supplier } from "@/data/suppliers";
-
-/* ── Generate a simple incremental ID ── */
-let nextIdCounter = initialSuppliers.length + 1;
-const generateId = () => {
-  const id = `SUP-${String(nextIdCounter).padStart(3, "0")}`;
-  nextIdCounter++;
-  return id;
-};
+import { type Supplier } from "@/data/suppliers";
+import { supplierApi } from "@/lib/supplierApi";
 
 export default function Suppliers() {
-  /* ── Master list (single source of truth) ── */
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+  /* ── Master list & async state ── */
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
 
   /* ── Modal visibility / target state ── */
-  const [isAddOpen, setIsAddOpen]         = useState(false);
-  const [editTarget, setEditTarget]       = useState<Supplier | null>(null);
-  const [deleteTarget, setDeleteTarget]   = useState<Supplier | null>(null);
-  const [assignTarget, setAssignTarget]   = useState<Supplier | null>(null);
+  const [isAddOpen, setIsAddOpen]       = useState(false);
+  const [editTarget, setEditTarget]     = useState<Supplier | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
+  const [assignTarget, setAssignTarget] = useState<Supplier | null>(null);
 
   const isEditOpen   = editTarget   !== null;
   const isDeleteOpen = deleteTarget !== null;
   const isAssignOpen = assignTarget !== null;
 
-  /* ── CRUD handlers ── */
-  const handleAdd = useCallback((data: Omit<Supplier, "id">) => {
-    const newSupplier: Supplier = { id: generateId(), ...data };
-    setSuppliers((prev) => [...prev, newSupplier]);
+  /* ── Load suppliers from API ── */
+  const fetchSuppliers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await supplierApi.getAll();
+      setSuppliers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load suppliers.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleEdit = useCallback((updated: Supplier) => {
-    setSuppliers((prev) =>
-      prev.map((s) => (s.id === updated.id ? updated : s))
-    );
+  useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
+
+  /* ── POST ── */
+  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
+    const created = await supplierApi.create(data);
+    setSuppliers((prev) => [...prev, created]);
   }, []);
 
-  const handleDelete = useCallback(() => {
+  /* ── PUT ── */
+  const handleEdit = useCallback(async (updated: Supplier) => {
+    const { id, createdAt, ...payload } = updated;
+    const saved = await supplierApi.update(id, payload);
+    setSuppliers((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
+  }, []);
+
+  /* ── DELETE ── */
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
+    await supplierApi.remove(deleteTarget.id);
     setSuppliers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
   }, [deleteTarget]);
 
@@ -65,32 +79,47 @@ export default function Suppliers() {
                 Supplier Management
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {suppliers.length} supplier{suppliers.length !== 1 ? "s" : ""} registered
+                {loading
+                  ? "Loading…"
+                  : `${suppliers.length} supplier${suppliers.length !== 1 ? "s" : ""} registered`}
               </p>
             </div>
           </div>
 
-          <Button
-            onClick={() => setIsAddOpen(true)}
-            className="gap-2 shadow-sm shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add New Supplier</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchSuppliers}
+              disabled={loading}
+              title="Refresh"
+              className="h-9 w-9"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-sm">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add New Supplier</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
         </div>
+
+        {/* ── Error banner ── */}
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+            {error}
+          </div>
+        )}
 
         {/* ── Stats strip ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Total Suppliers",  value: suppliers.length },
-            { label: "AI Auto-Reorder",  value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
-            { label: "Slow (> 5 days)",  value: suppliers.filter((s) => s.leadTime > 5).length },
+            { label: "Total Suppliers", value: suppliers.length },
+            { label: "AI Auto-Reorder", value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
+            { label: "Slow (> 5 days)", value: suppliers.filter((s) => s.leadTime > 5).length },
           ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
-            >
+            <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
               <p className="text-[22px] font-bold text-foreground tabular-nums">{stat.value}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
             </div>

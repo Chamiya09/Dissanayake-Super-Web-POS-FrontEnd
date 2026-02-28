@@ -1,11 +1,12 @@
 export interface Supplier {
-  id: string;
+  id: number;
   companyName: string;
   contactPerson: string;
   email: string;
   phone: string;
   leadTime: number; // days
   isAutoReorderEnabled: boolean;
+  createdAt?: string;
 }
 
 export const suppliers: Supplier[] = [

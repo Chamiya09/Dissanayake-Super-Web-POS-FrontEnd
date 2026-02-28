@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Supplier, "id">) => void;
+  onSave: (data: Omit<Supplier, "id" | "createdAt">) => Promise<void>;
 }
 
 import type { Supplier } from "@/data/suppliers";
@@ -62,6 +62,7 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [autoReorder, setAutoReorder] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   /* Focus first field on open; reset form on close */
@@ -69,6 +70,7 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
     if (isOpen) {
       setForm(EMPTY_FORM);
       setErrors({});
+      setApiError(null);
       setAutoReorder(false);
       setSaving(false);
       setTimeout(() => firstInputRef.current?.focus(), 80);
@@ -109,11 +111,12 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
-    setTimeout(() => {
-      onSave({
+    setApiError(null);
+    try {
+      await onSave({
         companyName:          form.companyName.trim(),
         contactPerson:        form.contactPerson.trim(),
         email:                form.email.trim(),
@@ -121,9 +124,12 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
         leadTime:             Number(form.leadTime),
         isAutoReorderEnabled: autoReorder,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Failed to save supplier.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -179,6 +185,12 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
 
         {/* Form body */}
         <div className="px-6 py-5 space-y-4">
+          {/* API error */}
+          {apiError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+              {apiError}
+            </div>
+          )}
           {/* Company Name */}
           <FormRow id="companyName" label="Company Name" icon={Building2} error={errors.companyName}>
             <Input

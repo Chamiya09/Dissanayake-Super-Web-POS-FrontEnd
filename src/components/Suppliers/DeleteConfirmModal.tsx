@@ -8,15 +8,16 @@ interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 }
 
 export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: DeleteConfirmModalProps) {
   const [deleting, setDeleting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   /* Reset state every time the modal opens */
   useEffect(() => {
-    if (isOpen) setDeleting(false);
+    if (isOpen) { setDeleting(false); setApiError(null); }
   }, [isOpen]);
 
   /* Close on Escape */
@@ -29,13 +30,16 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     setDeleting(true);
-    setTimeout(() => {
-      onConfirm();
-      setDeleting(false);
+    setApiError(null);
+    try {
+      await onConfirm();
       onClose();
-    }, 400);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Failed to delete supplier.");
+      setDeleting(false);
+    }
   };
 
   if (!isOpen || !supplier) return null;
@@ -100,6 +104,13 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
               {supplier.id} &middot; {supplier.contactPerson} &middot; {supplier.phone}
             </p>
           </div>
+
+          {/* API error */}
+          {apiError && (
+            <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+              {apiError}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
