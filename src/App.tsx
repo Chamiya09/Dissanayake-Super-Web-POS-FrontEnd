@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Suppliers from "./pages/Suppliers";
+import ProductManagement from "./pages/ProductManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +38,7 @@ const App = () => (
               <Routes>
                 <Route path="/"           element={<Index />} />
                 <Route path="/dashboard"  element={<Dashboard />} />
-                <Route path="/products"   element={<PlaceholderPage title="Products" />} />
+                <Route path="/products"   element={<ProductManagement />} />
                 <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
                 <Route path="/sales"      element={<PlaceholderPage title="Sales & Returns" />} />
                 <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
