@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,8 +71,26 @@ function PaymentBadge({ method }) {
    Page
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function SalesManagement() {
-  const [sales, setSales] = useState(initialSales);
+  const [sales, setSales] = useState([]);
   const [search, setSearch] = useState("");
+
+  // Load from localStorage on mount; fall back to mock data if empty
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sales");
+      const stored = raw ? JSON.parse(raw) : [];
+      setSales(stored.length > 0 ? stored : initialSales);
+    } catch {
+      setSales(initialSales);
+    }
+  }, []);
+
+  // Persist every change (Void / Edit) back to localStorage
+  useEffect(() => {
+    if (sales.length > 0) {
+      localStorage.setItem("sales", JSON.stringify(sales));
+    }
+  }, [sales]);
   const [filterStatus, setFilterStatus] = useState("All");
   const [viewSale, setViewSale] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);

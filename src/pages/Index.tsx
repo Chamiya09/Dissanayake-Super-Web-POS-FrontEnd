@@ -25,6 +25,15 @@ const SEED_PRODUCTS: MgmtProduct[] = [
   { id: 4, productName: "Milo 400g",            sku: "5678901", category: "Beverages", buyingPrice: 650, sellingPrice: 890, unit: "tin"    },
 ];
 
+/* ── Sale record saved to localStorage('sales') on checkout ── */
+interface SaleRecord {
+  id: string;
+  dateTime: string;
+  totalAmount: number;
+  paymentMethod: string;
+  status: "Completed" | "Void";
+}
+
 /** Convert ProductManagement shape → POS Product shape */
 function mapToPOS(p: MgmtProduct): Product {
   return {
@@ -159,6 +168,27 @@ const Index = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
+  const handleCheckout = useCallback((totalAmount: number, paymentMethod: string) => {
+    const existing: SaleRecord[] = (() => {
+      try { return JSON.parse(localStorage.getItem("sales") ?? "[]"); }
+      catch { return []; }
+    })();
+    const nextNum =
+      existing.length > 0
+        ? Math.max(...existing.map((s) => parseInt(s.id.replace("RCP-", ""), 10))) + 1
+        : 1;
+    const newSale: SaleRecord = {
+      id: `RCP-${String(nextNum).padStart(4, "0")}`,
+      dateTime: new Date().toISOString(),
+      totalAmount,
+      paymentMethod,
+      status: "Completed",
+    };
+    localStorage.setItem("sales", JSON.stringify([...existing, newSale]));
+    setCart([]);
+    alert(`Sale ${newSale.id} recorded successfully!`);
+  }, []);
+
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
   // [Esc] → clear basket when not focused inside an input
@@ -201,6 +231,7 @@ const Index = () => {
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            onCheckout={handleCheckout}
           />
         </div>
       </div>
@@ -239,6 +270,7 @@ const Index = () => {
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            onCheckout={handleCheckout}
           />
         </SheetContent>
       </Sheet>

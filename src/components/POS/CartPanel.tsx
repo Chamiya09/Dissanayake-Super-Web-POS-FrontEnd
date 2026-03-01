@@ -14,6 +14,8 @@ interface CartPanelProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
+  /** Called with the final charged amount after a successful checkout */
+  onCheckout?: (totalAmount: number, paymentMethod: string) => void;
 }
 
 /*  Tier badge  */
@@ -147,7 +149,7 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -200,13 +202,15 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
     setProcessing(true);
     setTimeout(() => {
       setProcessing(false);
+      /* Notify parent so it can persist the sale and clear the cart */
+      onCheckout?.(finalTotal, "Cash");
       /* Reset loyalty after successful payment */
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
       setRedeemPoints(false);
     }, 2000);
-  }, []);
+  }, [finalTotal, onCheckout]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
