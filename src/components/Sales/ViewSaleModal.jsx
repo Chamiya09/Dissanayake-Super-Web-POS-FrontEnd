@@ -1,14 +1,6 @@
 import { Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/* ── Mock line items (shown on every receipt) ── */
-const MOCK_ITEMS = [
-  { name: "Coca Cola 350ml",    qty: 2, unitPrice: 180 },
-  { name: "Lay's Classic Chips",qty: 1, unitPrice: 250 },
-  { name: "Anchor Milk 1L",     qty: 3, unitPrice: 420 },
-  { name: "Milo 400g",          qty: 1, unitPrice: 890 },
-];
-
 /* ── Dashed separator ── */
 const Dash = () => (
   <div className="my-2.5 border-t border-dashed border-neutral-300 dark:border-neutral-600" />
@@ -37,9 +29,10 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
   const isCard  = saleData.paymentMethod === "Card";
   const isVoid  = saleData.status === "Void";
 
-  /* Derived totals */
-  const subtotal = MOCK_ITEMS.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
-  const tax      = Math.round(subtotal * 0.1);
+  /* Derive subtotal/tax from actual items when available */
+  const lineItems = Array.isArray(saleData.items) && saleData.items.length > 0 ? saleData.items : null;
+  const subtotal  = lineItems ? lineItems.reduce((sum, i) => sum + i.qty * i.unitPrice, 0) : null;
+  const tax       = subtotal !== null ? saleData.totalAmount - subtotal : null;
 
   return (
     <div
@@ -110,33 +103,43 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
 
             {/* Line items */}
             <div className="mt-1 space-y-1.5">
-              {MOCK_ITEMS.map((item, i) => {
-                const lineTotal = item.qty * item.unitPrice;
-                return (
-                  <div key={i}>
-                    <p className="text-[12.5px] text-neutral-700 dark:text-neutral-200">
-                      {item.name}
-                    </p>
-                    <div className="flex justify-between pl-3 text-[11.5px] text-neutral-500">
-                      <span>
-                        {item.qty} x {formatCurrency(item.unitPrice)}
-                      </span>
-                      <span className="text-neutral-700 dark:text-neutral-300">
-                        {formatCurrency(lineTotal)}
-                      </span>
+              {lineItems ? (
+                lineItems.map((item, i) => {
+                  const lineTotal = item.qty * item.unitPrice;
+                  return (
+                    <div key={i}>
+                      <p className="text-[12.5px] text-neutral-700 dark:text-neutral-200">
+                        {item.name}
+                      </p>
+                      <div className="flex justify-between pl-3 text-[11.5px] text-neutral-500">
+                        <span>
+                          {item.qty} x {formatCurrency(item.unitPrice)}
+                        </span>
+                        <span className="text-neutral-700 dark:text-neutral-300">
+                          {formatCurrency(lineTotal)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="py-2 text-center text-[12px] italic text-neutral-400">
+                  No items recorded for this sale.
+                </p>
+              )}
             </div>
 
             <Dash />
 
-            {/* Subtotals */}
-            <div className="space-y-0.5 text-[12px] text-neutral-500">
-              <MetaRow label="Subtotal" value={formatCurrency(subtotal)} />
-              <MetaRow label="Tax (10%)" value={formatCurrency(tax)} />
-            </div>
+            {/* Subtotals — only shown when items are available */}
+            {subtotal !== null && (
+              <div className="space-y-0.5 text-[12px] text-neutral-500">
+                <MetaRow label="Subtotal" value={formatCurrency(subtotal)} />
+                {tax !== null && tax > 0 && (
+                  <MetaRow label="Tax / Discount" value={formatCurrency(tax)} />
+                )}
+              </div>
+            )}
 
             {/* Heavy rule before grand total */}
             <div className="my-2 border-t-2 border-neutral-400 dark:border-neutral-500" />

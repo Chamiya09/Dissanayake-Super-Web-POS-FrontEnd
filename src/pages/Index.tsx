@@ -26,12 +26,18 @@ const SEED_PRODUCTS: MgmtProduct[] = [
 ];
 
 /* ── Sale record saved to localStorage('sales') on checkout ── */
+interface SaleItem {
+  name: string;
+  qty: number;
+  unitPrice: number;
+}
 interface SaleRecord {
   id: string;
   dateTime: string;
   totalAmount: number;
   paymentMethod: string;
   status: "Completed" | "Void";
+  items: SaleItem[];
 }
 
 /** Convert ProductManagement shape → POS Product shape */
@@ -183,11 +189,16 @@ const Index = () => {
       totalAmount,
       paymentMethod,
       status: "Completed",
+      items: cart.map((i) => ({
+        name: i.product.name,
+        qty: i.quantity,
+        unitPrice: i.product.price,
+      })),
     };
     localStorage.setItem("sales", JSON.stringify([...existing, newSale]));
     setCart([]);
     alert(`Sale ${newSale.id} recorded successfully!`);
-  }, []);
+  }, [cart]);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
