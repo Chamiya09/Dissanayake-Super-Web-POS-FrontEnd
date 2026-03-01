@@ -1,10 +1,37 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { ShoppingBag } from "lucide-react";
+import axios from "axios";
+import { toast } from "@/components/ui/sonner";
+import { ShoppingBag, CheckCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
+import { formatCurrency } from "@/utils/formatCurrency";
+
+/* ── Management-side product shape (written by ProductManagement page) ── */
+interface MgmtProduct {
+  id: number;
+  productName: string;
+  sku: string;
+  category: string;
+  buyingPrice: number;
+  sellingPrice: number;
+  unit?: string;
+}
+
+/** Convert ProductManagement shape → POS Product shape */
+function mapToPOS(p: MgmtProduct): Product {
+  return {
+    id:       String(p.id),
+    name:     p.productName,
+    price:    p.sellingPrice,
+    category: p.category,
+    unit:     p.unit ?? "pcs",
+    barcode:  p.sku,
+    stock:    50,   // default — management page doesn't track stock yet
+  };
+}
 
 /* ── Flying dot that animates from click position to cart icon ── */
 function FlyingDot({
@@ -52,6 +79,18 @@ const Index = () => {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number; paymentMethod: string } | null>(null);
+
+  /* ── Fetch products from backend API ── */
+  const [posProducts, setPosProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    axios
+      .get<MgmtProduct[]>("http://localhost:8080/api/products")
+      .then(({ data }) => setPosProducts(data.map(mapToPOS)))
+      .catch((err) => console.error("Failed to load products:", err));
+  }, []);
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
     setCart((prev) => {
@@ -89,6 +128,36 @@ const Index = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
+  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
+    const receiptNo = `RCP-${Date.now()}`;
+    const payload = {
+      receiptNo,
+      paymentMethod,
+      totalAmount,
+      status: "Completed",
+      items: cart.map((i) => ({
+        productName: i.product.name,
+        quantity:    i.quantity,
+        unitPrice:   i.product.price,
+        lineTotal:   i.quantity * i.product.price,
+      })),
+    };
+
+    try {
+      await axios.post("http://localhost:8080/api/sales", payload);
+      setCart([]);
+      setCartOpen(false);
+      setLastSale({ receiptNo, total: totalAmount, paymentMethod });
+      setShowSuccessPopup(true);
+      toast.success(`Sale ${receiptNo} recorded successfully!`, {
+        duration: 4000,
+      });
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      alert("Failed to record sale. Please try again.");
+    }
+  }, [cart]);
+
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
   // [Esc] → clear basket when not focused inside an input
@@ -118,7 +187,7 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
-          <ProductGrid onAddToCart={addToCart} />
+          <ProductGrid onAddToCart={addToCart} products={posProducts} />
         </div>
 
         {/* Cart Panel — desktop sidebar; ref used for flying dot target */}
@@ -131,6 +200,7 @@ const Index = () => {
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            onCheckout={handleCheckout}
           />
         </div>
       </div>
@@ -169,6 +239,7 @@ const Index = () => {
             onUpdateQuantity={updateQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            onCheckout={handleCheckout}
           />
         </SheetContent>
       </Sheet>
@@ -189,6 +260,43 @@ const Index = () => {
           />
         );
       })}
+
+      {/* ── Sale Success Popup ── */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-2xl text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15">
+                <CheckCircle className="h-10 w-10 text-emerald-500" />
+              </div>
+            </div>
+            <h2 className="text-[22px] font-bold text-foreground">Sale Completed Successfully!</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Transaction recorded successfully.</p>
+
+            <div className="mt-5 rounded-xl border border-border bg-muted/40 px-5 py-4 text-left space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Receipt No.</span>
+                <span className="font-mono font-bold text-primary">{lastSale?.receiptNo}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Amount</span>
+                <span className="font-bold text-foreground tabular-nums">{formatCurrency(lastSale?.total ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment Method</span>
+                <span className="font-semibold text-foreground">{lastSale?.paymentMethod}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowSuccessPopup(false)}
+              className="mt-6 w-full rounded-xl bg-emerald-600 py-3 text-[14px] font-bold text-white hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150 shadow-lg shadow-emerald-500/25"
+            >
+              New Sale
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

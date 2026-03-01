@@ -44,6 +44,13 @@ export default function ProductManagement() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  /* ── Sync to localStorage whenever the product list changes ── */
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem("products", JSON.stringify(products));
+    }
+  }, [products, loading]);
+
   /* ── CRUD handlers ── */
   const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
     const created = await productApi.create(data);

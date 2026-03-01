@@ -1,6 +1,7 @@
 import {
   ShoppingBag, Minus, Plus, Trash2, Loader2,
   Gift, User, Star, Phone, Search, X, AlertCircle, Check, ChevronDown,
+  Banknote, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
@@ -8,12 +9,15 @@ import type { LoyaltyCustomer } from "@/data/loyalty";
 import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } from "@/data/loyalty";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface CartPanelProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
+  /** Called with the final charged amount after a successful checkout */
+  onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
 }
 
 /*  Tier badge  */
@@ -106,7 +110,7 @@ function SwipeableItem({
             {item.product.name}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-            ${item.product.price.toFixed(2)} ea.
+            {formatCurrency(item.product.price)} ea.
           </p>
         </div>
 
@@ -131,7 +135,7 @@ function SwipeableItem({
 
         {/* Line total */}
         <p className="w-14 text-right text-[12.5px] font-bold tabular-nums text-foreground">
-          ${(item.product.price * item.quantity).toFixed(2)}
+          {formatCurrency(item.product.price * item.quantity)}
         </p>
 
         {/* Remove (hover, desktop) */}
@@ -147,8 +151,9 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -196,17 +201,25 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
   const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
 
   /*  Payment handler  */
-  const handlePayment = useCallback(() => {
+  const handlePayment = useCallback(async () => {
+    if (!paymentMethod) {
+      alert("Please select a payment method!");
+      return;
+    }
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
+    try {
+      /* Await backend — button stays disabled until API responds */
+      await onCheckout?.(finalTotal, paymentMethod);
       /* Reset loyalty after successful payment */
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
       setRedeemPoints(false);
-    }, 2000);
-  }, []);
+      setPaymentMethod("");
+    } finally {
+      setProcessing(false);
+    }
+  }, [finalTotal, paymentMethod, onCheckout]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
@@ -483,7 +496,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
                       <span>Redeem&nbsp;</span>
                       <span className="font-semibold">{(redeemableDollars * 100).toLocaleString()}&nbsp;pts</span>
                       <span className="mx-1 opacity-60">&rarr;</span>
-                      <span className="font-bold text-current">-${redeemableDollars.toFixed(2)}</span>
+                      <span className="font-bold text-current">-{formatCurrency(redeemableDollars)}</span>
                       <span className="ml-1.5 text-[10.5px] opacity-50">max&nbsp;20%</span>
                     </div>
                     <div className={cn(
@@ -509,11 +522,11 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
         <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden text-[12.5px]">
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Subtotal</span>
-            <span className="tabular-nums font-semibold text-foreground">${subtotal.toFixed(2)}</span>
+            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
           </div>
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Tax (15%)</span>
-            <span className="tabular-nums font-semibold text-foreground">${tax.toFixed(2)}</span>
+            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(tax)}</span>
           </div>
           {loyaltyDiscount > 0 && (
             <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
@@ -522,7 +535,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
                 Loyalty Discount
               </span>
               <span className="tabular-nums font-bold text-amber-600 dark:text-amber-400">
-                -${loyaltyDiscount.toFixed(2)}
+                -{formatCurrency(loyaltyDiscount)}
               </span>
             </div>
           )}
@@ -530,10 +543,86 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
             <span className="text-[13px] font-bold text-foreground">Total</span>
             <div className="flex items-baseline gap-1.5">
               {loyaltyDiscount > 0 && (
-                <span className="text-[11px] line-through text-muted-foreground tabular-nums">${total.toFixed(2)}</span>
+                <span className="text-[11px] line-through text-muted-foreground tabular-nums">{formatCurrency(total)}</span>
               )}
-              <span className="tabular-nums text-[15px] font-extrabold text-primary">${finalTotal.toFixed(2)}</span>
+              <span className="tabular-nums text-[15px] font-extrabold text-primary">{formatCurrency(finalTotal)}</span>
             </div>
+          </div>
+        </div>
+
+        {/*  Payment method selector  */}
+        <div className="rounded-xl border border-border bg-secondary/30 p-3">
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Payment Method
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Cash */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Cash")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
+                paymentMethod === "Cash"
+                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/20"
+                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                paymentMethod === "Cash"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-secondary text-muted-foreground"
+              )}>
+                <Banknote className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+              </div>
+              <span className={cn(
+                "text-[12.5px] font-bold transition-colors",
+                paymentMethod === "Cash"
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-muted-foreground"
+              )}>
+                Cash
+              </span>
+              {paymentMethod === "Cash" && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500">
+                  <Check className="h-2.5 w-2.5 text-white" />
+                </span>
+              )}
+            </button>
+
+            {/* Card */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Card")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
+                paymentMethod === "Card"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/20"
+                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                paymentMethod === "Card"
+                  ? "bg-blue-500 text-white"
+                  : "bg-secondary text-muted-foreground"
+              )}>
+                <CreditCard className="h-[18px] w-[18px]" />
+              </div>
+              <span className={cn(
+                "text-[12.5px] font-bold transition-colors",
+                paymentMethod === "Card"
+                  ? "text-blue-700 dark:text-blue-400"
+                  : "text-muted-foreground"
+              )}>
+                Card
+              </span>
+              {paymentMethod === "Card" && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500">
+                  <Check className="h-2.5 w-2.5 text-white" />
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -548,10 +637,10 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId }
           ) : (
             <>
               <span>Charge</span>
-              <span className="ml-2 tabular-nums text-[18px] font-extrabold">${finalTotal.toFixed(2)}</span>
+              <span className="ml-2 tabular-nums text-[18px] font-extrabold">{formatCurrency(finalTotal)}</span>
               {loyaltyDiscount > 0 && (
                 <span className="ml-2 rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
-                  &#9733; -${loyaltyDiscount.toFixed(2)} off
+                  &#9733; -{formatCurrency(loyaltyDiscount)} off
                 </span>
               )}
               <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono text-white/80 select-none">
