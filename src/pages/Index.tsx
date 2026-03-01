@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import axios from "axios";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, CheckCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 /* ── Management-side product shape (written by ProductManagement page) ── */
 interface MgmtProduct {
@@ -77,6 +78,8 @@ const Index = () => {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number } | null>(null);
 
   /* ── Fetch products from backend API ── */
   const [posProducts, setPosProducts] = useState<Product[]>([]);
@@ -142,7 +145,9 @@ const Index = () => {
     try {
       await axios.post("http://localhost:8080/api/sales", payload);
       setCart([]);
-      alert(`Sale ${receiptNo} recorded successfully!`);
+      setCartOpen(false);
+      setLastSale({ receiptNo, total: totalAmount });
+      setShowSuccessPopup(true);
     } catch (err) {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
@@ -251,6 +256,39 @@ const Index = () => {
           />
         );
       })}
+
+      {/* ── Sale Success Popup ── */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-2xl text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15">
+                <CheckCircle className="h-10 w-10 text-emerald-500" />
+              </div>
+            </div>
+            <h2 className="text-[22px] font-bold text-foreground">Sale Completed!</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Transaction recorded successfully.</p>
+
+            <div className="mt-5 rounded-xl border border-border bg-muted/40 px-5 py-4 text-left space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Receipt No.</span>
+                <span className="font-mono font-bold text-primary">{lastSale?.receiptNo}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Amount Paid</span>
+                <span className="font-bold text-foreground tabular-nums">{formatCurrency(lastSale?.total ?? 0)}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowSuccessPopup(false)}
+              className="mt-6 w-full rounded-xl bg-emerald-600 py-3 text-[14px] font-bold text-white hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150 shadow-lg shadow-emerald-500/25"
+            >
+              New Sale
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
