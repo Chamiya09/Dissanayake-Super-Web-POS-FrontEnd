@@ -6,6 +6,38 @@ import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
 
+/* ── Management-side product shape (written by ProductManagement page) ── */
+interface MgmtProduct {
+  id: number;
+  productName: string;
+  sku: string;
+  category: string;
+  buyingPrice: number;
+  sellingPrice: number;
+  unit?: string;
+}
+
+/* ── 4 seed records used when localStorage is empty ── */
+const SEED_PRODUCTS: MgmtProduct[] = [
+  { id: 1, productName: "Coca Cola 350ml",     sku: "8901234", category: "Beverages", buyingPrice: 120, sellingPrice: 180, unit: "can"    },
+  { id: 2, productName: "Lay's Classic Chips",  sku: "7890123", category: "Snacks",    buyingPrice: 180, sellingPrice: 250, unit: "packet" },
+  { id: 3, productName: "Anchor Milk 1L",       sku: "6789012", category: "Dairy",     buyingPrice: 320, sellingPrice: 420, unit: "bottle" },
+  { id: 4, productName: "Milo 400g",            sku: "5678901", category: "Beverages", buyingPrice: 650, sellingPrice: 890, unit: "tin"    },
+];
+
+/** Convert ProductManagement shape → POS Product shape */
+function mapToPOS(p: MgmtProduct): Product {
+  return {
+    id:       String(p.id),
+    name:     p.productName,
+    price:    p.sellingPrice,
+    category: p.category,
+    unit:     p.unit ?? "pcs",
+    barcode:  p.sku,
+    stock:    50,   // default — management page doesn't track stock yet
+  };
+}
+
 /* ── Flying dot that animates from click position to cart icon ── */
 function FlyingDot({
   startX,
@@ -52,6 +84,44 @@ const Index = () => {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
+
+  /* ── Load products from localStorage; seed defaults if empty ── */
+  const [posProducts, setPosProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("products");
+    let mgmtList: MgmtProduct[] = [];
+
+    if (raw) {
+      try {
+        mgmtList = JSON.parse(raw) as MgmtProduct[];
+      } catch {
+        mgmtList = [];
+      }
+    }
+
+    if (!mgmtList || mgmtList.length === 0) {
+      // Seed with defaults and persist so ProductManagement sees them too
+      mgmtList = SEED_PRODUCTS;
+      localStorage.setItem("products", JSON.stringify(mgmtList));
+    }
+
+    setPosProducts(mgmtList.map(mapToPOS));
+  }, []);
+
+  /* Re-sync if another tab/component updates localStorage */
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "products" && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue) as MgmtProduct[];
+          setPosProducts(updated.map(mapToPOS));
+        } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
     setCart((prev) => {
@@ -118,7 +188,7 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
-          <ProductGrid onAddToCart={addToCart} />
+          <ProductGrid onAddToCart={addToCart} products={posProducts} />
         </div>
 
         {/* Cart Panel — desktop sidebar; ref used for flying dot target */}

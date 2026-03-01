@@ -6,19 +6,22 @@ import {
   Flame, Tag, Sparkles, PackageX,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { categories, products, type Product } from "@/data/products";
+import { categories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
 interface ProductGridProps {
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
+  /** Override the hard-coded product list with data from localStorage */
+  products?: Product[];
 }
 
-export function ProductGrid({ onAddToCart }: ProductGridProps) {
+export function ProductGrid({ onAddToCart, products: externalProducts }: ProductGridProps) {
+  const productList = externalProducts ?? staticProducts;
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  const filtered = products.filter((p) => {
+  const filtered = productList.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = activeCategory === "All" || p.category === activeCategory;
     return matchesSearch && matchesCategory;
