@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
 
 const API = "http://localhost:8080/api/sales";
@@ -10,9 +11,6 @@ import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, Pencil } from "luc
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 import EditSaleModal from "@/components/Sales/EditSaleModal";
 
-
-const formatCurrency = (amount) =>
-  new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
 
 const formatDateTime = (iso) => {
   const d = new Date(iso);

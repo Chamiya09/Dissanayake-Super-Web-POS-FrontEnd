@@ -1,5 +1,6 @@
 import { Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 /* ── Dashed separator ── */
 const Dash = () => (
@@ -8,14 +9,6 @@ const Dash = () => (
 
 export default function ViewSaleModal({ isOpen, onClose, saleData }) {
   if (!isOpen || !saleData) return null;
-
-  /* ── formatters ── */
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("en-LK", {
-      style: "currency",
-      currency: "LKR",
-      minimumFractionDigits: 2,
-    }).format(amount);
 
   const formatDateTime = (iso) => {
     const d = new Date(iso);

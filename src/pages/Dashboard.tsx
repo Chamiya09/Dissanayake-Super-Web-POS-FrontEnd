@@ -3,6 +3,7 @@ import axios from "axios";
 import { TrendingUp, Package, Truck, LayoutDashboard } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -36,10 +37,6 @@ const tooltipStyle = {
 
 const tickStyle = { fontSize: 12, fill: "hsl(var(--muted-foreground))" } as const;
 const gridColor = "hsl(var(--border))";
-
-/*  Formatting helpers  */
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
@@ -237,7 +234,7 @@ export default function Dashboard() {
                     contentStyle={tooltipStyle}
                     cursor={{ fill: "hsl(var(--primary)/0.06)" }}
                     formatter={(v: number) => [
-                      new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(v),
+                      formatCurrency(v),
                       "Revenue",
                     ]}
                   />

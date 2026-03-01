@@ -8,6 +8,7 @@ import type { LoyaltyCustomer } from "@/data/loyalty";
 import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } from "@/data/loyalty";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -108,7 +109,7 @@ function SwipeableItem({
             {item.product.name}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-            ${item.product.price.toFixed(2)} ea.
+            {formatCurrency(item.product.price)} ea.
           </p>
         </div>
 
@@ -133,7 +134,7 @@ function SwipeableItem({
 
         {/* Line total */}
         <p className="w-14 text-right text-[12.5px] font-bold tabular-nums text-foreground">
-          ${(item.product.price * item.quantity).toFixed(2)}
+          {formatCurrency(item.product.price * item.quantity)}
         </p>
 
         {/* Remove (hover, desktop) */}
@@ -487,7 +488,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
                       <span>Redeem&nbsp;</span>
                       <span className="font-semibold">{(redeemableDollars * 100).toLocaleString()}&nbsp;pts</span>
                       <span className="mx-1 opacity-60">&rarr;</span>
-                      <span className="font-bold text-current">-${redeemableDollars.toFixed(2)}</span>
+                      <span className="font-bold text-current">-{formatCurrency(redeemableDollars)}</span>
                       <span className="ml-1.5 text-[10.5px] opacity-50">max&nbsp;20%</span>
                     </div>
                     <div className={cn(
@@ -513,11 +514,11 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
         <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden text-[12.5px]">
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Subtotal</span>
-            <span className="tabular-nums font-semibold text-foreground">${subtotal.toFixed(2)}</span>
+            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
           </div>
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Tax (15%)</span>
-            <span className="tabular-nums font-semibold text-foreground">${tax.toFixed(2)}</span>
+            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(tax)}</span>
           </div>
           {loyaltyDiscount > 0 && (
             <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
@@ -526,7 +527,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
                 Loyalty Discount
               </span>
               <span className="tabular-nums font-bold text-amber-600 dark:text-amber-400">
-                -${loyaltyDiscount.toFixed(2)}
+                -{formatCurrency(loyaltyDiscount)}
               </span>
             </div>
           )}
@@ -534,9 +535,9 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
             <span className="text-[13px] font-bold text-foreground">Total</span>
             <div className="flex items-baseline gap-1.5">
               {loyaltyDiscount > 0 && (
-                <span className="text-[11px] line-through text-muted-foreground tabular-nums">${total.toFixed(2)}</span>
+                <span className="text-[11px] line-through text-muted-foreground tabular-nums">{formatCurrency(total)}</span>
               )}
-              <span className="tabular-nums text-[15px] font-extrabold text-primary">${finalTotal.toFixed(2)}</span>
+              <span className="tabular-nums text-[15px] font-extrabold text-primary">{formatCurrency(finalTotal)}</span>
             </div>
           </div>
         </div>

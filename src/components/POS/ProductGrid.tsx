@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   Search, Plus,
   ShoppingBag, Apple, Milk, Coffee, Wheat, Cookie, Beef, Leaf,
@@ -312,11 +313,11 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
                 <div className="flex items-baseline gap-1">
                   {salePrice ? (
                     <>
-                      <span className="text-[11px] font-bold text-red-500 tabular-nums">${salePrice.toFixed(2)}</span>
-                      <span className="text-[9px] text-muted-foreground line-through tabular-nums">${product.price.toFixed(2)}</span>
+                      <span className="text-[11px] font-bold text-red-500 tabular-nums">{formatCurrency(salePrice)}</span>
+                      <span className="text-[9px] text-muted-foreground line-through tabular-nums">{formatCurrency(product.price)}</span>
                     </>
                   ) : (
-                    <span className="text-[11px] font-bold text-primary tabular-nums">${product.price.toFixed(2)}</span>
+                    <span className="text-[11px] font-bold text-primary tabular-nums">{formatCurrency(product.price)}</span>
                   )}
                 </div>
                 <span className="text-[9px] text-muted-foreground border border-border rounded px-1 py-0.5 shrink-0">/{product.unit}</span>
