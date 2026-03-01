@@ -1,9 +1,29 @@
+import { Printer, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+/* ── Mock line items (shown on every receipt) ── */
+const MOCK_ITEMS = [
+  { name: "Coca Cola 350ml",    qty: 2, unitPrice: 180 },
+  { name: "Lay's Classic Chips",qty: 1, unitPrice: 250 },
+  { name: "Anchor Milk 1L",     qty: 3, unitPrice: 420 },
+  { name: "Milo 400g",          qty: 1, unitPrice: 890 },
+];
+
+/* ── Dashed separator ── */
+const Dash = () => (
+  <div className="my-2.5 border-t border-dashed border-neutral-300 dark:border-neutral-600" />
+);
+
 export default function ViewSaleModal({ isOpen, onClose, saleData }) {
   if (!isOpen || !saleData) return null;
 
   /* ── formatters ── */
   const formatCurrency = (amount) =>
-    new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
+    new Intl.NumberFormat("en-LK", {
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 2,
+    }).format(amount);
 
   const formatDate = (iso) =>
     new Date(iso).toLocaleDateString("en-GB", {
