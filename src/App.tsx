@@ -17,6 +17,7 @@ import SalesManagement from "./pages/SalesManagement";
 import UserManagement from "./pages/UserManagement";
 import StaffDashboard from "./pages/StaffDashboard";
 import UserProfile from "./pages/UserProfile";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,7 +62,7 @@ const App = () => (
                 <Route path="/"                element={<Index />} />
                 <Route path="/staff-dashboard" element={<StaffDashboard />} />
                 <Route path="/profile"         element={<UserProfile />} />
-                <Route path="/settings"        element={<PlaceholderPage title="Settings" />} />
+                <Route path="/settings"        element={<Settings />} />
 
                 {/* ── Admin-only routes (Owner + Manager) ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
