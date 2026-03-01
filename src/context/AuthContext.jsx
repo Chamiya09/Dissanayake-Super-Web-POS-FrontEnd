@@ -1,14 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Simulated user database
-   username → { name, role }  (password is accepted as any non-empty string)
-   ───────────────────────────────────────────────────────────────────────── */
-const MOCK_USERS = {
-  admin:    { name: "Nuwan Dissanayake", username: "admin",    role: "Owner"   },
-  manager1: { name: "Kamala Perera",     username: "manager1", role: "Manager" },
-  staff1:   { name: "Sachini Fernando",  username: "staff1",   role: "Staff"   },
-};
+import api from "@/lib/axiosInstance";
 
 const LS_KEY = "pos_auth_user";
 
@@ -40,22 +31,48 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => loadUser());
 
   /**
-   * login(username, password) → { success: true, user } | { success: false, error }
-   * Password can be anything non-empty (simulated).
+   * login(username, password) — async, calls POST /api/auth/login.
+   * Returns { success: true, user } | { success: false, error: string }
+   *
+   * Stored user shape: { token, username, name, role }
+   *   token    — JWT for API calls (auto-attached by axiosInstance interceptor)
+   *   username — login username   (used for API calls like change-password)
+   *   name     — full display name (shown in UI, AppHeader, profile cards)
+   *   role     — Owner | Manager | Staff
    */
-  const login = useCallback((username, password) => {
+  const login = useCallback(async (username, password) => {
     if (!username.trim() || !password.trim()) {
       return { success: false, error: "Username and password are required." };
     }
 
-    const found = MOCK_USERS[username.trim().toLowerCase()];
-    if (!found) {
-      return { success: false, error: "Invalid username or password." };
-    }
+    try {
+      const { data } = await api.post("/api/auth/login", {
+        username: username.trim(),
+        password: password.trim(),
+      });
 
-    localStorage.setItem(LS_KEY, JSON.stringify(found));
-    setUser(found);
-    return { success: true, user: found };
+      // data = { token, username, name, role }
+      const sessionUser = {
+        token:    data.token,
+        username: data.username,
+        name:     data.name,
+        role:     data.role,
+      };
+
+      localStorage.setItem(LS_KEY, JSON.stringify(sessionUser));
+      setUser(sessionUser);
+      return { success: true, user: sessionUser };
+
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 401) {
+        return { success: false, error: "Invalid username or password." };
+      }
+      if (status === 403) {
+        return { success: false, error: "Your account has been deactivated. Please contact your manager." };
+      }
+      return { success: false, error: "Unable to connect to the server. Please try again." };
+    }
   }, []);
 
   /** logout — clears storage and resets state */

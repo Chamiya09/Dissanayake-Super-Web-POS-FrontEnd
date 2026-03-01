@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 
 /* Demo credential helper cards */
 const DEMO_ACCOUNTS = [
-  { username: "admin",    role: "Owner",   colour: "border-red-200   bg-red-50   text-red-700   dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"   },
-  { username: "manager1", role: "Manager", colour: "border-blue-200  bg-blue-50  text-blue-700  dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400"  },
-  { username: "staff1",   role: "Staff",   colour: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400" },
+  { username: "admin",    password: "password", role: "Owner",   colour: "border-red-200   bg-red-50   text-red-700   dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"   },
+  { username: "manager1", password: "password", role: "Manager", colour: "border-blue-200  bg-blue-50  text-blue-700  dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400"  },
+  { username: "staff1",   password: "password", role: "Staff",   colour: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400" },
 ];
 
 export default function Login() {
@@ -22,10 +22,10 @@ export default function Login() {
   const [error,     setError]     = useState("");
   const [loading,   setLoading]   = useState(false);
 
-  /* Fill username from a demo card click */
-  const fillDemo = (u) => {
+  /* Fill username + password from a demo card click */
+  const fillDemo = (u, p) => {
     setUsername(u);
-    setPassword("demo");
+    setPassword(p);
     setError("");
   };
 
@@ -34,10 +34,7 @@ export default function Login() {
     setError("");
     setLoading(true);
 
-    /* Tiny artificial delay so the spinner is visible */
-    await new Promise((r) => setTimeout(r, 600));
-
-    const result = login(username, password);
+    const result = await login(username, password);
     setLoading(false);
 
     if (!result.success) {
@@ -173,10 +170,10 @@ export default function Login() {
             Demo accounts (click to fill)
           </p>
           <div className="grid grid-cols-3 gap-2">
-            {DEMO_ACCOUNTS.map(({ username: u, role, colour }) => (
+            {DEMO_ACCOUNTS.map(({ username: u, password: p, role, colour }) => (
               <button
                 key={u}
-                onClick={() => fillDemo(u)}
+                onClick={() => fillDemo(u, p)}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-xl border px-3 py-2.5 text-center transition-all hover:opacity-80 active:scale-95",
                   colour
@@ -188,7 +185,7 @@ export default function Login() {
             ))}
           </div>
           <p className="text-center text-[10px] text-muted-foreground">
-            Any password works for demo accounts.
+            Password: <span className="font-mono font-semibold">password</span>
           </p>
         </div>
 
