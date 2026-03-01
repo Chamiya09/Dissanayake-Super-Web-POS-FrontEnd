@@ -31,7 +31,7 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
 
   /* Derive subtotal/tax from actual items when available */
   const lineItems = Array.isArray(saleData.items) && saleData.items.length > 0 ? saleData.items : null;
-  const subtotal  = lineItems ? lineItems.reduce((sum, i) => sum + i.qty * i.unitPrice, 0) : null;
+  const subtotal  = lineItems ? lineItems.reduce((sum, i) => sum + (i.quantity ?? i.qty ?? 0) * (i.price ?? i.unitPrice ?? 0), 0) : null;
   const tax       = subtotal !== null ? saleData.totalAmount - subtotal : null;
 
   return (
@@ -95,39 +95,40 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
 
             <Dash />
 
-            {/* Column headers */}
-            <div className="flex justify-between text-[10.5px] uppercase tracking-widest text-neutral-400">
-              <span>Item</span>
-              <span>Total</span>
-            </div>
-
-            {/* Line items */}
-            <div className="mt-1 space-y-1.5">
-              {lineItems ? (
-                lineItems.map((item, i) => {
-                  const lineTotal = item.qty * item.unitPrice;
-                  return (
-                    <div key={i}>
-                      <p className="text-[12.5px] text-neutral-700 dark:text-neutral-200">
-                        {item.name}
-                      </p>
-                      <div className="flex justify-between pl-3 text-[11.5px] text-neutral-500">
-                        <span>
-                          {item.qty} x {formatCurrency(item.unitPrice)}
-                        </span>
-                        <span className="text-neutral-700 dark:text-neutral-300">
-                          {formatCurrency(lineTotal)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="py-2 text-center text-[12px] italic text-neutral-400">
-                  No items recorded for this sale.
-                </p>
-              )}
-            </div>
+            {/* Items mini-table */}
+            <table className="mt-1 w-full border-collapse text-[11.5px]">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-widest text-neutral-400">
+                  <th className="pb-1 text-left font-normal w-[40%]">Item</th>
+                  <th className="pb-1 text-center font-normal w-[10%]">Qty</th>
+                  <th className="pb-1 text-right font-normal w-[25%]">Price</th>
+                  <th className="pb-1 text-right font-normal w-[25%]">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems ? (
+                  lineItems.map((item, i) => {
+                    const qty   = item.quantity ?? item.qty ?? 0;
+                    const price = item.price ?? item.unitPrice ?? 0;
+                    const lineTotal = qty * price;
+                    return (
+                      <tr key={i} className="align-top">
+                        <td className="py-0.5 pr-1 text-neutral-700 dark:text-neutral-200 leading-snug">{item.name}</td>
+                        <td className="py-0.5 text-center text-neutral-500">{qty}</td>
+                        <td className="py-0.5 text-right text-neutral-500">{formatCurrency(price)}</td>
+                        <td className="py-0.5 text-right font-medium text-neutral-700 dark:text-neutral-300">{formatCurrency(lineTotal)}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-3 text-center italic text-neutral-400">
+                      No items recorded for this sale.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
 
             <Dash />
 

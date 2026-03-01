@@ -28,8 +28,8 @@ const SEED_PRODUCTS: MgmtProduct[] = [
 /* ── Sale record saved to localStorage('sales') on checkout ── */
 interface SaleItem {
   name: string;
-  qty: number;
-  unitPrice: number;
+  quantity: number;
+  price: number;
 }
 interface SaleRecord {
   id: string;
@@ -191,8 +191,8 @@ const Index = () => {
       status: "Completed",
       items: cart.map((i) => ({
         name: i.product.name,
-        qty: i.quantity,
-        unitPrice: i.product.price,
+        quantity: i.quantity,
+        price: i.product.price,
       })),
     };
     localStorage.setItem("sales", JSON.stringify([...existing, newSale]));
