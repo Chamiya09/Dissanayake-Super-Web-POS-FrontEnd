@@ -61,6 +61,7 @@ const App = () => (
                 <Route path="/"                element={<Index />} />
                 <Route path="/staff-dashboard" element={<StaffDashboard />} />
                 <Route path="/profile"         element={<UserProfile />} />
+                <Route path="/settings"        element={<PlaceholderPage title="Settings" />} />
 
                 {/* ── Admin-only routes (Owner + Manager) ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
