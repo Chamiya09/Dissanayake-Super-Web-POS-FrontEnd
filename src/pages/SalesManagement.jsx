@@ -66,8 +66,14 @@ export default function SalesManagement() {
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data } = await axios.get(API);
-      setSales(data);
+      const response = await axios.get(API);
+      const responseData = response.data;
+      const salesArray = Array.isArray(responseData)
+        ? responseData
+        : (responseData.content || responseData.data || []);
+      console.log("Fetched Sales:", responseData);
+      console.log("Extracted Sales Array:", salesArray);
+      setSales(salesArray);
     } catch (err) {
       console.error("Failed to fetch sales:", err);
     } finally {
@@ -82,10 +88,10 @@ export default function SalesManagement() {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   /* ── Filtering ── */
-  const filtered = sales.filter((s) => {
+  const filtered = (sales ?? []).filter((s) => {
     const q = search.toLowerCase();
-    const matchSearch = !q || (s.receiptNo ?? "").toLowerCase().includes(q) || s.paymentMethod.toLowerCase().includes(q);
-    const matchStatus = filterStatus === "All" || s.status === filterStatus;
+    const matchSearch = !q || (s?.receiptNo ?? "").toLowerCase().includes(q) || (s?.paymentMethod ?? "").toLowerCase().includes(q);
+    const matchStatus = filterStatus === "All" || (s?.status ?? "") === filterStatus;
     return matchSearch && matchStatus;
   });
 
@@ -229,7 +235,13 @@ export default function SalesManagement() {
 
               {/* -- Body -- */}
               <tbody className="divide-y divide-border">
-                {filtered.length === 0 ? (
+                {!sales || sales.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center text-sm text-muted-foreground">
+                      No sales data available.
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-20 text-center text-sm text-muted-foreground">
                       No transactions match your search.
@@ -237,8 +249,8 @@ export default function SalesManagement() {
                   </tr>
                 ) : (
                   filtered.map((sale) => {
-                    const { date, time } = formatDateTime(sale.saleDate);
-                    const isVoid = sale.status === "Voided";
+                    const { date, time } = formatDateTime(sale?.saleDate || new Date().toISOString());
+                    const isVoid = (sale?.status ?? "") === "Voided";
                     return (
                       <tr
                         key={sale.id}
@@ -250,7 +262,7 @@ export default function SalesManagement() {
                         {/* Receipt No. */}
                         <td className="px-6 py-4">
                           <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
-                            {sale.receiptNo}
+                            {sale?.receiptNo || 'N/A'}
                           </span>
                         </td>
 
@@ -263,21 +275,21 @@ export default function SalesManagement() {
                         {/* Total Amount � right-aligned */}
                         <td className="px-6 py-4 text-right">
                           <span className="text-[13px] font-semibold tabular-nums text-foreground">
-                            {formatCurrency(sale.totalAmount)}
+                            {formatCurrency(sale?.totalAmount || 0)}
                           </span>
                         </td>
 
                         {/* Payment Method � centered */}
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center">
-                            <PaymentBadge method={sale.paymentMethod} />
+                            <PaymentBadge method={sale?.paymentMethod || 'N/A'} />
                           </div>
                         </td>
 
                         {/* Status � centered */}
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center">
-                            <StatusBadge status={sale.status} />
+                            <StatusBadge status={sale?.status || 'N/A'} />
                           </div>
                         </td>
 
