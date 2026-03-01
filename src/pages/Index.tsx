@@ -18,14 +18,6 @@ interface MgmtProduct {
   unit?: string;
 }
 
-/* ── 4 seed records used when localStorage is empty ── */
-const SEED_PRODUCTS: MgmtProduct[] = [
-  { id: 1, productName: "Coca Cola 350ml",     sku: "8901234", category: "Beverages", buyingPrice: 120, sellingPrice: 180, unit: "can"    },
-  { id: 2, productName: "Lay's Classic Chips",  sku: "7890123", category: "Snacks",    buyingPrice: 180, sellingPrice: 250, unit: "packet" },
-  { id: 3, productName: "Anchor Milk 1L",       sku: "6789012", category: "Dairy",     buyingPrice: 320, sellingPrice: 420, unit: "bottle" },
-  { id: 4, productName: "Milo 400g",            sku: "5678901", category: "Beverages", buyingPrice: 650, sellingPrice: 890, unit: "tin"    },
-];
-
 /** Convert ProductManagement shape → POS Product shape */
 function mapToPOS(p: MgmtProduct): Product {
   return {
@@ -86,42 +78,14 @@ const Index = () => {
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
 
-  /* ── Load products from localStorage; seed defaults if empty ── */
+  /* ── Fetch products from backend API ── */
   const [posProducts, setPosProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const raw = localStorage.getItem("products");
-    let mgmtList: MgmtProduct[] = [];
-
-    if (raw) {
-      try {
-        mgmtList = JSON.parse(raw) as MgmtProduct[];
-      } catch {
-        mgmtList = [];
-      }
-    }
-
-    if (!mgmtList || mgmtList.length === 0) {
-      // Seed with defaults and persist so ProductManagement sees them too
-      mgmtList = SEED_PRODUCTS;
-      localStorage.setItem("products", JSON.stringify(mgmtList));
-    }
-
-    setPosProducts(mgmtList.map(mapToPOS));
-  }, []);
-
-  /* Re-sync if another tab/component updates localStorage */
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "products" && e.newValue) {
-        try {
-          const updated = JSON.parse(e.newValue) as MgmtProduct[];
-          setPosProducts(updated.map(mapToPOS));
-        } catch { /* ignore */ }
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    axios
+      .get<MgmtProduct[]>("http://localhost:8080/api/products")
+      .then(({ data }) => setPosProducts(data.map(mapToPOS)))
+      .catch((err) => console.error("Failed to load products:", err));
   }, []);
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
