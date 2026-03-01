@@ -1,4 +1,6 @@
 import { useState } from "react";
+import AddSaleModal from "../components/Sales/AddSaleModal";
+import ViewSaleModal from "../components/Sales/ViewSaleModal";
 
 const initialSales = [
   {
@@ -31,21 +33,11 @@ const initialSales = [
   },
 ];
 
-const PAYMENT_METHODS = ["Cash", "Card"];
-
-const emptyForm = {
-  customerName: "",
-  date: "",
-  paymentMethod: "Cash",
-  totalAmount: "",
-};
-
 export default function SalesManagement() {
   const [sales, setSales] = useState(initialSales);
-  const [showModal, setShowModal] = useState(false);
-  const [viewSale, setViewSale] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [formError, setFormError] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -64,30 +56,16 @@ export default function SalesManagement() {
       s.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  /* ── form handlers ── */
-  const handleFormChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setFormError("");
-  };
-
-  const handleRecordSale = () => {
-    if (!form.customerName.trim()) return setFormError("Customer name is required.");
-    if (!form.date) return setFormError("Date is required.");
-    if (!form.totalAmount || isNaN(form.totalAmount) || Number(form.totalAmount) <= 0)
-      return setFormError("Enter a valid total amount.");
-
+  /* ── add sale callback (receives data from AddSaleModal) ── */
+  const handleAddSave = (data) => {
     const newSale = {
       id: generateId(),
-      customerName: form.customerName.trim(),
-      date: form.date,
-      paymentMethod: form.paymentMethod,
-      totalAmount: parseFloat(Number(form.totalAmount).toFixed(2)),
+      customerName: data.customerName,
+      date: data.date || new Date().toISOString().split("T")[0],
+      paymentMethod: data.paymentMethod,
+      totalAmount: data.totalAmount,
     };
-
     setSales([newSale, ...sales]);
-    setForm(emptyForm);
-    setFormError("");
-    setShowModal(false);
   };
 
   const handleDelete = (id) => {
@@ -155,11 +133,7 @@ export default function SalesManagement() {
           className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 sm:max-w-xs"
         />
         <button
-          onClick={() => {
-            setForm(emptyForm);
-            setFormError("");
-            setShowModal(true);
-          }}
+          onClick={() => setIsAddModalOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
         >
           <svg
@@ -255,7 +229,7 @@ export default function SalesManagement() {
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setViewSale(sale)}
+                          onClick={() => { setSelectedSale(sale); setIsViewModalOpen(true); }}
                           className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
                         >
                           <svg
@@ -316,190 +290,19 @@ export default function SalesManagement() {
         </div>
       </div>
 
-      {/* ── Record New Sale Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-            {/* modal header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <h2 className="text-lg font-bold text-gray-900">Record New Sale</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* modal body */}
-            <div className="space-y-4 px-6 py-5">
-              {/* Customer Name */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Customer Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="customerName"
-                  value={form.customerName}
-                  onChange={handleFormChange}
-                  placeholder="e.g. Amara Perera"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={handleFormChange}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Payment Method
-                </label>
-                <div className="flex gap-3">
-                  {PAYMENT_METHODS.map((method) => (
-                    <label
-                      key={method}
-                      className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-semibold transition-all ${
-                        form.paymentMethod === method
-                          ? method === "Cash"
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                            : "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 text-gray-500 hover:border-gray-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method}
-                        checked={form.paymentMethod === method}
-                        onChange={handleFormChange}
-                        className="sr-only"
-                      />
-                      {method}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Total Amount */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Total Amount (LKR) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="totalAmount"
-                  value={form.totalAmount}
-                  onChange={handleFormChange}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-
-              {/* error */}
-              {formError && (
-                <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">
-                  {formError}
-                </p>
-              )}
-            </div>
-
-            {/* modal footer */}
-            <div className="flex gap-3 border-t border-gray-100 px-6 py-4">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRecordSale}
-                className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all"
-              >
-                Record Sale
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Add Sale Modal ── */}
+      <AddSaleModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddSave}
+      />
 
       {/* ── View Sale Modal ── */}
-      {viewSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
-            {/* header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <h2 className="text-lg font-bold text-gray-900">Sale Details</h2>
-              <button
-                onClick={() => setViewSale(null)}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* content */}
-            <div className="space-y-4 px-6 py-5">
-              {[
-                { label: "Sale ID", value: viewSale.id },
-                { label: "Customer Name", value: viewSale.customerName },
-                { label: "Date", value: formatDate(viewSale.date) },
-                { label: "Payment Method", value: viewSale.paymentMethod },
-                { label: "Total Amount", value: formatCurrency(viewSale.totalAmount) },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3"
-                >
-                  <span className="text-sm text-gray-500">{label}</span>
-                  <span className="text-sm font-semibold text-gray-800">{value}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-gray-100 px-6 py-4">
-              <button
-                onClick={() => setViewSale(null)}
-                className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ViewSaleModal
+        isOpen={isViewModalOpen}
+        onClose={() => { setIsViewModalOpen(false); setSelectedSale(null); }}
+        saleData={selectedSale}
+      />
 
       {/* ── Delete Confirm Modal ── */}
       {deleteTarget && (

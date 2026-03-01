@@ -8,7 +8,7 @@ const emptyForm = {
   totalAmount: "",
 };
 
-export default function AddSaleModal({ isOpen, onClose }) {
+export default function AddSaleModal({ isOpen, onClose, onSave }) {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
@@ -44,6 +44,7 @@ export default function AddSaleModal({ isOpen, onClose }) {
     };
 
     console.log("New Sale Data:", saleData);
+    onSave?.(saleData);
 
     setForm(emptyForm);
     setErrors({});
