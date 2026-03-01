@@ -69,8 +69,6 @@ export default function SalesManagement() {
       const salesArray = Array.isArray(responseData)
         ? responseData
         : (responseData.content || responseData.data || []);
-      console.log("Fetched Sales:", responseData);
-      console.log("Extracted Sales Array:", salesArray);
       setSales(salesArray);
     } catch (err) {
       console.error("Failed to fetch sales:", err);
