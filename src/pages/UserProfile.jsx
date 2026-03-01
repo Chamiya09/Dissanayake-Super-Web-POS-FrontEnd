@@ -352,8 +352,8 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              {/* Read-only fields */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Read-only fields — single column keeps each field full-width inside the narrow left card */}
+              <div className="grid grid-cols-1 gap-3">
                 <ReadOnlyField
                   icon={User}
                   label="Full Name"

@@ -5,9 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLE_HOME } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
+const LS_REMEMBER = "pos_remembered_username";
+
 /* Demo credential helper cards */
 const DEMO_ACCOUNTS = [
-  { username: "admin",    password: "password", role: "Owner",   colour: "border-red-200   bg-red-50   text-red-700   dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"   },
+  { username: "admin",    password: "admin123", role: "Owner",   colour: "border-red-200   bg-red-50   text-red-700   dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"   },
   { username: "manager1", password: "password", role: "Manager", colour: "border-blue-200  bg-blue-50  text-blue-700  dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400"  },
   { username: "staff1",   password: "password", role: "Staff",   colour: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400" },
 ];
@@ -16,11 +18,12 @@ export default function Login() {
   const { login } = useAuth();
   const navigate   = useNavigate();
 
-  const [username,  setUsername]  = useState("");
-  const [password,  setPassword]  = useState("");
-  const [showPass,  setShowPass]  = useState(false);
-  const [error,     setError]     = useState("");
-  const [loading,   setLoading]   = useState(false);
+  const [username,    setUsername]    = useState(() => localStorage.getItem(LS_REMEMBER) ?? "");
+  const [password,    setPassword]    = useState("");
+  const [showPass,    setShowPass]    = useState(false);
+  const [rememberMe,  setRememberMe]  = useState(() => !!localStorage.getItem(LS_REMEMBER));
+  const [error,       setError]       = useState("");
+  const [loading,     setLoading]     = useState(false);
 
   /* Fill username + password from a demo card click */
   const fillDemo = (u, p) => {
@@ -40,6 +43,13 @@ export default function Login() {
     if (!result.success) {
       setError(result.error);
       return;
+    }
+
+    /* Persist / clear remembered username */
+    if (rememberMe) {
+      localStorage.setItem(LS_REMEMBER, username);
+    } else {
+      localStorage.removeItem(LS_REMEMBER);
     }
 
     navigate(ROLE_HOME[result.user.role] ?? "/", { replace: true });
@@ -65,11 +75,17 @@ export default function Login() {
         </div>
 
         {/* Form card */}
-        <div className="rounded-2xl border border-border bg-card shadow-xl shadow-black/5 px-7 py-8 space-y-5">
+        <div className="rounded-2xl border border-border bg-card shadow-xl shadow-black/5 px-8 py-10 space-y-6">
 
-          <div className="space-y-1">
-            <h2 className="text-[17px] font-bold text-foreground">Sign in to your account</h2>
-            <p className="text-xs text-muted-foreground">Enter your credentials to continue.</p>
+          {/* Card header */}
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+              <Lock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-[18px] font-bold text-foreground">Welcome Back</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Sign in to access your workspace.</p>
+            </div>
           </div>
 
           {/* Error alert */}
@@ -106,9 +122,19 @@ export default function Login() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label htmlFor="login-password" className="block text-xs font-semibold text-foreground">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="login-password" className="block text-xs font-semibold text-foreground">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  className="text-[11px] font-medium text-primary hover:underline focus:outline-none"
+                  onClick={() => {/* Forgot-Password placeholder — wire up later */}}
+                  tabIndex={-1}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -135,6 +161,17 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {/* Remember Me */}
+            <label className="flex cursor-pointer items-center gap-2 select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer"
+              />
+              <span className="text-xs text-muted-foreground">Remember me</span>
+            </label>
 
             {/* Submit */}
             <button
@@ -185,7 +222,9 @@ export default function Login() {
             ))}
           </div>
           <p className="text-center text-[10px] text-muted-foreground">
-            Password: <span className="font-mono font-semibold">password</span>
+            Admin: <span className="font-mono font-semibold">admin123</span>
+            {" · "}
+            Others: <span className="font-mono font-semibold">password</span>
           </p>
         </div>
 
