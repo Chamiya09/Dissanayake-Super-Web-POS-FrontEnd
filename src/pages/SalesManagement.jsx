@@ -91,9 +91,19 @@ export default function SalesManagement() {
 
   /* ── Void handler ── */
   const handleVoid = async (id) => {
+    const sale = sales.find((s) => s.id === id);
+    const label = sale?.receiptNo ?? `#${id}`;
+    const confirmed = window.confirm(
+      `Void sale ${label}?\n\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+
     try {
       await axios.put(`${API}/${id}/status`, { status: "Voided" });
-      fetchSales();
+      // Optimistic UI update — no need to wait for a full re-fetch
+      setSales((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: "Voided" } : s))
+      );
     } catch (err) {
       console.error("Failed to void sale:", err);
       alert("Failed to void sale. Please try again.");
