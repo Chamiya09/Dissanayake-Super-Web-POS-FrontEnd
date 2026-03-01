@@ -17,7 +17,7 @@ interface CartPanelProps {
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
   /** Called with the final charged amount after a successful checkout */
-  onCheckout?: (totalAmount: number, paymentMethod: string) => void;
+  onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
 }
 
 /*  Tier badge  */
@@ -201,23 +201,24 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
   const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
 
   /*  Payment handler  */
-  const handlePayment = useCallback(() => {
+  const handlePayment = useCallback(async () => {
     if (!paymentMethod) {
       alert("Please select a payment method!");
       return;
     }
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      /* Notify parent so it can persist the sale and clear the cart */
-      onCheckout?.(finalTotal, paymentMethod);
+    try {
+      /* Await backend — button stays disabled until API responds */
+      await onCheckout?.(finalTotal, paymentMethod);
       /* Reset loyalty after successful payment */
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
       setRedeemPoints(false);
       setPaymentMethod("");
-    }, 2000);
+    } finally {
+      setProcessing(false);
+    }
   }, [finalTotal, paymentMethod, onCheckout]);
 
   /* Search helper */
@@ -551,35 +552,81 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
 
         {/*  Payment method selector  */}
         <div className="rounded-xl border border-border bg-secondary/30 p-3">
-          <label
-            htmlFor="payment-method-select"
-            className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-          >
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Payment Method
-          </label>
-          <div className="relative">
-            <select
-              id="payment-method-select"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Cash */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Cash")}
               className={cn(
-                "w-full appearance-none rounded-lg border px-3 py-2.5 pr-9 text-[13px] font-semibold bg-card transition-colors duration-150 outline-none focus:ring-2 focus:ring-primary/40",
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
                 paymentMethod === "Cash"
-                  ? "border-emerald-400 text-emerald-700 dark:text-emerald-400"
-                  : paymentMethod === "Card"
-                  ? "border-blue-400 text-blue-700 dark:text-blue-400"
-                  : "border-border text-muted-foreground"
+                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/20"
+                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10"
               )}
             >
-              <option value="">— Select payment method —</option>
-              <option value="Cash">💵  Cash</option>
-              <option value="Card">💳  Card</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                paymentMethod === "Cash"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-secondary text-muted-foreground"
+              )}>
+                <Banknote className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+              </div>
+              <span className={cn(
+                "text-[12.5px] font-bold transition-colors",
+                paymentMethod === "Cash"
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-muted-foreground"
+              )}>
+                Cash
+              </span>
+              {paymentMethod === "Cash" && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500">
+                  <Check className="h-2.5 w-2.5 text-white" />
+                </span>
+              )}
+            </button>
+
+            {/* Card */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Card")}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
+                paymentMethod === "Card"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/20"
+                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                paymentMethod === "Card"
+                  ? "bg-blue-500 text-white"
+                  : "bg-secondary text-muted-foreground"
+              )}>
+                <CreditCard className="h-[18px] w-[18px]" />
+              </div>
+              <span className={cn(
+                "text-[12.5px] font-bold transition-colors",
+                paymentMethod === "Card"
+                  ? "text-blue-700 dark:text-blue-400"
+                  : "text-muted-foreground"
+              )}>
+                Card
+              </span>
+              {paymentMethod === "Card" && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500">
+                  <Check className="h-2.5 w-2.5 text-white" />
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
-        {/*  Charge button  */}}
+        {/*  Charge button  */}
         <Button
           onClick={handlePayment}
           disabled={items.length === 0 || processing}

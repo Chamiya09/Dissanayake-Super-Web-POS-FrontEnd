@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import axios from "axios";
+import { toast } from "@/components/ui/sonner";
 import { ShoppingBag, CheckCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
@@ -79,7 +80,7 @@ const Index = () => {
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number } | null>(null);
+  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number; paymentMethod: string } | null>(null);
 
   /* ── Fetch products from backend API ── */
   const [posProducts, setPosProducts] = useState<Product[]>([]);
@@ -146,8 +147,11 @@ const Index = () => {
       await axios.post("http://localhost:8080/api/sales", payload);
       setCart([]);
       setCartOpen(false);
-      setLastSale({ receiptNo, total: totalAmount });
+      setLastSale({ receiptNo, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
+      toast.success(`Sale ${receiptNo} recorded successfully!`, {
+        duration: 4000,
+      });
     } catch (err) {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
@@ -266,7 +270,7 @@ const Index = () => {
                 <CheckCircle className="h-10 w-10 text-emerald-500" />
               </div>
             </div>
-            <h2 className="text-[22px] font-bold text-foreground">Sale Completed!</h2>
+            <h2 className="text-[22px] font-bold text-foreground">Sale Completed Successfully!</h2>
             <p className="mt-1 text-sm text-muted-foreground">Transaction recorded successfully.</p>
 
             <div className="mt-5 rounded-xl border border-border bg-muted/40 px-5 py-4 text-left space-y-2">
@@ -275,8 +279,12 @@ const Index = () => {
                 <span className="font-mono font-bold text-primary">{lastSale?.receiptNo}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount Paid</span>
+                <span className="text-muted-foreground">Total Amount</span>
                 <span className="font-bold text-foreground tabular-nums">{formatCurrency(lastSale?.total ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment Method</span>
+                <span className="font-semibold text-foreground">{lastSale?.paymentMethod}</span>
               </div>
             </div>
 
