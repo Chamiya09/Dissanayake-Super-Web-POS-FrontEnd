@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import axios from "axios";
 import { ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
@@ -24,21 +25,6 @@ const SEED_PRODUCTS: MgmtProduct[] = [
   { id: 3, productName: "Anchor Milk 1L",       sku: "6789012", category: "Dairy",     buyingPrice: 320, sellingPrice: 420, unit: "bottle" },
   { id: 4, productName: "Milo 400g",            sku: "5678901", category: "Beverages", buyingPrice: 650, sellingPrice: 890, unit: "tin"    },
 ];
-
-/* ── Sale record saved to localStorage('sales') on checkout ── */
-interface SaleItem {
-  name: string;
-  quantity: number;
-  price: number;
-}
-interface SaleRecord {
-  id: string;
-  dateTime: string;
-  totalAmount: number;
-  paymentMethod: string;
-  status: "Completed" | "Void";
-  items: SaleItem[];
-}
 
 /** Convert ProductManagement shape → POS Product shape */
 function mapToPOS(p: MgmtProduct): Product {
@@ -174,30 +160,29 @@ const Index = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
-  const handleCheckout = useCallback((totalAmount: number, paymentMethod: string) => {
-    const existing: SaleRecord[] = (() => {
-      try { return JSON.parse(localStorage.getItem("sales") ?? "[]"); }
-      catch { return []; }
-    })();
-    const nextNum =
-      existing.length > 0
-        ? Math.max(...existing.map((s) => parseInt(s.id.replace("RCP-", ""), 10))) + 1
-        : 1;
-    const newSale: SaleRecord = {
-      id: `RCP-${String(nextNum).padStart(4, "0")}`,
-      dateTime: new Date().toISOString(),
-      totalAmount,
+  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
+    const receiptNo = `RCP-${Date.now()}`;
+    const payload = {
+      receiptNo,
       paymentMethod,
+      totalAmount,
       status: "Completed",
       items: cart.map((i) => ({
-        name: i.product.name,
-        quantity: i.quantity,
-        price: i.product.price,
+        productName: i.product.name,
+        quantity:    i.quantity,
+        unitPrice:   i.product.price,
+        lineTotal:   i.quantity * i.product.price,
       })),
     };
-    localStorage.setItem("sales", JSON.stringify([...existing, newSale]));
-    setCart([]);
-    alert(`Sale ${newSale.id} recorded successfully!`);
+
+    try {
+      await axios.post("http://localhost:8080/api/sales", payload);
+      setCart([]);
+      alert(`Sale ${receiptNo} recorded successfully!`);
+    } catch (err) {
+      console.error("Checkout failed:", err);
+      alert("Failed to record sale. Please try again.");
+    }
   }, [cart]);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
