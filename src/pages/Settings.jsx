@@ -317,7 +317,8 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
         {/* Warning box */}
         <div className="mx-6 mt-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 dark:bg-red-900/10 dark:border-red-800">
           <p className="text-[12px] font-medium text-red-700 dark:text-red-400">
-            ⚠ This action cannot be undone by yourself. Contact your administrator to restore access.
+            <AlertTriangle className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
+            This action cannot be undone by yourself. Contact your administrator to restore access.
           </p>
         </div>
 

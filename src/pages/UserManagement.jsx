@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Users, Plus, Search, UserCircle2, ShieldAlert, Pencil, Trash2, Lock } from "lucide-react";
+import { Users, Plus, Search, UserCircle2, ShieldAlert, Edit3, Trash2, Lock, UserPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import AddUserModal from "@/components/Users/AddUserModal";
 import EditUserModal from "@/components/Users/EditUserModal";
@@ -222,7 +222,7 @@ export default function UserManagement() {
               {/* Add User — hidden for Staff */}
               {canAddUsers ? (
                 <Button size="sm" className="gap-2" onClick={() => setIsAddOpen(true)}>
-                  <Plus className="h-4 w-4" /> Add User
+                  <UserPlus className="h-4 w-4" /> Add User
                 </Button>
               ) : (
                 <div className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
@@ -310,14 +310,14 @@ export default function UserManagement() {
                               <button
                                 onClick={() => setEditTarget(user)}
                                 title={`Edit ${user.fullName}`}
-                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20"
+                                className="rounded-lg p-1.5 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Edit3 className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => setDeleteTarget(user)}
                                 title={`Delete ${user.fullName}`}
-                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
