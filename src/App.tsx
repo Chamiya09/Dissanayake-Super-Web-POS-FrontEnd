@@ -2,10 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Suppliers from "./pages/Suppliers";
@@ -15,6 +18,18 @@ import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+/** Sidebar + main layout — used for all authenticated pages */
+const AppLayout = () => (
+  <SidebarProvider>
+    <div className="flex min-h-screen w-full">
+      <AppSidebar />
+      <main className="flex-1 overflow-hidden">
+        <Outlet />
+      </main>
+    </div>
+  </SidebarProvider>
+);
 
 /** Generic placeholder for stub pages */
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -33,11 +48,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <main className="flex-1 overflow-hidden">
-              <Routes>
+        <AuthProvider>
+          <Routes>
+            {/* ── Public ── */}
+            <Route path="/login" element={<Login />} />
+
+            {/* ── Protected (requires auth) ── */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
                 <Route path="/"           element={<Index />} />
                 <Route path="/dashboard"  element={<Dashboard />} />
                 <Route path="/products"   element={<ProductManagement />} />
@@ -47,11 +65,12 @@ const App = () => (
                 <Route path="/suppliers"  element={<Suppliers />} />
                 <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                 <Route path="/users"      element={<UserManagement />} />
-                <Route path="*"           element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </SidebarProvider>
+              </Route>
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

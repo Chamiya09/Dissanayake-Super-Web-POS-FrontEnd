@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
-  User, Wifi, Moon, Sun, Bell,
+  User, Wifi, Moon, Sun, Bell, LogOut,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useAuth } from "@/context/AuthContext";
 
 /* ── Persist dark-mode across all pages ────────────────────────── */
 export function useDarkMode() {
@@ -22,7 +23,14 @@ export function AppHeader() {
   const [time, setTime] = useState(new Date());
   const [dark, setDark] = useDarkMode();
   const location = useLocation();
+  const navigate  = useNavigate();
+  const { user, logout } = useAuth();
   const isPOS = location.pathname === "/";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -41,8 +49,12 @@ export function AppHeader() {
             <span className="absolute -bottom-px -right-px h-2 w-2 rounded-full border-2 border-card bg-green-500" />
           </div>
           <div className="hidden sm:flex flex-col">
-            <span className="text-[13px] font-semibold leading-none text-foreground">Sarah M.</span>
-            <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier&nbsp;&middot;&nbsp;On shift</span>
+            <span className="text-[13px] font-semibold leading-none text-foreground">
+              {user?.name ?? "Guest"}
+            </span>
+            <span className="mt-0.5 text-[11px] text-muted-foreground">
+              {user?.role ?? ""}&nbsp;&middot;&nbsp;{user?.role === "Staff" ? "On shift" : "Admin"}
+            </span>
           </div>
         </div>
       </div>
@@ -77,6 +89,16 @@ export function AppHeader() {
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          title="Sign out"
+          aria-label="Sign out"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-red-400/60 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20"
+        >
+          <LogOut className="h-4 w-4" />
         </button>
 
         {/* Scanner status — POS page only */}

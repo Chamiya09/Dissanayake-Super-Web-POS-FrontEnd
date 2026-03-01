@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Users, Plus, Search, UserCircle2, ShieldAlert, Pencil, Trash2, Lock } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import AddUserModal from "@/components/Users/AddUserModal";
 import EditUserModal from "@/components/Users/EditUserModal";
 import DeleteUserModal from "@/components/Users/DeleteUserModal";
@@ -20,14 +21,6 @@ const MANAGEABLE_ROLES = {
   Manager: ["Staff"],
   Staff:   [],
 };
-
-const ROLE_SWITCHER_STYLES = {
-  Owner:   "border-red-300   bg-red-50   text-red-700   dark:border-red-800  dark:bg-red-900/20  dark:text-red-400",
-  Manager: "border-blue-300  bg-blue-50  text-blue-700  dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
-  Staff:   "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400",
-};
-const ROLE_DOT_SWITCHER = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
-const SIMULATE_ROLES = ["Owner", "Manager", "Staff"];
 
 /* ─────────────────────────────────────────────────────────────────────────
    Mock Data
@@ -122,6 +115,9 @@ function EmptyState({ onAdd }) {
    UserManagement page
    ───────────────────────────────────────────────────────────────────────── */
 export default function UserManagement() {
+  const { user } = useAuth();
+  const currentUserRole = user?.role ?? "Staff";
+
   const [users, setUsers] = useState(INITIAL_USERS);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -130,8 +126,6 @@ export default function UserManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [popup, setPopup] = useState({ show: false, type: "success", message: "" });
 
-  /* ── Simulated logged-in role (toggle for demo) ── */
-  const [currentUserRole, setCurrentUserRole] = useState("Owner");
   const canAddUsers = CAN_ADD_USERS.includes(currentUserRole);
 
   /* ── Permission helpers ── */
@@ -176,37 +170,6 @@ export default function UserManagement() {
       <AppHeader />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* ── Role simulator banner ── */}
-        <div className="border-b border-border bg-muted/30 px-6 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Simulating role:
-            </span>
-            {SIMULATE_ROLES.map((r) => (
-              <button
-                key={r}
-                onClick={() => setCurrentUserRole(r)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all",
-                  currentUserRole === r
-                    ? ROLE_SWITCHER_STYLES[r] + " ring-2 ring-offset-1 ring-current"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <span className={cn(
-                  "h-1.5 w-1.5 rounded-full shrink-0",
-                  currentUserRole === r ? ROLE_DOT_SWITCHER[r] : "bg-muted-foreground"
-                )} />
-                {r}
-              </button>
-            ))}
-            <span className="ml-auto text-[11px] text-muted-foreground">
-              {currentUserRole === "Owner" && "Can create → Manager accounts"}
-              {currentUserRole === "Manager" && "Can create → Staff accounts"}
-              {currentUserRole === "Staff" && "Cannot create accounts"}
-            </span>
-          </div>
-        </div>
 
         {/* ── Page header ── */}
         <div className="border-b border-border bg-background px-6 py-5">
