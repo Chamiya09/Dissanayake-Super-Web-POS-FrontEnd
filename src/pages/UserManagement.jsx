@@ -169,20 +169,19 @@ export default function UserManagement() {
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
 
-        {/* ── Page header ── */}
-        <div className="border-b border-border bg-background">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5">
+          {/* ── Page heading row ── */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Title */}
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">User Management</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">User Management</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {users.length} user{users.length !== 1 ? "s" : ""} registered
                 </p>
               </div>
@@ -232,36 +231,32 @@ export default function UserManagement() {
               )}
             </div>
           </div>
-          </div>
-        </div>
 
-        {/* ── Table ── */}
-        <div className="flex-1 overflow-auto px-4 py-4 sm:px-6">
-          <div className="mx-auto max-w-7xl">
+          {/* ── Table card ── */}
           {filtered.length === 0 ? (
             <EmptyState onAdd={() => setIsAddOpen(true)} />
           ) : (
-            <div className="rounded-xl border border-border overflow-x-auto shadow-sm">
+            <div className="rounded-xl border border-border bg-card overflow-x-auto shadow-sm">
               <table className="w-full text-sm">
                 {/* Head */}
                 <thead>
                   <tr className="bg-muted/50 border-b border-border">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-8">
+                    <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-10">
                       #
                     </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       User
                     </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Username
                     </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Email
                     </th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Role
                     </th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -275,12 +270,12 @@ export default function UserManagement() {
                       className="transition-colors hover:bg-muted/40"
                     >
                       {/* Row number */}
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
                         {idx + 1}
                       </td>
 
                       {/* Full Name + Avatar */}
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Avatar fullName={user.fullName} index={users.indexOf(user)} />
                           <span className="font-medium text-foreground">{user.fullName}</span>
@@ -288,22 +283,22 @@ export default function UserManagement() {
                       </td>
 
                       {/* Username */}
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
                         @{user.username}
                       </td>
 
                       {/* Email */}
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {user.email}
                       </td>
 
                       {/* Role badge */}
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 text-center">
                         <RoleBadge role={user.role} />
                       </td>
 
                       {/* Actions */}
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1">
                           {canManage(user) ? (
                             <>
@@ -338,7 +333,7 @@ export default function UserManagement() {
               </table>
 
               {/* Table footer */}
-              <div className="border-t border-border bg-muted/30 px-4 py-2.5">
+              <div className="border-t border-border bg-muted/30 px-6 py-3">
                 <p className="text-xs text-muted-foreground">
                   Showing <span className="font-semibold text-foreground">{filtered.length}</span> of{" "}
                   <span className="font-semibold text-foreground">{users.length}</span> users
@@ -346,9 +341,9 @@ export default function UserManagement() {
               </div>
             </div>
           )}
-          </div>
-        </div>
-      </div>
+
+        </div>{/* end max-w container */}
+      </div>{/* end scrollable */}
 
       {/* Add User Modal */}
       {isAddOpen && (

@@ -191,8 +191,8 @@ function PasswordStrength({ password }) {
 /** Section card wrapper with header */
 function SectionCard({ icon: Icon, iconBg, title, subtitle, children }) {
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex items-center gap-3 border-b border-border px-6 py-4">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center gap-3 border-b border-border px-8 py-5">
         <div className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", iconBg)}>
           <Icon className="h-5 w-5" />
         </div>
@@ -201,7 +201,7 @@ function SectionCard({ icon: Icon, iconBg, title, subtitle, children }) {
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="px-8 py-6">{children}</div>
     </div>
   );
 }
@@ -219,7 +219,7 @@ function AccountSummaryCard({ user }) {
   const email = SETTINGS_EMAIL[user?.username] ?? "—";
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       {/* Role-coloured banner */}
       <div className={cn(
         "h-16 bg-gradient-to-br opacity-30",
@@ -299,7 +299,7 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
       onClick={handleOverlay}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
     >
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
         {/* Header */}
         <div className="flex items-start gap-4 border-b border-border px-6 py-5">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
@@ -490,30 +490,30 @@ export default function Settings() {
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-6xl px-6 py-10">
 
           {/* Page heading */}
-          <div className="mb-6 flex items-center gap-3">
+          <div className="mb-8 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <Settings2 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Settings</h1>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Settings</h1>
               <p className="text-xs text-muted-foreground">
                 Manage your security, preferences, and account.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
 
             {/* ── Left column · Account Summary ── */}
-            <div className="md:col-span-1">
+            <div className="lg:col-span-1">
               <AccountSummaryCard user={user} />
             </div>
 
             {/* ── Right columns · Settings sections ── */}
-            <div className="md:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-8">
 
           {/* ── Section 1 · Security ──────────────────────────────────────── */}
           <SectionCard
