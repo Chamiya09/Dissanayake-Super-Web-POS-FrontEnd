@@ -42,8 +42,10 @@ api.interceptors.response.use(
     // If the backend returns 401 (expired/invalid token), wipe the session
     // and redirect to login so the user is never silently stuck.
     if (error.response?.status === 401) {
-      localStorage.removeItem(LS_KEY);
-      window.location.href = "/login";
+      // Dispatch a custom event so AuthContext can do a clean React-state
+      // logout (clear localStorage + setUser(null) + navigate) without
+      // axiosInstance needing to import or depend on React Router.
+      window.dispatchEvent(new CustomEvent("pos:session-expired"));
     }
     return Promise.reject(error);
   },

@@ -68,8 +68,7 @@ export function AppHeader() {
 
   const handleLogout = () => {
     setMenuOpen(false);
-    logout();
-    navigate("/login", { replace: true });
+    logout(); // logout() handles navigate("/login") internally
   };
 
   const goto = (path: string) => {

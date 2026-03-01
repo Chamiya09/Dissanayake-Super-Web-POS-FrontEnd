@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/axiosInstance";
 
-const LS_KEY = "pos_auth_user";
+export const LS_KEY = "pos_auth_user";
 
 /**
  * Default home page per role — used by login redirect and role-gate redirects.
- * Staff land on POS Checkout (/), Owner/Manager on the Dashboard.
+ * Staff land on POS Checkout, Owner/Manager on the Dashboard.
  */
 export const ROLE_HOME = {
   Owner:   "/dashboard",
@@ -13,10 +14,39 @@ export const ROLE_HOME = {
   Staff:   "/staff-dashboard",
 };
 
+/**
+ * Decode a JWT payload (base64url) to read the `exp` claim.
+ * Does NOT verify the signature — only used for client-side expiry checks.
+ */
+function jwtExpiry(token) {
+  try {
+    const payload = JSON.parse(
+      atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    return payload.exp ?? null; // Unix seconds
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns the stored user if the JWT is still valid, null otherwise.
+ * Wipes localStorage automatically when a token is found to have expired,
+ * guaranteeing the user is never silently left in an expired session after
+ * a page refresh.
+ */
 function loadUser() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+
+    const exp = jwtExpiry(parsed.token);
+    if (exp !== null && exp * 1000 < Date.now()) {
+      localStorage.removeItem(LS_KEY); // expired — wipe immediately
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -29,6 +59,31 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => loadUser());
+  const navigate = useNavigate();
+
+  /**
+   * logout — clears storage, resets React state, and redirects to /login.
+   * Called by:
+   *   • Navbar "Sign Out" button (AppHeader)
+   *   • The pos:session-expired event (fired by axiosInstance on any 401)
+   *   • Settings page after account deactivation
+   */
+  const logout = useCallback(() => {
+    localStorage.removeItem(LS_KEY);
+    setUser(null);
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
+  /**
+   * Listen for session-expired events dispatched by the Axios 401 interceptor.
+   * Keeps axiosInstance decoupled from React Router while ensuring a clean
+   * React-state logout any time the backend rejects a token.
+   */
+  useEffect(() => {
+    const handleExpiry = () => logout();
+    window.addEventListener("pos:session-expired", handleExpiry);
+    return () => window.removeEventListener("pos:session-expired", handleExpiry);
+  }, [logout]);
 
   /**
    * login(username, password) — async, calls POST /api/auth/login.
@@ -73,12 +128,6 @@ export function AuthProvider({ children }) {
       }
       return { success: false, error: "Unable to connect to the server. Please try again." };
     }
-  }, []);
-
-  /** logout — clears storage and resets state */
-  const logout = useCallback(() => {
-    localStorage.removeItem(LS_KEY);
-    setUser(null);
   }, []);
 
   return (
