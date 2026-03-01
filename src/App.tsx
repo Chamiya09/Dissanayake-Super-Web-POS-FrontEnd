@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Suppliers from "./pages/Suppliers";
 import ProductManagement from "./pages/ProductManagement";
 import SalesManagement from "./pages/SalesManagement";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,7 +46,7 @@ const App = () => (
                 <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
                 <Route path="/suppliers"  element={<Suppliers />} />
                 <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
-                <Route path="/users"      element={<PlaceholderPage title="Users" />} />
+                <Route path="/users"      element={<UserManagement />} />
                 <Route path="*"           element={<NotFound />} />
               </Routes>
             </main>
