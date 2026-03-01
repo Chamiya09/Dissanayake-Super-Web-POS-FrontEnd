@@ -169,25 +169,39 @@ export default function SalesManagement() {
         </div>
 
         {/* â”€â”€ Table â”€â”€ */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
+            <table className="min-w-full">
+
+              {/* ── Head ── */}
               <thead>
-                <tr className="bg-muted/40">
-                  {["Receipt No.", "Date & Time", "Total Amount", "Payment Method", "Status", "Actions"].map((col) => (
-                    <th
-                      key={col}
-                      className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-                    >
-                      {col}
-                    </th>
-                  ))}
+                <tr className="border-b border-border bg-muted/60">
+                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Receipt No.
+                  </th>
+                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Date &amp; Time
+                  </th>
+                  <th className="whitespace-nowrap px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total Amount
+                  </th>
+                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Payment Method
+                  </th>
+                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Actions
+                  </th>
                 </tr>
               </thead>
+
+              {/* ── Body ── */}
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={6} className="py-20 text-center text-sm text-muted-foreground">
                       No transactions match your search.
                     </td>
                   </tr>
@@ -196,67 +210,89 @@ export default function SalesManagement() {
                     const { date, time } = formatDateTime(sale.dateTime);
                     const isVoid = sale.status === "Void";
                     return (
-                      <tr key={sale.id} className={cn("transition-colors hover:bg-muted/30", isVoid && "opacity-60")}>
-                        {/* Receipt No */}
-                        <td className="whitespace-nowrap px-4 py-3.5">
-                          <span className="font-mono text-[13px] font-semibold text-primary">{sale.id}</span>
+                      <tr
+                        key={sale.id}
+                        className={cn(
+                          "group transition-colors hover:bg-muted/40",
+                          isVoid && "opacity-55"
+                        )}
+                      >
+                        {/* Receipt No. */}
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
+                            {sale.id}
+                          </span>
                         </td>
+
                         {/* Date & Time */}
-                        <td className="whitespace-nowrap px-4 py-3.5">
+                        <td className="whitespace-nowrap px-6 py-4">
                           <p className="text-[13px] font-medium text-foreground">{date}</p>
-                          <p className="text-[11px] text-muted-foreground">{time}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{time}</p>
                         </td>
-                        {/* Total Amount */}
-                        <td className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold text-foreground tabular-nums">
-                          {formatCurrency(sale.totalAmount)}
+
+                        {/* Total Amount — right-aligned */}
+                        <td className="whitespace-nowrap px-6 py-4 text-right">
+                          <span className="text-[13px] font-semibold tabular-nums text-foreground">
+                            {formatCurrency(sale.totalAmount)}
+                          </span>
                         </td>
+
                         {/* Payment Method */}
-                        <td className="whitespace-nowrap px-4 py-3.5">
+                        <td className="whitespace-nowrap px-6 py-4">
                           <PaymentBadge method={sale.paymentMethod} />
                         </td>
+
                         {/* Status */}
-                        <td className="whitespace-nowrap px-4 py-3.5">
+                        <td className="whitespace-nowrap px-6 py-4">
                           <StatusBadge status={sale.status} />
                         </td>
+
                         {/* Actions */}
-                        <td className="whitespace-nowrap px-4 py-3.5">
-                          <div className="flex items-center gap-2">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {/* View */}
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => { setViewSale(sale); setIsViewOpen(true); }}
-                              className="h-7 gap-1.5 px-2.5 text-[12px]"
+                              className="h-8 gap-1.5 px-3 text-[12px] font-medium"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              View Receipt
+                              View
                             </Button>
+
+                            {/* Edit */}
                             <Button
                               variant="outline"
                               size="sm"
                               disabled={isVoid}
                               onClick={() => { setEditSale(sale); setIsEditOpen(true); }}
                               className={cn(
-                                "h-7 gap-1.5 px-2.5 text-[12px]",
-                                !isVoid &&
-                                  "border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
+                                !isVoid
+                                  ? "border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                                  : "opacity-40"
                               )}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                               Edit
                             </Button>
+
+                            {/* Void */}
                             <Button
                               variant="outline"
                               size="sm"
                               disabled={isVoid}
                               onClick={() => handleVoid(sale.id)}
                               className={cn(
-                                "h-7 gap-1.5 px-2.5 text-[12px]",
-                                !isVoid &&
-                                  "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
+                                !isVoid
+                                  ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                                  : "opacity-40"
                               )}
                             >
                               <Ban className="h-3.5 w-3.5" />
-                              {isVoid ? "Voided" : "Void Sale"}
+                              {isVoid ? "Voided" : "Void"}
                             </Button>
                           </div>
                         </td>
@@ -267,11 +303,19 @@ export default function SalesManagement() {
               </tbody>
             </table>
           </div>
-          {/* Table footer */}
-          <div className="border-t border-border px-4 py-2.5">
+
+          {/* ── Table footer ── */}
+          <div className="flex items-center justify-between border-t border-border bg-muted/30 px-6 py-3">
             <p className="text-[11px] text-muted-foreground">
-              Showing {filtered.length} of {sales.length} transaction{sales.length !== 1 ? "s" : ""}
+              Showing <span className="font-semibold text-foreground">{filtered.length}</span> of{" "}
+              <span className="font-semibold text-foreground">{sales.length}</span> transaction
+              {sales.length !== 1 ? "s" : ""}
             </p>
+            {filterStatus !== "All" && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                Filter: {filterStatus}
+              </span>
+            )}
           </div>
         </div>
       </div>
