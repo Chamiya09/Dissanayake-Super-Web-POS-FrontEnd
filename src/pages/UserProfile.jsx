@@ -13,6 +13,13 @@ import {
   EyeOff,
   Save,
   Lock,
+  TrendingUp,
+  Clock,
+  Users,
+  Store,
+  BarChart2,
+  UserCheck,
+  Briefcase,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -56,6 +63,127 @@ async function apiUpdatePassword(username, currentPassword, newPassword) {
     throw new Error("Current password is incorrect.");
   }
   return { success: true };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Mock role-specific data (replace with real API calls later)
+   ───────────────────────────────────────────────────────────────────────── */
+const ROLE_DATA = {
+  Staff: {
+    totalSales:   "LKR 24,850.00",
+    transactions: 17,
+    shiftHours:   "6h 32m",
+    avgPerTxn:    "LKR 1,461.76",
+  },
+  Manager: {
+    staffManaged:  4,
+    activeToday:   3,
+    teamSalesTotal:"LKR 128,400.00",
+    openIssues:    2,
+  },
+  Owner: {
+    storeName:     "Dissanayaka Super",
+    totalUsers:    6,
+    totalProducts: 124,
+    monthRevenue:  "LKR 1,284,750.00",
+  },
+};
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Stat tile — used inside every role section card
+   ───────────────────────────────────────────────────────────────────────── */
+function StatTile({ icon: Icon, label, value, accent }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4">
+      <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", accent)}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-[11px] font-medium text-muted-foreground leading-tight">{label}</p>
+      <p className="text-lg font-bold tabular-nums text-foreground leading-none">{value}</p>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Role-specific insight card — renders the right section per role
+   ───────────────────────────────────────────────────────────────────────── */
+function RoleSection({ role }) {
+  const data = ROLE_DATA[role];
+  if (!data) return null;
+
+  // ── Staff: Performance Summary ──
+  if (role === "Staff") {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
+            <BarChart2 className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-[15px] font-bold text-foreground">Performance Summary</p>
+            <p className="text-xs text-muted-foreground">Your activity stats for today's shift.</p>
+          </div>
+          <span className="ml-auto rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/20 dark:text-green-400">
+            Live
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4">
+          <StatTile icon={TrendingUp} label="Total Sales Today"    value={data.totalSales}   accent="bg-green-500/10  text-green-600"  />
+          <StatTile icon={BarChart2}  label="Transactions Handled" value={data.transactions}  accent="bg-violet-500/10 text-violet-600" />
+          <StatTile icon={Clock}      label="Shift Hours"          value={data.shiftHours}    accent="bg-amber-500/10  text-amber-600"  />
+          <StatTile icon={UserCheck}  label="Avg. per Transaction" value={data.avgPerTxn}     accent="bg-sky-500/10    text-sky-600"    />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Manager: Team Overview ──
+  if (role === "Manager") {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+            <Users className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-[15px] font-bold text-foreground">Team Overview</p>
+            <p className="text-xs text-muted-foreground">Staff under your supervision today.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4">
+          <StatTile icon={Users}      label="Staff Managed"        value={data.staffManaged}    accent="bg-blue-500/10   text-blue-600"   />
+          <StatTile icon={UserCheck}  label="Active Today"         value={data.activeToday}     accent="bg-green-500/10  text-green-600"  />
+          <StatTile icon={TrendingUp} label="Team Sales Total"     value={data.teamSalesTotal}  accent="bg-violet-500/10 text-violet-600" />
+          <StatTile icon={BarChart2}  label="Open Issues"          value={data.openIssues}      accent="bg-amber-500/10  text-amber-600"  />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Owner: Business Ownership ──
+  if (role === "Owner") {
+    return (
+      <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10">
+            <Briefcase className="h-5 w-5 text-red-600" />
+          </div>
+          <div>
+            <p className="text-[15px] font-bold text-foreground">Business Ownership</p>
+            <p className="text-xs text-muted-foreground">High-level overview of your POS system.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4">
+          <StatTile icon={Store}      label="Store Name"           value={data.storeName}       accent="bg-red-500/10     text-red-600"     />
+          <StatTile icon={Users}      label="Registered Users"     value={data.totalUsers}      accent="bg-blue-500/10    text-blue-600"    />
+          <StatTile icon={BarChart2}  label="Total Products"       value={data.totalProducts}   accent="bg-violet-500/10  text-violet-600"  />
+          <StatTile icon={TrendingUp} label="This Month Revenue"   value={data.monthRevenue}    accent="bg-emerald-500/10 text-emerald-600" />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -259,6 +387,9 @@ export default function UserProfile() {
               </p>
             </div>
           </div>
+
+          {/* ── Role-specific section ── */}
+          <RoleSection role={user?.role} />
 
           {/* ── Change Password card ── */}
           <div className="rounded-2xl border border-border bg-card shadow-sm">
