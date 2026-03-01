@@ -1,6 +1,7 @@
 import {
   ShoppingBag, Minus, Plus, Trash2, Loader2,
   Gift, User, Star, Phone, Search, X, AlertCircle, Check, ChevronDown,
+  Banknote, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
@@ -152,6 +153,7 @@ function SwipeableItem({
 /*  CartPanel  */
 export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card">("Cash");
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -204,7 +206,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
     setTimeout(() => {
       setProcessing(false);
       /* Notify parent so it can persist the sale and clear the cart */
-      onCheckout?.(finalTotal, "Cash");
+      onCheckout?.(finalTotal, paymentMethod);
       /* Reset loyalty after successful payment */
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
@@ -542,7 +544,39 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
           </div>
         </div>
 
-        {/*  Charge button  */}
+        {/*  Payment method selector  */}
+        <div className="rounded-xl border border-border bg-secondary/30 p-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Payment Method</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["Cash", "Card"] as const).map((method) => {
+              const active = paymentMethod === method;
+              return (
+                <button
+                  key={method}
+                  onClick={() => setPaymentMethod(method)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13px] font-semibold transition-all duration-150",
+                    active
+                      ? method === "Cash"
+                        ? "border-emerald-400 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                        : "border-blue-400 bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  {method === "Cash" ? (
+                    <Banknote className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 shrink-0" />
+                  )}
+                  {method}
+                  {active && <Check className="h-3 w-3 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/*  Charge button  */}}
         <Button
           onClick={handlePayment}
           disabled={items.length === 0 || processing}
@@ -553,10 +587,10 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
           ) : (
             <>
               <span>Charge</span>
-              <span className="ml-2 tabular-nums text-[18px] font-extrabold">${finalTotal.toFixed(2)}</span>
+              <span className="ml-2 tabular-nums text-[18px] font-extrabold">{formatCurrency(finalTotal)}</span>
               {loyaltyDiscount > 0 && (
                 <span className="ml-2 rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
-                  &#9733; -${loyaltyDiscount.toFixed(2)} off
+                  &#9733; -{formatCurrency(loyaltyDiscount)} off
                 </span>
               )}
               <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono text-white/80 select-none">
