@@ -1,356 +1,265 @@
-import { useState } from "react";
-import AddSaleModal from "../components/Sales/AddSaleModal";
-import ViewSaleModal from "../components/Sales/ViewSaleModal";
+﻿import { useState } from "react";
+import { AppHeader } from "@/components/Layout/AppHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard } from "lucide-react";
+import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Mock data
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const initialSales = [
-  {
-    id: "SL-0001",
-    customerName: "Amara Perera",
-    date: "2026-02-25",
-    paymentMethod: "Cash",
-    totalAmount: 4850.0,
-  },
-  {
-    id: "SL-0002",
-    customerName: "Nimal Fernando",
-    date: "2026-02-26",
-    paymentMethod: "Card",
-    totalAmount: 12300.5,
-  },
-  {
-    id: "SL-0003",
-    customerName: "Dilani Silva",
-    date: "2026-02-27",
-    paymentMethod: "Cash",
-    totalAmount: 7625.75,
-  },
-  {
-    id: "SL-0004",
-    customerName: "Kasun Jayawardena",
-    date: "2026-02-28",
-    paymentMethod: "Card",
-    totalAmount: 21480.0,
-  },
+  { id: "RCP-0001", dateTime: "2026-02-25T09:14:00", totalAmount: 4850.00, paymentMethod: "Cash", status: "Completed" },
+  { id: "RCP-0002", dateTime: "2026-02-25T11:47:00", totalAmount: 12300.50, paymentMethod: "Card", status: "Completed" },
+  { id: "RCP-0003", dateTime: "2026-02-26T14:22:00", totalAmount: 7625.75, paymentMethod: "Cash", status: "Void" },
+  { id: "RCP-0004", dateTime: "2026-02-27T16:05:00", totalAmount: 21480.00, paymentMethod: "Card", status: "Completed" },
+  { id: "RCP-0005", dateTime: "2026-02-28T08:53:00", totalAmount: 3320.25, paymentMethod: "Cash", status: "Completed" },
+  { id: "RCP-0006", dateTime: "2026-03-01T10:30:00", totalAmount: 9875.00, paymentMethod: "Card", status: "Void" },
 ];
 
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Helpers / sub-components
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const formatCurrency = (amount) =>
+  new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
+
+const formatDateTime = (iso) => {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+  };
+};
+
+function StatusBadge({ status }) {
+  const completed = status === "Completed";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
+        completed
+          ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
+          : "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800"
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", completed ? "bg-emerald-500" : "bg-red-500")} />
+      {status}
+    </span>
+  );
+}
+
+function PaymentBadge({ method }) {
+  const isCash = method === "Cash";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
+        isCash
+          ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+          : "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+      )}
+    >
+      {isCash ? <Banknote className="h-3 w-3 shrink-0" /> : <CreditCard className="h-3 w-3 shrink-0" />}
+      {method}
+    </span>
+  );
+}
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Page
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function SalesManagement() {
   const [sales, setSales] = useState(initialSales);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [viewSale, setViewSale] = useState(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
-  /* ── helpers ── */
-  const generateId = () => {
-    const max = sales.reduce((acc, s) => {
-      const num = parseInt(s.id.split("-")[1], 10);
-      return num > acc ? num : acc;
-    }, 0);
-    return `SL-${String(max + 1).padStart(4, "0")}`;
+  /* â”€â”€ Filtering â”€â”€ */
+  const filtered = sales.filter((s) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || s.id.toLowerCase().includes(q) || s.paymentMethod.toLowerCase().includes(q);
+    const matchStatus = filterStatus === "All" || s.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  /* â”€â”€ Void handler â”€â”€ */
+  const handleVoid = (id) => {
+    setSales((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Void" } : s)));
   };
 
-  const filtered = sales.filter(
-    (s) =>
-      s.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  /* ── add sale callback (receives data from AddSaleModal) ── */
-  const handleAddSave = (data) => {
-    const newSale = {
-      id: generateId(),
-      customerName: data.customerName,
-      date: data.date || new Date().toISOString().split("T")[0],
-      paymentMethod: data.paymentMethod,
-      totalAmount: data.totalAmount,
-    };
-    setSales([newSale, ...sales]);
-  };
-
-  const handleDelete = (id) => {
-    setSales(sales.filter((s) => s.id !== id));
-    setDeleteTarget(null);
-  };
-
-  /* ── formatters ── */
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
-
-  const formatDate = (iso) =>
-    new Date(iso).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-
-  /* ── summary stats ── */
-  const totalRevenue = sales.reduce((sum, s) => sum + s.totalAmount, 0);
-  const cashSales = sales.filter((s) => s.paymentMethod === "Cash").length;
-  const cardSales = sales.filter((s) => s.paymentMethod === "Card").length;
+  /* â”€â”€ Stats â”€â”€ */
+  const completedSales = sales.filter((s) => s.status === "Completed");
+  const totalRevenue = completedSales.reduce((sum, s) => sum + s.totalAmount, 0);
+  const cashCount = completedSales.filter((s) => s.paymentMethod === "Cash").length;
+  const cardCount = completedSales.filter((s) => s.paymentMethod === "Card").length;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* ── Page Header ── */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Sales Management</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Track and manage all sales transactions
-        </p>
-      </div>
+    <div className="flex h-screen flex-col bg-background">
+      <AppHeader />
 
-      {/* ── Summary Cards ── */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-            Total Revenue
-          </p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            {formatCurrency(totalRevenue)}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-            Cash Transactions
-          </p>
-          <p className="mt-2 text-2xl font-bold text-emerald-600">{cashSales}</p>
-        </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-            Card Transactions
-          </p>
-          <p className="mt-2 text-2xl font-bold text-blue-600">{cardSales}</p>
-        </div>
-      </div>
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
 
-      {/* ── Toolbar ── */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          type="text"
-          placeholder="Search by Sale ID or Customer…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 sm:max-w-xs"
-        />
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Record New Sale
-        </button>
-      </div>
-
-      {/* ── Table ── */}
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50">
-              <tr>
-                {["Sale ID", "Customer Name", "Date", "Payment Method", "Total Amount", "Actions"].map(
-                  (col) => (
-                    <th
-                      key={col}
-                      className="whitespace-nowrap px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-                    >
-                      {col}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="py-12 text-center text-sm text-gray-400"
-                  >
-                    No sales records found.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((sale) => (
-                  <tr
-                    key={sale.id}
-                    className="hover:bg-indigo-50/40 transition-colors"
-                  >
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-mono font-semibold text-indigo-600">
-                      {sale.id}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-800">
-                      {sale.customerName}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {formatDate(sale.date)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                          sale.paymentMethod === "Cash"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {sale.paymentMethod === "Cash" ? (
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                            <path
-                              fillRule="evenodd"
-                              d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        ) : (
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                            <path
-                              fillRule="evenodd"
-                              d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5 0a1 1 0 000 2h6a1 1 0 100-2H9z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        )}
-                        {sale.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-900">
-                      {formatCurrency(sale.totalAmount)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => { setSelectedSale(sale); setIsViewModalOpen(true); }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          </svg>
-                          View
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(sale)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* table footer */}
-        <div className="border-t border-gray-100 px-6 py-3">
-          <p className="text-xs text-gray-400">
-            Showing {filtered.length} of {sales.length} record{sales.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </div>
-
-      {/* ── Add Sale Modal ── */}
-      <AddSaleModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleAddSave}
-      />
-
-      {/* ── View Sale Modal ── */}
-      <ViewSaleModal
-        isOpen={isViewModalOpen}
-        onClose={() => { setIsViewModalOpen(false); setSelectedSale(null); }}
-        saleData={selectedSale}
-      />
-
-      {/* ── Delete Confirm Modal ── */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
-            <div className="px-6 py-6 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-7 w-7 text-red-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">Delete Sale Record?</h3>
-              <p className="mt-2 text-sm text-gray-500">
-                You are about to permanently delete sale{" "}
-                <span className="font-semibold text-gray-800">{deleteTarget.id}</span> for{" "}
-                <span className="font-semibold text-gray-800">{deleteTarget.customerName}</span>.
-                This action cannot be undone.
-              </p>
+        {/* â”€â”€ Page header â”€â”€ */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+              <ReceiptText className="h-5 w-5" />
             </div>
-
-            <div className="flex gap-3 border-t border-gray-100 px-6 py-4">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteTarget.id)}
-                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 active:scale-95 transition-all"
-              >
-                Yes, Delete
-              </button>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground leading-tight">Sales Ledger</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded Â· read-only
+              </p>
             </div>
           </div>
         </div>
-      )}
+
+        {/* â”€â”€ Stats strip â”€â”€ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Revenue",   value: formatCurrency(totalRevenue) },
+            { label: "Completed Sales", value: completedSales.length },
+            { label: "Cash Payments",   value: cashCount },
+            { label: "Card Payments",   value: cardCount },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+              <p className="text-[20px] font-bold text-foreground tabular-nums leading-snug">{stat.value}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* â”€â”€ Toolbar â”€â”€ */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search receipt no. or paymentâ€¦"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
+          <div className="flex gap-2">
+            {["All", "Completed", "Void"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors",
+                  filterStatus === s
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* â”€â”€ Table â”€â”€ */}
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead>
+                <tr className="bg-muted/40">
+                  {["Receipt No.", "Date & Time", "Total Amount", "Payment Method", "Status", "Actions"].map((col) => (
+                    <th
+                      key={col}
+                      className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
+                      No transactions match your search.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((sale) => {
+                    const { date, time } = formatDateTime(sale.dateTime);
+                    const isVoid = sale.status === "Void";
+                    return (
+                      <tr key={sale.id} className={cn("transition-colors hover:bg-muted/30", isVoid && "opacity-60")}>
+                        {/* Receipt No */}
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span className="font-mono text-[13px] font-semibold text-primary">{sale.id}</span>
+                        </td>
+                        {/* Date & Time */}
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <p className="text-[13px] font-medium text-foreground">{date}</p>
+                          <p className="text-[11px] text-muted-foreground">{time}</p>
+                        </td>
+                        {/* Total Amount */}
+                        <td className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold text-foreground tabular-nums">
+                          {formatCurrency(sale.totalAmount)}
+                        </td>
+                        {/* Payment Method */}
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <PaymentBadge method={sale.paymentMethod} />
+                        </td>
+                        {/* Status */}
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <StatusBadge status={sale.status} />
+                        </td>
+                        {/* Actions */}
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setViewSale(sale); setIsViewOpen(true); }}
+                              className="h-7 gap-1.5 px-2.5 text-[12px]"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              View Receipt
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isVoid}
+                              onClick={() => handleVoid(sale.id)}
+                              className={cn(
+                                "h-7 gap-1.5 px-2.5 text-[12px]",
+                                !isVoid &&
+                                  "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                              )}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              {isVoid ? "Voided" : "Void Sale"}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* Table footer */}
+          <div className="border-t border-border px-4 py-2.5">
+            <p className="text-[11px] text-muted-foreground">
+              Showing {filtered.length} of {sales.length} transaction{sales.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* â”€â”€ View Receipt Modal â”€â”€ */}
+      <ViewSaleModal
+        isOpen={isViewOpen}
+        onClose={() => { setIsViewOpen(false); setViewSale(null); }}
+        saleData={viewSale}
+      />
     </div>
   );
 }
