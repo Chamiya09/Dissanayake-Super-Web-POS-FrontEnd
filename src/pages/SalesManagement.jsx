@@ -3,8 +3,9 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard } from "lucide-react";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, Pencil } from "lucide-react";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
+import EditSaleModal from "@/components/Sales/EditSaleModal";
 
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Mock data
@@ -75,6 +76,8 @@ export default function SalesManagement() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [viewSale, setViewSale] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [editSale, setEditSale] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   /* â”€â”€ Filtering â”€â”€ */
   const filtered = sales.filter((s) => {
@@ -87,6 +90,11 @@ export default function SalesManagement() {
   /* â”€â”€ Void handler â”€â”€ */
   const handleVoid = (id) => {
     setSales((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Void" } : s)));
+  };
+
+  /* ── Edit save handler ── */
+  const handleEditSave = (updated) => {
+    setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   };
 
   /* â”€â”€ Stats â”€â”€ */
@@ -226,6 +234,20 @@ export default function SalesManagement() {
                               variant="outline"
                               size="sm"
                               disabled={isVoid}
+                              onClick={() => { setEditSale(sale); setIsEditOpen(true); }}
+                              className={cn(
+                                "h-7 gap-1.5 px-2.5 text-[12px]",
+                                !isVoid &&
+                                  "border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                              )}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isVoid}
                               onClick={() => handleVoid(sale.id)}
                               className={cn(
                                 "h-7 gap-1.5 px-2.5 text-[12px]",
@@ -259,6 +281,13 @@ export default function SalesManagement() {
         isOpen={isViewOpen}
         onClose={() => { setIsViewOpen(false); setViewSale(null); }}
         saleData={viewSale}
+      />
+      {/* ── Edit Sale Modal ── */}
+      <EditSaleModal
+        isOpen={isEditOpen}
+        onClose={() => { setIsEditOpen(false); setEditSale(null); }}
+        saleData={editSale}
+        onSave={handleEditSave}
       />
     </div>
   );
