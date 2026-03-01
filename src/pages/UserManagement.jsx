@@ -3,13 +3,23 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Users, Plus, Search, UserCircle2, ShieldAlert } from "lucide-react";
+import { Users, Plus, Search, UserCircle2, ShieldAlert, Pencil, Trash2, Lock } from "lucide-react";
 import AddUserModal from "@/components/Users/AddUserModal";
+import EditUserModal from "@/components/Users/EditUserModal";
+import DeleteUserModal from "@/components/Users/DeleteUserModal";
+import SuccessPopup from "@/components/ui/SuccessPopup";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Role-based permission config
    ───────────────────────────────────────────────────────────────────────── */
 const CAN_ADD_USERS = ["Owner", "Manager"]; // Staff cannot add users
+
+/* Which roles can each logged-in role edit or delete */
+const MANAGEABLE_ROLES = {
+  Owner:   ["Manager", "Staff"],
+  Manager: ["Staff"],
+  Staff:   [],
+};
 
 const ROLE_SWITCHER_STYLES = {
   Owner:   "border-red-300   bg-red-50   text-red-700   dark:border-red-800  dark:bg-red-900/20  dark:text-red-400",
@@ -116,10 +126,20 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [popup, setPopup] = useState({ show: false, type: "success", message: "" });
 
   /* ── Simulated logged-in role (toggle for demo) ── */
   const [currentUserRole, setCurrentUserRole] = useState("Owner");
   const canAddUsers = CAN_ADD_USERS.includes(currentUserRole);
+
+  /* ── Permission helpers ── */
+  const canManage = (targetUser) =>
+    (MANAGEABLE_ROLES[currentUserRole] ?? []).includes(targetUser.role);
+
+  const showPopup = (type, message) =>
+    setPopup({ show: true, type, message });
 
   /* ── Filtering ── */
   const filtered = users.filter((u) => {
@@ -132,8 +152,22 @@ export default function UserManagement() {
     return matchesSearch && matchesRole;
   });
 
-  const handleAdd = (newUser) =>
+  const handleAdd = (newUser) => {
     setUsers((prev) => [newUser, ...prev]);
+    showPopup("success", `${newUser.fullName} has been added successfully!`);
+  };
+
+  const handleEdit = (updated) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+    showPopup("success", `${updated.fullName} has been updated successfully!`);
+    setEditTarget(null);
+  };
+
+  const handleDelete = (user) => {
+    setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    showPopup("success", `${user.fullName} has been removed.`);
+    setDeleteTarget(null);
+  };
 
   const ROLE_FILTERS = ["All", "Owner", "Manager", "Staff"];
 
@@ -174,7 +208,7 @@ export default function UserManagement() {
           </div>
         </div>
 
-        {/* ── Page header ── */}}
+        {/* ── Page header ── */}
         <div className="border-b border-border bg-background px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Title */}
@@ -261,6 +295,9 @@ export default function UserManagement() {
                     <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Role
                     </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
@@ -298,6 +335,37 @@ export default function UserManagement() {
                       <td className="px-4 py-3">
                         <RoleBadge role={user.role} />
                       </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          {canManage(user) ? (
+                            <>
+                              <button
+                                onClick={() => setEditTarget(user)}
+                                title={`Edit ${user.fullName}`}
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteTarget(user)}
+                                title={`Delete ${user.fullName}`}
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <span
+                              title="Insufficient permissions"
+                              className="inline-flex items-center rounded-lg p-1.5 text-muted-foreground/40 cursor-not-allowed"
+                            >
+                              <Lock className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -323,6 +391,33 @@ export default function UserManagement() {
           currentUserRole={currentUserRole}
         />
       )}
+
+      {/* Edit User Modal */}
+      {editTarget && (
+        <EditUserModal
+          user={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={handleEdit}
+          currentUserRole={currentUserRole}
+        />
+      )}
+
+      {/* Delete User Modal */}
+      {deleteTarget && (
+        <DeleteUserModal
+          user={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget)}
+        />
+      )}
+
+      {/* Success / Error Popup */}
+      <SuccessPopup
+        show={popup.show}
+        type={popup.type}
+        message={popup.message}
+        onClose={() => setPopup((p) => ({ ...p, show: false }))}
+      />
     </div>
   );
 }
