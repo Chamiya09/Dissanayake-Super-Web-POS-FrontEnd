@@ -317,13 +317,18 @@ export default function UserProfile() {
       <AppHeader />
 
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-2xl px-6 py-8 space-y-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
 
           {/* ── Page title ── */}
-          <div>
+          <div className="mb-6">
             <h1 className="text-xl font-extrabold tracking-tight text-foreground">My Profile</h1>
             <p className="text-sm text-muted-foreground">View your account details and manage your password.</p>
           </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+          {/* ── Left column · Profile Info ── */}
+          <div className="md:col-span-1">
 
           {/* ── Profile card ── */}
           <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -387,6 +392,11 @@ export default function UserProfile() {
               </p>
             </div>
           </div>
+
+          </div>{/* end left column */}
+
+          {/* ── Right columns · Stats + Password ── */}
+          <div className="space-y-6 md:col-span-2">
 
           {/* ── Role-specific section ── */}
           <RoleSection role={user?.role} />
@@ -477,6 +487,9 @@ export default function UserProfile() {
 
             </form>
           </div>
+
+          </div>{/* end right columns */}
+          </div>{/* end grid */}
 
         </div>
       </div>

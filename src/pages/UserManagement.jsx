@@ -172,7 +172,8 @@ export default function UserManagement() {
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Page header ── */}
-        <div className="border-b border-border bg-background px-6 py-5">
+        <div className="border-b border-border bg-background">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Title */}
             <div className="flex items-center gap-3">
@@ -231,14 +232,16 @@ export default function UserManagement() {
               )}
             </div>
           </div>
+          </div>
         </div>
 
         {/* ── Table ── */}
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="flex-1 overflow-auto px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-7xl">
           {filtered.length === 0 ? (
             <EmptyState onAdd={() => setIsAddOpen(true)} />
           ) : (
-            <div className="rounded-xl border border-border overflow-hidden shadow-sm">
+            <div className="rounded-xl border border-border overflow-x-auto shadow-sm">
               <table className="w-full text-sm">
                 {/* Head */}
                 <thead>
@@ -343,6 +346,7 @@ export default function UserManagement() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 

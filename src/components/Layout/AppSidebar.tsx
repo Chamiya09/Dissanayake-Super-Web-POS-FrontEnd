@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -101,23 +101,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom section — My Profile pinned to the very bottom */}
-        <div className="mt-auto pt-4 border-t border-border group-data-[collapsible=icon]:pt-3">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="My Profile">
-                <NavLink
-                  to="/profile"
-                  className="flex items-center gap-3 rounded-lg px-3 py-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:py-4 mx-0.5"
-                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                >
-                  <UserCircle2 className="h-[18px] w-[18px] shrink-0 group-data-[collapsible=icon]:h-[22px] group-data-[collapsible=icon]:w-[22px]" />
-                  <span className="group-data-[collapsible=icon]:hidden">My Profile</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
       </SidebarContent>
     </Sidebar>
   );

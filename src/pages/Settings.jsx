@@ -20,6 +20,9 @@ import {
   ShieldCheck,
   Sliders,
   Shield,
+  User,
+  AtSign,
+  Mail,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -29,6 +32,26 @@ const API_BASE = "http://localhost:8080";
 
 const LS_DARK  = "pos_dark_mode";
 const LS_EMAIL = "pos_email_notifications";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Account summary data (mirrors AuthContext mock users)
+   ───────────────────────────────────────────────────────────────────────── */
+const SETTINGS_EMAIL = {
+  admin:    "nuwan@dissanayake.lk",
+  manager1: "kamala@dissanayake.lk",
+  staff1:   "sachini@dissanayake.lk",
+};
+const SETTINGS_ROLE_GRADIENT = {
+  Owner:   "from-red-400   to-red-600",
+  Manager: "from-blue-400  to-blue-600",
+  Staff:   "from-green-400 to-green-600",
+};
+const SETTINGS_ROLE_BADGE = {
+  Owner:   "bg-red-100   text-red-700   border border-red-200   dark:bg-red-900/20   dark:text-red-400",
+  Manager: "bg-blue-100  text-blue-700  border border-blue-200  dark:bg-blue-900/20  dark:text-blue-400",
+  Staff:   "bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400",
+};
+const SETTINGS_ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
 
 /* ─────────────────────────────────────────────────────────────────────────
    Small reusable helpers
@@ -179,6 +202,75 @@ function SectionCard({ icon: Icon, iconBg, title, subtitle, children }) {
         </div>
       </div>
       <div className="px-6 py-5">{children}</div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Account summary card — left sidebar of the settings grid
+   ───────────────────────────────────────────────────────────────────────── */
+function AccountSummaryCard({ user }) {
+  const initials = (user?.name ?? "U")
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+  const email = SETTINGS_EMAIL[user?.username] ?? "—";
+
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      {/* Role-coloured banner */}
+      <div className={cn(
+        "h-16 bg-gradient-to-br opacity-30",
+        SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-zinc-400 to-zinc-600"
+      )} />
+
+      {/* Avatar + info body */}
+      <div className="px-5 pb-5">
+        {/* Avatar overlapping the banner */}
+        <div className="-mt-7 mb-3">
+          <div className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br",
+            "text-xl font-extrabold text-white shadow-md ring-2 ring-background",
+            SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-zinc-400 to-zinc-600"
+          )}>
+            {initials}
+          </div>
+        </div>
+
+        <p className="text-[15px] font-bold text-foreground leading-tight">{user?.name}</p>
+        <span className={cn(
+          "mt-1.5 mb-4 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+          SETTINGS_ROLE_BADGE[user?.role]
+        )}>
+          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", SETTINGS_ROLE_DOT[user?.role])} />
+          {user?.role}
+        </span>
+
+        {/* Info rows */}
+        <div className="mt-3 space-y-2.5">
+          <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+            <AtSign className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+            <span className="font-mono truncate">{user?.username}</span>
+          </div>
+          <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+            <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+            <span className="truncate">{email}</span>
+          </div>
+          <div className="flex items-center gap-2.5 text-xs">
+            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+            <span className="font-medium text-emerald-600 dark:text-emerald-400">Active account</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer note */}
+      <div className="border-t border-border bg-muted/30 px-5 py-3">
+        <p className="text-[11px] text-muted-foreground italic">
+          Account details are managed by your administrator.
+        </p>
+      </div>
     </div>
   );
 }
@@ -397,10 +489,10 @@ export default function Settings() {
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
 
           {/* Page heading */}
-          <div className="flex items-center gap-3">
+          <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <Settings2 className="h-5 w-5 text-primary" />
             </div>
@@ -411,6 +503,16 @@ export default function Settings() {
               </p>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+            {/* ── Left column · Account Summary ── */}
+            <div className="md:col-span-1">
+              <AccountSummaryCard user={user} />
+            </div>
+
+            {/* ── Right columns · Settings sections ── */}
+            <div className="md:col-span-2 space-y-6">
 
           {/* ── Section 1 · Security ──────────────────────────────────────── */}
           <SectionCard
@@ -589,6 +691,9 @@ export default function Settings() {
               </div>
             </div>
           </SectionCard>
+
+            </div>{/* end right columns */}
+          </div>{/* end grid */}
 
         </div>
       </div>
