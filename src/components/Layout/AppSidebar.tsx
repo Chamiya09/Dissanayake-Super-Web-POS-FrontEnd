@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 
 /* Roles that can see each nav item. Omitting a title = visible to all. */
 const NAV_ROLES: Record<string, string[]> = {
+  "My Dashboard": ["Staff"],
   "Dashboard":    ["Owner", "Manager"],
   "Products":     ["Owner", "Manager"],
   "Sales":        ["Owner", "Manager"],
@@ -22,12 +23,13 @@ const NAV_ROLES: Record<string, string[]> = {
 };
 
 const navItems = [
-  { title: "Dashboard",    url: "/dashboard", icon: LayoutDashboard },
-  { title: "POS Checkout", url: "/",          icon: ShoppingCart    },
-  { title: "Products",     url: "/products",  icon: Package         },
-  { title: "Sales",        url: "/sales",     icon: ReceiptText     },
-  { title: "Suppliers",    url: "/suppliers", icon: Building2       },
-  { title: "Users",        url: "/users",     icon: Users           },
+  { title: "My Dashboard", url: "/staff-dashboard", icon: LayoutGrid       },
+  { title: "Dashboard",    url: "/dashboard",       icon: LayoutDashboard  },
+  { title: "POS Checkout", url: "/",               icon: ShoppingCart     },
+  { title: "Products",     url: "/products",        icon: Package          },
+  { title: "Sales",        url: "/sales",           icon: ReceiptText      },
+  { title: "Suppliers",    url: "/suppliers",       icon: Building2        },
+  { title: "Users",        url: "/users",           icon: Users            },
 ];
 
 export function AppSidebar() {
