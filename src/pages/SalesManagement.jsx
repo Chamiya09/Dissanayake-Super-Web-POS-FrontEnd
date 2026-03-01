@@ -171,27 +171,27 @@ export default function SalesManagement() {
         {/* â”€â”€ Table â”€â”€ */}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
           <div className="overflow-x-auto">
-            <table className="min-w-full">
+            <table className="w-full table-fixed">
 
               {/* ── Head ── */}
               <thead>
                 <tr className="border-b border-border bg-muted/60">
-                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[14%] px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Receipt No.
                   </th>
-                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[18%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Date &amp; Time
                   </th>
-                  <th className="whitespace-nowrap px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[16%] px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Total Amount
                   </th>
-                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[16%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Payment Method
                   </th>
-                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[12%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Status
                   </th>
-                  <th className="whitespace-nowrap px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[24%] px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -218,38 +218,42 @@ export default function SalesManagement() {
                         )}
                       >
                         {/* Receipt No. */}
-                        <td className="whitespace-nowrap px-6 py-4">
+                        <td className="px-6 py-4">
                           <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
                             {sale.id}
                           </span>
                         </td>
 
-                        {/* Date & Time */}
-                        <td className="whitespace-nowrap px-6 py-4">
+                        {/* Date & Time — centered */}
+                        <td className="px-6 py-4 text-center">
                           <p className="text-[13px] font-medium text-foreground">{date}</p>
                           <p className="mt-0.5 text-[11px] text-muted-foreground">{time}</p>
                         </td>
 
                         {/* Total Amount — right-aligned */}
-                        <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right">
                           <span className="text-[13px] font-semibold tabular-nums text-foreground">
                             {formatCurrency(sale.totalAmount)}
                           </span>
                         </td>
 
-                        {/* Payment Method */}
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <PaymentBadge method={sale.paymentMethod} />
+                        {/* Payment Method — centered */}
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center">
+                            <PaymentBadge method={sale.paymentMethod} />
+                          </div>
                         </td>
 
-                        {/* Status */}
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <StatusBadge status={sale.status} />
+                        {/* Status — centered */}
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center">
+                            <StatusBadge status={sale.status} />
+                          </div>
                         </td>
 
-                        {/* Actions */}
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <div className="flex items-center gap-3">
+                        {/* Actions — right-aligned */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-3">
                             {/* View */}
                             <Button
                               variant="outline"
