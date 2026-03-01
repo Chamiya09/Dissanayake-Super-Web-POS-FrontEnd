@@ -53,18 +53,22 @@ const App = () => (
             {/* ── Public ── */}
             <Route path="/login" element={<Login />} />
 
-            {/* ── Protected (requires auth) ── */}
+            {/* ── All-role routes (Staff + Admin) ── */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/"           element={<Index />} />
-                <Route path="/dashboard"  element={<Dashboard />} />
-                <Route path="/products"   element={<ProductManagement />} />
-                <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
-                <Route path="/sales"      element={<SalesManagement />} />
-                <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
-                <Route path="/suppliers"  element={<Suppliers />} />
-                <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
-                <Route path="/users"      element={<UserManagement />} />
+                <Route path="/"      element={<Index />} />
+
+                {/* ── Admin-only routes (Owner + Manager) ── */}
+                <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
+                  <Route path="/dashboard"  element={<Dashboard />} />
+                  <Route path="/products"   element={<ProductManagement />} />
+                  <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
+                  <Route path="/sales"      element={<SalesManagement />} />
+                  <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
+                  <Route path="/suppliers"  element={<Suppliers />} />
+                  <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
+                  <Route path="/users"      element={<UserManagement />} />
+                </Route>
               </Route>
             </Route>
 

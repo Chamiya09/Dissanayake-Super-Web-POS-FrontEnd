@@ -12,6 +12,16 @@ const MOCK_USERS = {
 
 const LS_KEY = "pos_auth_user";
 
+/**
+ * Default home page per role — used by login redirect and role-gate redirects.
+ * Staff land on POS Checkout (/), Owner/Manager on the Dashboard.
+ */
+export const ROLE_HOME = {
+  Owner:   "/dashboard",
+  Manager: "/dashboard",
+  Staff:   "/",
+};
+
 function loadUser() {
   try {
     const raw = localStorage.getItem(LS_KEY);

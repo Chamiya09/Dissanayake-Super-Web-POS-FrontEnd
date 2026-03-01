@@ -1,12 +1,25 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { ROLE_HOME } from "@/context/AuthContext";
 
 /**
- * Renders nested routes (<Outlet />) only when the user is authenticated.
- * Unauthenticated visitors are redirected to /login, preserving the
- * originally requested path so they can be sent back after login.
+ * Two-layer guard:
+ *  1. If not authenticated  → redirect to /login
+ *  2. If allowedRoles given and user's role is not in the list
+ *     → redirect to that role's home page (defined in ROLE_HOME)
+ *
+ * Usage:
+ *   <Route element={<ProtectedRoute />}>                        // auth only
+ *   <Route element={<ProtectedRoute allowedRoles={["Owner","Manager"]} />}>  // auth + role
  */
-export default function ProtectedRoute() {
+export default function ProtectedRoute({ allowedRoles }) {
   const { user } = useAuth();
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={ROLE_HOME[user.role] ?? "/"} replace />;
+  }
+
+  return <Outlet />;
 }

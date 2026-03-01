@@ -2,14 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn, ShoppingCart, AlertCircle, User, Lock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { ROLE_HOME } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-
-/* Role → redirect destination */
-const ROLE_REDIRECT = {
-  Owner:   "/dashboard",
-  Manager: "/dashboard",
-  Staff:   "/",
-};
 
 /* Demo credential helper cards */
 const DEMO_ACCOUNTS = [
@@ -51,7 +45,7 @@ export default function Login() {
       return;
     }
 
-    navigate(ROLE_REDIRECT[result.user.role] ?? "/dashboard", { replace: true });
+    navigate(ROLE_HOME[result.user.role] ?? "/", { replace: true });
   };
 
   return (
