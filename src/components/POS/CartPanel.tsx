@@ -153,7 +153,7 @@ function SwipeableItem({
 /*  CartPanel  */
 export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card">("Cash");
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -202,6 +202,10 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
 
   /*  Payment handler  */
   const handlePayment = useCallback(() => {
+    if (!paymentMethod) {
+      alert("Please select a payment method!");
+      return;
+    }
     setProcessing(true);
     setTimeout(() => {
       setProcessing(false);
@@ -212,8 +216,9 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
       setLoyaltyOpen(false);
       setLoyaltyInput("");
       setRedeemPoints(false);
+      setPaymentMethod("");
     }, 2000);
-  }, [finalTotal, onCheckout]);
+  }, [finalTotal, paymentMethod, onCheckout]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
@@ -546,33 +551,31 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
 
         {/*  Payment method selector  */}
         <div className="rounded-xl border border-border bg-secondary/30 p-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Payment Method</p>
-          <div className="grid grid-cols-2 gap-2">
-            {(["Cash", "Card"] as const).map((method) => {
-              const active = paymentMethod === method;
-              return (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13px] font-semibold transition-all duration-150",
-                    active
-                      ? method === "Cash"
-                        ? "border-emerald-400 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 shadow-sm"
-                        : "border-blue-400 bg-blue-500/10 text-blue-700 dark:text-blue-400 shadow-sm"
-                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  {method === "Cash" ? (
-                    <Banknote className="h-4 w-4 shrink-0" />
-                  ) : (
-                    <CreditCard className="h-4 w-4 shrink-0" />
-                  )}
-                  {method}
-                  {active && <Check className="h-3 w-3 shrink-0" />}
-                </button>
-              );
-            })}
+          <label
+            htmlFor="payment-method-select"
+            className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Payment Method
+          </label>
+          <div className="relative">
+            <select
+              id="payment-method-select"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className={cn(
+                "w-full appearance-none rounded-lg border px-3 py-2.5 pr-9 text-[13px] font-semibold bg-card transition-colors duration-150 outline-none focus:ring-2 focus:ring-primary/40",
+                paymentMethod === "Cash"
+                  ? "border-emerald-400 text-emerald-700 dark:text-emerald-400"
+                  : paymentMethod === "Card"
+                  ? "border-blue-400 text-blue-700 dark:text-blue-400"
+                  : "border-border text-muted-foreground"
+              )}
+            >
+              <option value="">— Select payment method —</option>
+              <option value="Cash">💵  Cash</option>
+              <option value="Card">💳  Card</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           </div>
         </div>
 
