@@ -1,5 +1,8 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { AppHeader } from "@/components/Layout/AppHeader";
+
+const API = "http://localhost:8080/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -7,21 +10,7 @@ import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, Pencil } from "luc
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 import EditSaleModal from "@/components/Sales/EditSaleModal";
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Mock data
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const initialSales = [
-  { id: "RCP-0001", dateTime: "2026-02-25T09:14:00", totalAmount: 4850.00, paymentMethod: "Cash", status: "Completed" },
-  { id: "RCP-0002", dateTime: "2026-02-25T11:47:00", totalAmount: 12300.50, paymentMethod: "Card", status: "Completed" },
-  { id: "RCP-0003", dateTime: "2026-02-26T14:22:00", totalAmount: 7625.75, paymentMethod: "Cash", status: "Void" },
-  { id: "RCP-0004", dateTime: "2026-02-27T16:05:00", totalAmount: 21480.00, paymentMethod: "Card", status: "Completed" },
-  { id: "RCP-0005", dateTime: "2026-02-28T08:53:00", totalAmount: 3320.25, paymentMethod: "Cash", status: "Completed" },
-  { id: "RCP-0006", dateTime: "2026-03-01T10:30:00", totalAmount: 9875.00, paymentMethod: "Card", status: "Void" },
-];
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Helpers / sub-components
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(amount);
 
@@ -67,55 +56,56 @@ function PaymentBadge({ method }) {
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Page
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
 export default function SalesManagement() {
   const [sales, setSales] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
 
-  // Load from localStorage on mount; fall back to mock data if empty
-  useEffect(() => {
+  const fetchSales = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const raw = localStorage.getItem("sales");
-      const stored = raw ? JSON.parse(raw) : [];
-      setSales(stored.length > 0 ? stored : initialSales);
-    } catch {
-      setSales(initialSales);
+      const { data } = await axios.get(API);
+      setSales(data);
+    } catch (err) {
+      console.error("Failed to fetch sales:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Persist every change (Void / Edit) back to localStorage
-  useEffect(() => {
-    if (sales.length > 0) {
-      localStorage.setItem("sales", JSON.stringify(sales));
-    }
-  }, [sales]);
-  const [filterStatus, setFilterStatus] = useState("All");
+  useEffect(() => { fetchSales(); }, [fetchSales]);
   const [viewSale, setViewSale] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [editSale, setEditSale] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  /* â”€â”€ Filtering â”€â”€ */
+  /* ── Filtering ── */
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
-    const matchSearch = !q || s.id.toLowerCase().includes(q) || s.paymentMethod.toLowerCase().includes(q);
+    const matchSearch = !q || (s.receiptNo ?? "").toLowerCase().includes(q) || s.paymentMethod.toLowerCase().includes(q);
     const matchStatus = filterStatus === "All" || s.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  /* â”€â”€ Void handler â”€â”€ */
-  const handleVoid = (id) => {
-    setSales((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Void" } : s)));
+  /* ── Void handler ── */
+  const handleVoid = async (id) => {
+    try {
+      await axios.put(`${API}/${id}/status`, { status: "Voided" });
+      fetchSales();
+    } catch (err) {
+      console.error("Failed to void sale:", err);
+      alert("Failed to void sale. Please try again.");
+    }
   };
 
-  /* ── Edit save handler ── */
+  /* -- Edit save handler -- */
   const handleEditSave = (updated) => {
     setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   };
 
-  /* â”€â”€ Stats â”€â”€ */
+  /* ── Stats ── */
   const completedSales = sales.filter((s) => s.status === "Completed");
   const totalRevenue = completedSales.reduce((sum, s) => sum + s.totalAmount, 0);
   const cashCount = completedSales.filter((s) => s.paymentMethod === "Cash").length;
@@ -127,7 +117,7 @@ export default function SalesManagement() {
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* â”€â”€ Page header â”€â”€ */}
+        {}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
@@ -136,13 +126,13 @@ export default function SalesManagement() {
             <div>
               <h1 className="text-2xl font-bold text-foreground leading-tight">Sales Ledger</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded Â· read-only
+                {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
               </p>
             </div>
           </div>
         </div>
 
-        {/* â”€â”€ Stats strip â”€â”€ */}
+        {/* ── Stats strip ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total Revenue",   value: formatCurrency(totalRevenue) },
@@ -157,19 +147,19 @@ export default function SalesManagement() {
           ))}
         </div>
 
-        {/* â”€â”€ Toolbar â”€â”€ */}
+        {/* ── Toolbar ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search receipt no. or paymentâ€¦"
+              placeholder="Search receipt no. or payment…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9 text-sm"
             />
           </div>
           <div className="flex gap-2">
-            {["All", "Completed", "Void"].map((s) => (
+            {["All", "Completed", "Voided"].map((s) => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
@@ -186,12 +176,24 @@ export default function SalesManagement() {
           </div>
         </div>
 
-        {/* â”€â”€ Table â”€â”€ */}
+        {/* ── Loading spinner ── */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-24 gap-2 text-sm text-muted-foreground">
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Loading sales data…
+          </div>
+        )}
+
+        {/* ── Table ── */}
+        {!isLoading && (
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
           <div className="overflow-x-auto">
             <table className="w-full table-fixed">
 
-              {/* ── Head ── */}
+              {/* -- Head -- */}
               <thead>
                 <tr className="border-b border-border bg-muted/60">
                   <th className="w-[14%] px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -215,7 +217,7 @@ export default function SalesManagement() {
                 </tr>
               </thead>
 
-              {/* ── Body ── */}
+              {/* -- Body -- */}
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
@@ -225,8 +227,8 @@ export default function SalesManagement() {
                   </tr>
                 ) : (
                   filtered.map((sale) => {
-                    const { date, time } = formatDateTime(sale.dateTime);
-                    const isVoid = sale.status === "Void";
+                    const { date, time } = formatDateTime(sale.saleDate);
+                    const isVoid = sale.status === "Voided";
                     return (
                       <tr
                         key={sale.id}
@@ -238,38 +240,38 @@ export default function SalesManagement() {
                         {/* Receipt No. */}
                         <td className="px-6 py-4">
                           <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
-                            {sale.id}
+                            {sale.receiptNo}
                           </span>
                         </td>
 
-                        {/* Date & Time — centered */}
+                        {/* Date & Time � centered */}
                         <td className="px-6 py-4 text-center">
                           <p className="text-[13px] font-medium text-foreground">{date}</p>
                           <p className="mt-0.5 text-[11px] text-muted-foreground">{time}</p>
                         </td>
 
-                        {/* Total Amount — right-aligned */}
+                        {/* Total Amount � right-aligned */}
                         <td className="px-6 py-4 text-right">
                           <span className="text-[13px] font-semibold tabular-nums text-foreground">
                             {formatCurrency(sale.totalAmount)}
                           </span>
                         </td>
 
-                        {/* Payment Method — centered */}
+                        {/* Payment Method � centered */}
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center">
                             <PaymentBadge method={sale.paymentMethod} />
                           </div>
                         </td>
 
-                        {/* Status — centered */}
+                        {/* Status � centered */}
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center">
                             <StatusBadge status={sale.status} />
                           </div>
                         </td>
 
-                        {/* Actions — right-aligned */}
+                        {/* Actions � right-aligned */}
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-3">
                             {/* View */}
@@ -326,7 +328,7 @@ export default function SalesManagement() {
             </table>
           </div>
 
-          {/* ── Table footer ── */}
+          {/* -- Table footer -- */}
           <div className="flex items-center justify-between border-t border-border bg-muted/30 px-6 py-3">
             <p className="text-[11px] text-muted-foreground">
               Showing <span className="font-semibold text-foreground">{filtered.length}</span> of{" "}
@@ -340,15 +342,16 @@ export default function SalesManagement() {
             )}
           </div>
         </div>
+        )}
       </div>
 
-      {/* â”€â”€ View Receipt Modal â”€â”€ */}
+      {/* ── View Receipt Modal ── */}
       <ViewSaleModal
         isOpen={isViewOpen}
         onClose={() => { setIsViewOpen(false); setViewSale(null); }}
         saleData={viewSale}
       />
-      {/* ── Edit Sale Modal ── */}
+      {/* -- Edit Sale Modal -- */}
       <EditSaleModal
         isOpen={isEditOpen}
         onClose={() => { setIsEditOpen(false); setEditSale(null); }}
