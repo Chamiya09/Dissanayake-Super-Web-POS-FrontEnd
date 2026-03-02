@@ -39,15 +39,15 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
     Vegetables: Leaf,
   };
 
-  // Soft pastel icon-area background per category
+  // Soft pastel icon-area background per category (light + dark)
   const categoryBg: Record<string, string> = {
-    Fruits:     "bg-rose-50",
-    Dairy:      "bg-blue-50",
-    Beverages:  "bg-sky-50",
-    Bakery:     "bg-amber-50",
-    Snacks:     "bg-lime-50",
-    Meat:       "bg-red-50",
-    Vegetables: "bg-green-50",
+    Fruits:     "bg-rose-50    dark:bg-rose-900/30",
+    Dairy:      "bg-blue-50    dark:bg-blue-900/30",
+    Beverages:  "bg-sky-50     dark:bg-sky-900/30",
+    Bakery:     "bg-amber-50   dark:bg-amber-900/30",
+    Snacks:     "bg-lime-50    dark:bg-lime-900/30",
+    Meat:       "bg-red-50     dark:bg-red-900/30",
+    Vegetables: "bg-green-50   dark:bg-green-900/30",
   };
 
   // Category accent border color (top strip)
@@ -62,13 +62,25 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   };
 
   const stockBadge = (stock: number) => {
-    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200" };
-    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200" };
-    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200" };
-    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200" };
+    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700" };
+    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800" };
+    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800" };
+    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" };
   };
 
-  const PLACEHOLDER = "/placeholder.svg";
+  // Switch placeholder based on dark mode (observes <html class="dark">)
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
   const isSearching = search.trim().length > 0;
   const inputRef  = useRef<HTMLInputElement>(null);
   const gridRef   = useRef<HTMLDivElement>(null);
@@ -189,7 +201,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
                 "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
                 activeCategory === cat
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-white border border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  : "bg-white dark:bg-zinc-800 border border-border text-muted-foreground hover:border-primary hover:text-primary"
               )}
             >
               {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
@@ -261,7 +273,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
               {/* Out-of-stock overlay */}
               {outOfStock && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 dark:bg-black/60 backdrop-blur-[2px]">
                   <PackageX className="h-5 w-5 text-gray-400" />
                   <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Out of Stock</span>
                 </div>
@@ -349,7 +361,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
         {/* Empty state */}
         {filtered.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm">
+          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white dark:bg-card py-20 shadow-sm">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Search className="h-6 w-6" />
             </div>

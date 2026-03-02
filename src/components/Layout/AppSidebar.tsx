@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -10,16 +10,36 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/context/AuthContext";
+
+/* Roles that can see each nav item. Omitting a title = visible to all. */
+const NAV_ROLES: Record<string, string[]> = {
+  "My Dashboard": ["Staff"],
+  "Dashboard":    ["Owner", "Manager"],
+  "Products":     ["Owner", "Manager"],
+  "Sales":        ["Owner", "Manager"],
+  "Suppliers":    ["Owner", "Manager"],
+  "Users":        ["Owner", "Manager"],
+};
 
 const navItems = [
-  { title: "Dashboard",    url: "/dashboard", icon: LayoutDashboard },
-  { title: "POS Checkout", url: "/",          icon: ShoppingCart    },
-  { title: "Products",     url: "/products",  icon: Package         },
-  { title: "Sales",        url: "/sales",     icon: ReceiptText     },
-  { title: "Suppliers",    url: "/suppliers", icon: Building2       },
+  { title: "My Dashboard", url: "/staff-dashboard", icon: LayoutGrid       },
+  { title: "Dashboard",    url: "/dashboard",       icon: LayoutDashboard  },
+  { title: "POS Checkout", url: "/",               icon: ShoppingCart     },
+  { title: "Products",     url: "/products",        icon: Package          },
+  { title: "Sales",        url: "/sales",           icon: ReceiptText      },
+  { title: "Suppliers",    url: "/suppliers",       icon: Building2        },
+  { title: "Users",        url: "/users",           icon: Users            },
 ];
 
 export function AppSidebar() {
+  const { user } = useAuth();
+  const role = user?.role ?? "Staff";
+
+  const visibleItems = navItems.filter(
+    (item) => !NAV_ROLES[item.title] || NAV_ROLES[item.title].includes(role)
+  );
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar-background">
       {/* Brand */}
@@ -62,7 +82,7 @@ export function AppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="flex flex-col gap-y-3">
-              {navItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <NavLink
@@ -81,10 +101,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom section — pinned to the very bottom */}
-        <div className="mt-auto pt-4 border-t border-border group-data-[collapsible=icon]:pt-3">
-          {/* Placeholder for future Settings / Logout items */}
-        </div>
       </SidebarContent>
     </Sidebar>
   );

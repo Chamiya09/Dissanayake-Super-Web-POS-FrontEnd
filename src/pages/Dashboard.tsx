@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { TrendingUp, Package, Truck, LayoutDashboard } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
@@ -9,21 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
-/* ── Mock chart data (replace with API data later) ─────────────────────── */
-const salesTrendData = [
-  { name: "Mon", amount: 12400 },
-  { name: "Tue", amount: 8700 },
-  { name: "Wed", amount: 15200 },
-  { name: "Thu", amount: 9800 },
-  { name: "Fri", amount: 22100 },
-  { name: "Sat", amount: 18600 },
-  { name: "Sun", amount: 5300 },
-];
 
-const paymentData = [
-  { name: "Cash", value: 64 },
-  { name: "Card", value: 36 },
-];
 
 const PIE_COLORS = ["#10b981", "#6366f1"];
 
@@ -52,6 +38,7 @@ interface RecentSale {
   saleDate: string;
   totalAmount: number;
   status: string;
+  paymentMethod: string;
 }
 
 interface DashboardStats {
@@ -110,15 +97,20 @@ export default function Dashboard() {
   });
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [salesTrendData, setSalesTrendData] = useState<{ name: string; amount: number }[]>([]);
+  const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([
+    { name: "Cash", value: 0 },
+    { name: "Card", value: 0 },
+  ]);
 
   useEffect(() => {
     const fetchAll = async () => {
       setIsLoading(true);
       try {
         const [salesRes, productsRes, suppliersRes] = await Promise.allSettled([
-          axios.get<RecentSale[]>("http://localhost:8080/api/sales"),
-          axios.get<unknown[]>("http://localhost:8080/api/products"),
-          axios.get<unknown[]>("http://localhost:8080/api/suppliers"),
+          api.get<RecentSale[]>("/api/sales"),
+          api.get<unknown[]>("/api/products"),
+          api.get<unknown[]>("/api/suppliers"),
         ]);
 
         //  Sales 
@@ -136,6 +128,34 @@ export default function Dashboard() {
 
           setStats((prev) => ({ ...prev, revenue }));
           setRecentSales(latest);
+
+          // ── Weekly trend (last 7 days) ──
+          const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const now = new Date();
+          const trendData = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() - (6 - i));
+            const dayStr = d.toDateString();
+            const amount = salesData
+              .filter(
+                (s) =>
+                  s.status === "Completed" &&
+                  s.saleDate &&
+                  new Date(s.saleDate).toDateString() === dayStr,
+              )
+              .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+            return { name: DAY_NAMES[d.getDay()], amount };
+          });
+          setSalesTrendData(trendData);
+
+          // ── Payment method split ──
+          const cashCnt = completedSales.filter((s) => s.paymentMethod === "Cash").length;
+          const cardCnt = completedSales.filter((s) => s.paymentMethod === "Card").length;
+          const payTotal = cashCnt + cardCnt;
+          setPaymentData([
+            { name: "Cash", value: payTotal > 0 ? Math.round((cashCnt / payTotal) * 100) : 0 },
+            { name: "Card", value: payTotal > 0 ? Math.round((cardCnt / payTotal) * 100) : 0 },
+          ]);
         }
 
         //  Products 
