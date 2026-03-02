@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/axiosInstance";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import { cn } from "@/lib/utils";
 import {
@@ -33,14 +34,7 @@ const API_BASE = "http://localhost:8080";
 const LS_DARK  = "pos_dark_mode";
 const LS_EMAIL = "pos_email_notifications";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Account summary data (mirrors AuthContext mock users)
-   ───────────────────────────────────────────────────────────────────────── */
-const SETTINGS_EMAIL = {
-  admin:    "nuwan@dissanayake.lk",
-  manager1: "kamala@dissanayake.lk",
-  staff1:   "sachini@dissanayake.lk",
-};
+
 const SETTINGS_ROLE_GRADIENT = {
   Owner:   "from-red-400   to-red-600",
   Manager: "from-blue-400  to-blue-600",
@@ -209,14 +203,13 @@ function SectionCard({ icon: Icon, iconBg, title, subtitle, children }) {
 /* ─────────────────────────────────────────────────────────────────────────
    Account summary card — left sidebar of the settings grid
    ───────────────────────────────────────────────────────────────────────── */
-function AccountSummaryCard({ user }) {
+function AccountSummaryCard({ user, email }) {
   const initials = (user?.name ?? "U")
     .split(" ")
     .slice(0, 2)
     .map((n) => n[0])
     .join("")
     .toUpperCase();
-  const email = SETTINGS_EMAIL[user?.username] ?? "—";
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -356,7 +349,16 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
 export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  /* ── Profile email from API ──────────────────────────────────────────────── */
+  const [profileEmail, setProfileEmail] = useState("—");
 
+  useEffect(() => {
+    if (!user?.username) return;
+    api.get("/api/users").then(({ data }) => {
+      const me = (data ?? []).find((u) => u.username === user.username);
+      if (me?.email) setProfileEmail(me.email);
+    }).catch(() => {});
+  }, [user?.username]);
   /* ── Password form state ─────────────────────────────────────────────── */
   const [current,      setCurrent]      = useState("");
   const [newPass,      setNewPass]      = useState("");
@@ -509,7 +511,7 @@ export default function Settings() {
 
             {/* ── Left column · Account Summary ── */}
             <div className="lg:col-span-1">
-              <AccountSummaryCard user={user} />
+              <AccountSummaryCard user={user} email={profileEmail} />
             </div>
 
             {/* ── Right columns · Settings sections ── */}

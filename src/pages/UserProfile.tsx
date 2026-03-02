@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
+import { formatCurrency } from "@/utils/formatCurrency";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import {
   User, AtSign, Mail, ShieldCheck, KeyRound,
@@ -25,19 +26,7 @@ const COVER_GRAD: Record<string, string> = {
   Owner: "from-red-500 to-rose-700", Manager: "from-blue-500 to-indigo-700", Staff: "from-green-500 to-teal-700",
 };
 
-/* ── Static email lookup ──────────────────────────────────────────────── */
-const USER_EMAIL: Record<string, string> = {
-  admin:    "nuwan@dissanayake.lk",
-  manager1: "kamala@dissanayake.lk",
-  staff1:   "sachini@dissanayake.lk",
-};
 
-/* ── Role-specific stat data (mocked) ─────────────────────────────────── */
-const ROLE_DATA: Record<string, Record<string, string | number>> = {
-  Staff:   { totalSales: "LKR 24,850.00", transactions: 17, shiftHours: "6h 32m", avgPerTxn: "LKR 1,461.76" },
-  Manager: { staffManaged: 4, activeToday: 3, teamSalesTotal: "LKR 128,400.00", openIssues: 2 },
-  Owner:   { storeName: "Dissanayaka Super", totalUsers: 6, totalProducts: 124, monthRevenue: "LKR 1,284,750.00" },
-};
 
 /* ── Stat Tile ────────────────────────────────────────────────────────── */
 function StatTile({ icon: Icon, label, value, bg, text }: {
@@ -57,10 +46,8 @@ function StatTile({ icon: Icon, label, value, bg, text }: {
 }
 
 /* ── Role Section ─────────────────────────────────────────────────────── */
-function RoleSection({ role }: { role: string | undefined }) {
-  if (!role) return null;
-  const data = ROLE_DATA[role];
-  if (!data) return null;
+function RoleSection({ role, data }: { role: string | undefined; data: Record<string, string | number> }) {
+  if (!role || !data || !Object.keys(data).length) return null;
 
   const sections: Record<string, {
     title: string; sub: string;
@@ -210,8 +197,9 @@ function InfoCell({ icon: Icon, label, children }: {
    ═════════════════════════════════════════════════════════════════════════ */
 export default function UserProfile() {
   const { user } = useAuth();
-  const email    = USER_EMAIL[user?.username] ?? "";
 
+  const [profileEmail, setProfileEmail] = useState("");
+  const [roleStats, setRoleStats]       = useState<Record<string, string | number>>({});
   const [current, setCurrent] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -221,6 +209,74 @@ export default function UserProfile() {
   const [errors,  setErrors]  = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [popup,   setPopup]   = useState({ show: false, type: "success" as const, message: "" });
+
+  /* ── Fetch real user profile and role stats from API ── */
+  useEffect(() => {
+    if (!user) return;
+    Promise.allSettled([
+      api.get("/api/users"),
+      api.get("/api/products"),
+      api.get("/api/sales"),
+    ]).then(([usersRes, productsRes, salesRes]) => {
+      const allUsers: any[] =
+        usersRes.status === "fulfilled" ? (usersRes.value.data as any[]) ?? [] : [];
+      const me = allUsers.find((u: any) => u.username === user.username);
+      setProfileEmail(me?.email ?? "");
+
+      const totalUsers    = allUsers.length;
+      const staffCount    = allUsers.filter((u: any) => u.role === "Staff").length;
+      const totalProducts =
+        productsRes.status === "fulfilled"
+          ? ((productsRes.value.data as any[]) ?? []).length
+          : 0;
+
+      if (salesRes.status === "fulfilled") {
+        const raw        = salesRes.value.data as any;
+        const allSales: any[] = Array.isArray(raw) ? raw : raw?.content ?? [];
+        const completed  = allSales.filter((s: any) => s.status === "Completed");
+
+        const now        = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthRevenue = completed
+          .filter((s: any) => s.saleDate && new Date(s.saleDate) >= monthStart)
+          .reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+
+        const todayStr   = now.toDateString();
+        const todaySales = completed.filter(
+          (s: any) => s.saleDate && new Date(s.saleDate).toDateString() === todayStr,
+        );
+        const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+        const todayCount   = todaySales.length;
+        const avgPerTxn    = todayCount > 0 ? todayRevenue / todayCount : 0;
+        const teamTotal    = completed.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+
+        if (user.role === "Owner") {
+          setRoleStats({
+            storeName:    "Dissanayaka Super",
+            totalUsers,
+            totalProducts,
+            monthRevenue: formatCurrency(monthRevenue),
+          });
+        } else if (user.role === "Manager") {
+          setRoleStats({
+            staffManaged:   staffCount,
+            activeToday:    staffCount,
+            teamSalesTotal: formatCurrency(teamTotal),
+            openIssues:     0,
+          });
+        } else if (user.role === "Staff") {
+          setRoleStats({
+            totalSales:   formatCurrency(todayRevenue),
+            transactions: todayCount,
+            shiftHours:   "—",
+            avgPerTxn:    formatCurrency(avgPerTxn),
+          });
+        }
+      }
+    });
+  }, [user?.username, user?.role]);
+
+  const email = profileEmail;
 
   function validate() {
     const e: Record<string, string> = {};
@@ -335,7 +391,7 @@ export default function UserProfile() {
           </div>
 
           {/* ══════════ Role Stats ══════════ */}
-          <RoleSection role={user?.role} />
+          <RoleSection role={user?.role} data={roleStats} />
 
           {/* ══════════ Change Password ══════════ */}
           <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
