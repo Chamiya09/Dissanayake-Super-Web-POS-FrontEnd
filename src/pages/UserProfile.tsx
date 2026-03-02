@@ -290,7 +290,7 @@ export default function UserProfile() {
             </div>
 
             {/* Avatar + identity */}
-            <div className="px-8 pb-8">
+            <div className="relative z-10 px-8 pb-8">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14">
                 <AvatarCircle name={user?.name} role={user?.role} />
                 <div className="flex items-center gap-3 pb-1">
