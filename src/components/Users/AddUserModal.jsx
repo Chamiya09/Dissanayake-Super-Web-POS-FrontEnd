@@ -110,7 +110,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="add-user-title">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-      <div className={cn("relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
+      <div className={cn("relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -141,52 +141,58 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className="space-y-5 px-6 py-5">
+          <div className="px-6 py-5 space-y-4">
 
-            <FormRow id="fullName" label="Full Name" icon={User} error={errors.fullName}>
-              <Input id="fullName" ref={firstInputRef} placeholder="e.g. Kamal Perera" value={form.fullName}
-                onChange={(e) => handleChange("fullName", e.target.value)}
-                className={cn("h-9 text-sm", errors.fullName && "border-red-400 focus-visible:ring-red-300")} />
-            </FormRow>
+            {/* Row 1: Full Name + Username */}
+            <div className="grid grid-cols-2 gap-6">
+              <FormRow id="fullName" label="Full Name" icon={User} error={errors.fullName}>
+                <Input id="fullName" ref={firstInputRef} placeholder="e.g. Kamal Perera" value={form.fullName}
+                  onChange={(e) => handleChange("fullName", e.target.value)}
+                  className={cn("h-10 text-sm", errors.fullName && "border-red-400 focus-visible:ring-red-300")} />
+              </FormRow>
 
-            <FormRow id="username" label="Username" icon={User} error={errors.username}>
-              <Input id="username" placeholder="e.g. kamal_p" value={form.username}
-                onChange={(e) => handleChange("username", e.target.value)}
-                className={cn("h-9 text-sm", errors.username && "border-red-400 focus-visible:ring-red-300")} />
-            </FormRow>
+              <FormRow id="username" label="Username" icon={User} error={errors.username}>
+                <Input id="username" placeholder="e.g. kamal_p" value={form.username}
+                  onChange={(e) => handleChange("username", e.target.value)}
+                  className={cn("h-10 text-sm", errors.username && "border-red-400 focus-visible:ring-red-300")} />
+              </FormRow>
+            </div>
 
-            <FormRow id="email" label="Email" icon={Mail} error={errors.email}>
-              <Input id="email" type="email" placeholder="e.g. kamal@dissanayake.lk" value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className={cn("h-9 text-sm", errors.email && "border-red-400 focus-visible:ring-red-300")} />
-            </FormRow>
+            {/* Row 2: Email + Role */}
+            <div className="grid grid-cols-2 gap-6">
+              <FormRow id="email" label="Email" icon={Mail} error={errors.email}>
+                <Input id="email" type="email" placeholder="e.g. kamal@example.lk" value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  className={cn("h-10 text-sm", errors.email && "border-red-400 focus-visible:ring-red-300")} />
+              </FormRow>
 
-            <FormRow id="role" label="Role" icon={ShieldCheck} error={errors.role}>
-              {isRoleLocked ? (
-                <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 gap-2">
-                  <RolePill role={allowedRoles[0]} />
-                  <span className="text-xs text-muted-foreground">Only assignable role for your access level</span>
-                </div>
-              ) : (
-                <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
-                  <SelectTrigger className={cn("h-9 text-sm", errors.role && "border-red-400 focus:ring-red-300")}>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allowedRoles.map((r) => (
-                      <SelectItem key={r} value={r} className="text-sm">
-                        <div className="flex items-center gap-2"><RolePill role={r} /></div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </FormRow>
+              <FormRow id="role" label="Role" icon={ShieldCheck} error={errors.role}>
+                {isRoleLocked ? (
+                  <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 gap-2">
+                    <RolePill role={allowedRoles[0]} />
+                  </div>
+                ) : (
+                  <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
+                    <SelectTrigger className={cn("h-10 text-sm", errors.role && "border-red-400 focus:ring-red-300")}>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedRoles.map((r) => (
+                        <SelectItem key={r} value={r} className="text-sm">
+                          <div className="flex items-center gap-2"><RolePill role={r} /></div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </FormRow>
+            </div>
 
+            {/* Row 3: Password — full width */}
             <FormRow id="password" label="Password" icon={Lock} error={errors.password}>
               <Input id="password" type="password" placeholder="Min. 6 characters" value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
-                className={cn("h-9 text-sm", errors.password && "border-red-400 focus-visible:ring-red-300")} />
+                className={cn("h-10 text-sm", errors.password && "border-red-400 focus-visible:ring-red-300")} />
             </FormRow>
 
           </div>
