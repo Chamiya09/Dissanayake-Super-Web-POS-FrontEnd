@@ -96,11 +96,11 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
     const validation = validateForm(form);
     if (Object.keys(validation).length > 0) { setErrors(validation); return; }
     onAdd({
-      id:       Date.now(),
       fullName: form.fullName.trim(),
       username: form.username.trim(),
       email:    form.email.trim(),
       role:     form.role,
+      password: form.password,
     });
     onClose();
   };

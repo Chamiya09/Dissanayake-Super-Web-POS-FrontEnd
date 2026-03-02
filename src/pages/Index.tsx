@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { toast } from "@/components/ui/sonner";
 import { ShoppingBag, CheckCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -86,8 +86,8 @@ const Index = () => {
   const [posProducts, setPosProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    axios
-      .get<MgmtProduct[]>("http://localhost:8080/api/products")
+    api
+      .get<MgmtProduct[]>("/api/products")
       .then(({ data }) => setPosProducts(data.map(mapToPOS)))
       .catch((err) => console.error("Failed to load products:", err));
   }, []);
@@ -144,7 +144,7 @@ const Index = () => {
     };
 
     try {
-      await axios.post("http://localhost:8080/api/sales", payload);
+      await api.post("/api/sales", payload);
       setCart([]);
       setCartOpen(false);
       setLastSale({ receiptNo, total: totalAmount, paymentMethod });

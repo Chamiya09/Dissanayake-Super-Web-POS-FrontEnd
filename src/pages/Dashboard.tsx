@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { TrendingUp, Package, Truck, LayoutDashboard } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
@@ -116,9 +116,9 @@ export default function Dashboard() {
       setIsLoading(true);
       try {
         const [salesRes, productsRes, suppliersRes] = await Promise.allSettled([
-          axios.get<RecentSale[]>("http://localhost:8080/api/sales"),
-          axios.get<unknown[]>("http://localhost:8080/api/products"),
-          axios.get<unknown[]>("http://localhost:8080/api/suppliers"),
+          api.get<RecentSale[]>("/api/sales"),
+          api.get<unknown[]>("/api/products"),
+          api.get<unknown[]>("/api/suppliers"),
         ]);
 
         //  Sales 

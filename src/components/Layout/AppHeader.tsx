@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Wifi, Moon, Sun, Bell, LogOut, UserCircle, Settings, ChevronDown,
+  Wifi, Moon, Sun, Bell, LogOut, UserCircle, ChevronDown,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
@@ -193,11 +193,6 @@ export function AppHeader() {
                   icon={UserCircle}
                   label="My Profile"
                   onClick={() => goto("/profile")}
-                />
-                <DropdownItem
-                  icon={Settings}
-                  label="Settings"
-                  onClick={() => goto("/settings")}
                 />
               </div>
 

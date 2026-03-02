@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
 
-const API = "http://localhost:8080/api/sales";
+const API = "/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ export default function SalesManagement() {
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(API);
+      const response = await api.get(API);
       const responseData = response.data;
       const salesArray = Array.isArray(responseData)
         ? responseData
@@ -101,7 +101,7 @@ export default function SalesManagement() {
     if (!confirmed) return;
 
     try {
-      await axios.put(`${API}/${id}/status`, { status: "Voided" });
+      await api.put(`${API}/${id}/status`, { status: "Voided" });
       // Optimistic UI update — no need to wait for a full re-fetch
       setSales((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: "Voided" } : s))

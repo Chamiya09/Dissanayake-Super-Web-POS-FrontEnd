@@ -1,18 +1,19 @@
-import { useState } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Users, Search, UserCircle2, ShieldAlert, Edit3, Trash2, Lock, UserPlus } from "lucide-react";
+import { Users, Search, UserCircle2, ShieldAlert, Edit3, Trash2, Lock, UserPlus, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/axiosInstance";
 import AddUserModal from "@/components/Users/AddUserModal";
 import EditUserModal from "@/components/Users/EditUserModal";
 import DeleteUserModal from "@/components/Users/DeleteUserModal";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 
-/* ─────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Role-based permission config
-   ───────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const CAN_ADD_USERS = ["Owner", "Manager"]; // Staff cannot add users
 
 /* Which roles can each logged-in role edit or delete */
@@ -22,21 +23,9 @@ const MANAGEABLE_ROLES = {
   Staff:   [],
 };
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Mock Data
-   ───────────────────────────────────────────────────────────────────────── */
-const INITIAL_USERS = [
-  { id: 1, fullName: "Nuwan Dissanayake", username: "nuwan_d",   role: "Owner",   email: "nuwan@dissanayake.lk"   },
-  { id: 2, fullName: "Kamala Perera",     username: "kamala_p",  role: "Manager", email: "kamala@dissanayake.lk"  },
-  { id: 3, fullName: "Sachini Fernando",  username: "sachini_f", role: "Staff",   email: "sachini@dissanayake.lk" },
-  { id: 4, fullName: "Thilina Bandara",   username: "thilina_b", role: "Staff",   email: "thilina@dissanayake.lk" },
-  { id: 5, fullName: "Manjula Silva",     username: "manjula_s", role: "Manager", email: "manjula@dissanayake.lk" },
-  { id: 6, fullName: "Ruvini Jayawardena",username: "ruvini_j",  role: "Staff",   email: "ruvini@dissanayake.lk"  },
-];
-
-/* ─────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Role badge colours
-   ───────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const ROLE_STYLES = {
   Owner:   "bg-red-100   text-red-700   border-red-200   dark:bg-red-900/20   dark:text-red-400   dark:border-red-800",
   Manager: "bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/20  dark:text-blue-400  dark:border-blue-800",
@@ -63,9 +52,9 @@ function RoleBadge({ role }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Avatar initials helper
-   ───────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const AVATAR_COLOURS = [
   "bg-violet-100 text-violet-700",
   "bg-sky-100 text-sky-700",
@@ -95,9 +84,9 @@ function Avatar({ fullName, index }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Empty State
-   ───────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function EmptyState({ onAdd }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground gap-3">
@@ -105,20 +94,21 @@ function EmptyState({ onAdd }) {
       <p className="text-base font-medium text-foreground">No users found</p>
       <p className="text-sm">Try adjusting your search or add a new user.</p>
       <Button size="sm" className="mt-2 gap-2" onClick={onAdd}>
-        <Plus className="h-4 w-4" /> Add User
+        <UserPlus className="h-4 w-4" /> Add User
       </Button>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    UserManagement page
-   ───────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function UserManagement() {
   const { user } = useAuth();
   const currentUserRole = user?.role ?? "Staff";
 
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -128,14 +118,32 @@ export default function UserManagement() {
 
   const canAddUsers = CAN_ADD_USERS.includes(currentUserRole);
 
-  /* ── Permission helpers ── */
+  /* â”€â”€ Permission helpers â”€â”€ */
   const canManage = (targetUser) =>
+    targetUser.username !== "admin" &&
     (MANAGEABLE_ROLES[currentUserRole] ?? []).includes(targetUser.role);
 
   const showPopup = (type, message) =>
     setPopup({ show: true, type, message });
 
-  /* ── Filtering ── */
+  /* â”€â”€ Fetch users from API â”€â”€ */
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get("/api/users");
+      setUsers(data);
+    } catch (err) {
+      showPopup("error", err.response?.data?.message || "Failed to load users.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  /* â”€â”€ Filtering â”€â”€ */
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     const matchesSearch =
@@ -146,26 +154,53 @@ export default function UserManagement() {
     return matchesSearch && matchesRole;
   });
 
-  const handleAdd = (newUser) => {
-    setUsers((prev) => [newUser, ...prev]);
-    showPopup("success", `${newUser.fullName} has been added successfully!`);
+  /* â”€â”€ CRUD handlers â”€â”€ */
+  const handleAdd = async (formData) => {
+    try {
+      const { data: created } = await api.post("/api/users", {
+        fullName: formData.fullName,
+        username: formData.username,
+        email:    formData.email,
+        role:     formData.role,
+        password: formData.password,
+      });
+      setUsers((prev) => [created, ...prev]);
+      showPopup("success", `${created.fullName} has been added successfully!`);
+    } catch (err) {
+      showPopup("error", err.response?.data?.message || "Failed to add user.");
+    }
   };
 
-  const handleEdit = (updated) => {
-    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    showPopup("success", `${updated.fullName} has been updated successfully!`);
+  const handleEdit = async (updated) => {
+    try {
+      const { data: saved } = await api.put(`/api/users/${updated.id}`, {
+        fullName: updated.fullName,
+        username: updated.username,
+        email:    updated.email,
+        role:     updated.role,
+      });
+      setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
+      showPopup("success", `${saved.fullName} has been updated successfully!`);
+    } catch (err) {
+      showPopup("error", err.response?.data?.message || "Failed to update user.");
+    }
     setEditTarget(null);
   };
 
-  const handleDelete = (user) => {
-    setUsers((prev) => prev.filter((u) => u.id !== user.id));
-    showPopup("success", `${user.fullName} has been removed.`);
+  const handleDelete = async (targetUser) => {
+    try {
+      await api.delete(`/api/users/${targetUser.id}`);
+      setUsers((prev) => prev.filter((u) => u.id !== targetUser.id));
+      showPopup("success", `${targetUser.fullName} has been removed.`);
+    } catch (err) {
+      showPopup("error", err.response?.data?.message || "Failed to delete user.");
+    }
     setDeleteTarget(null);
   };
 
   const ROLE_FILTERS = ["All", "Owner", "Manager", "Staff"];
 
-  /* ── Derived stats ── */
+  /* â”€â”€ Derived stats â”€â”€ */
   const ownerCount   = users.filter((u) => u.role === "Owner").length;
   const managerCount = users.filter((u) => u.role === "Manager").length;
   const staffCount   = users.filter((u) => u.role === "Staff").length;
@@ -176,7 +211,7 @@ export default function UserManagement() {
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* ── Page header ── */}
+        {/* â”€â”€ Page header â”€â”€ */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
@@ -209,7 +244,7 @@ export default function UserManagement() {
           )}
         </div>
 
-        {/* ── Stats strip ── */}
+        {/* â”€â”€ Stats strip â”€â”€ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total Users",   value: users.length  },
@@ -227,12 +262,12 @@ export default function UserManagement() {
           ))}
         </div>
 
-        {/* ── Search + filter strip ── */}
+        {/* â”€â”€ Search + filter strip â”€â”€ */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search users…"
+              placeholder="Search usersâ€¦"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 w-56 pl-8 text-sm"
@@ -257,8 +292,13 @@ export default function UserManagement() {
           </div>
         </div>
 
-        {/* ── Table ── */}
-        {filtered.length === 0 ? (
+        {/* â”€â”€ Table â”€â”€ */}
+        {loading ? (
+          <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading usersâ€¦</span>
+          </div>
+        ) : filtered.length === 0 ? (
           <EmptyState onAdd={() => setIsAddOpen(true)} />
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-x-auto shadow-sm">
@@ -331,7 +371,11 @@ export default function UserManagement() {
                           </>
                         ) : (
                           <span
-                            title="Insufficient permissions"
+                            title={
+                              u.username === "admin"
+                                ? "Admin account is protected"
+                                : "Insufficient permissions"
+                            }
                             className="inline-flex items-center rounded-lg p-1.5 text-muted-foreground/40 cursor-not-allowed"
                           >
                             <Lock className="h-3.5 w-3.5" />
@@ -359,7 +403,7 @@ export default function UserManagement() {
 
       </div>{/* end scrollable area */}
 
-      {/* ── Modals ── */}
+      {/* â”€â”€ Modals â”€â”€ */}
       {isAddOpen && (
         <AddUserModal
           onClose={() => setIsAddOpen(false)}
