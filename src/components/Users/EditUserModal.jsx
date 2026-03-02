@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { X, Pencil, User, Mail, ShieldCheck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,34 +12,38 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Role-permission map — which roles can be assigned by logged-in role
-   Same rules as AddUserModal so edits remain consistent.
-   ───────────────────────────────────────────────────────────────────────── */
 const ALLOWED_ROLES = {
   Owner:   ["Manager", "Staff"],
   Manager: ["Staff"],
 };
 
 const ROLE_PILL_STYLES = {
-  Owner:   "bg-red-100   text-red-700   border border-red-200",
-  Manager: "bg-blue-100  text-blue-700  border border-blue-200",
-  Staff:   "bg-green-100 text-green-700 border border-green-200",
+  Owner:   "bg-red-100   text-red-700   border-red-200",
+  Manager: "bg-blue-100  text-blue-700  border-blue-200",
+  Staff:   "bg-green-100 text-green-700 border-green-200",
 };
 const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
 
 function RolePill({ role }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", ROLE_PILL_STYLES[role])}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold", ROLE_PILL_STYLES[role])}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[role])} />
       {role}
     </span>
   );
 }
 
-function FieldError({ message }) {
-  if (!message) return null;
-  return <p className="mt-1 text-xs text-red-500">{message}</p>;
+function FormRow({ id, label, icon: Icon, error, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        {label}
+      </Label>
+      {children}
+      {error && <p className="text-[11px] text-red-500 dark:text-red-400 font-medium">{error}</p>}
+    </div>
+  );
 }
 
 function validateForm(form) {
@@ -60,19 +64,21 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
 
   const [form, setForm] = useState({ fullName: "", username: "", email: "", role: "" });
   const [errors, setErrors] = useState({});
+  const firstInputRef = useRef(null);
 
-  /* Pre-fill whenever the target user changes */
   useEffect(() => {
     if (user) {
-      setForm({
-        fullName: user.fullName,
-        username: user.username,
-        email:    user.email,
-        role:     user.role,
-      });
+      setForm({ fullName: user.fullName, username: user.username, email: user.email, role: user.role });
       setErrors({});
+      setTimeout(() => firstInputRef.current?.focus(), 80);
     }
   }, [user]);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -92,139 +98,95 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
   const isRoleLocked = allowedRoles.length === 1;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="edit-user-title">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className={cn("relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 rounded-t-2xl border-b border-border bg-muted/40 px-6 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-            <Pencil className="h-5 w-5 text-amber-600" />
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+              <Pencil className="h-4 w-4 text-amber-600" />
+            </div>
+            <div>
+              <h2 id="edit-user-title" className="text-[16px] font-bold text-foreground leading-tight">Edit User</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">
+                Editing <span className="font-semibold text-foreground">{user.fullName}</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-[15px] font-semibold text-foreground">Edit User</h2>
-            <p className="text-xs text-muted-foreground">
-              Editing <span className="font-semibold text-foreground">{user.fullName}</span>
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-auto rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Permission notice */}
-        <div className="mx-6 mt-4 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 dark:border-blue-800 dark:bg-blue-900/20">
+        <div className="mx-6 mt-5 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 dark:border-blue-800 dark:bg-blue-900/20">
           <Info className="mt-px h-3.5 w-3.5 shrink-0 text-blue-500" />
           <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
             Signed in as <RolePill role={currentUserRole} />. You can only assign{" "}
             {allowedRoles.map((r, i) => (
-              <span key={r}>
-                <RolePill role={r} />
-                {i < allowedRoles.length - 1 ? " or " : ""}
-              </span>
-            ))}{" "}
-            roles.
+              <span key={r}><RolePill role={r} />{i < allowedRoles.length - 1 ? " or " : ""}</span>
+            ))}{" "}roles.
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-5 px-6 py-5">
 
-          {/* Full Name */}
-          <div>
-            <Label htmlFor="edit-fullName" className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <User className="h-3.5 w-3.5 text-muted-foreground" /> Full Name
-            </Label>
-            <Input
-              id="edit-fullName"
-              value={form.fullName}
-              onChange={(e) => handleChange("fullName", e.target.value)}
-              className={cn("h-9 text-sm", errors.fullName && "border-red-400 focus-visible:ring-red-300")}
-            />
-            <FieldError message={errors.fullName} />
-          </div>
+            <FormRow id="edit-fullName" label="Full Name" icon={User} error={errors.fullName}>
+              <Input id="edit-fullName" ref={firstInputRef} value={form.fullName}
+                onChange={(e) => handleChange("fullName", e.target.value)}
+                className={cn("h-9 text-sm", errors.fullName && "border-red-400 focus-visible:ring-red-300")} />
+            </FormRow>
 
-          {/* Username */}
-          <div>
-            <Label htmlFor="edit-username" className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <User className="h-3.5 w-3.5 text-muted-foreground" /> Username
-            </Label>
-            <Input
-              id="edit-username"
-              value={form.username}
-              onChange={(e) => handleChange("username", e.target.value)}
-              className={cn("h-9 text-sm", errors.username && "border-red-400 focus-visible:ring-red-300")}
-            />
-            <FieldError message={errors.username} />
-          </div>
+            <FormRow id="edit-username" label="Username" icon={User} error={errors.username}>
+              <Input id="edit-username" value={form.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                className={cn("h-9 text-sm", errors.username && "border-red-400 focus-visible:ring-red-300")} />
+            </FormRow>
 
-          {/* Email */}
-          <div>
-            <Label htmlFor="edit-email" className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email
-            </Label>
-            <Input
-              id="edit-email"
-              type="email"
-              value={form.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className={cn("h-9 text-sm", errors.email && "border-red-400 focus-visible:ring-red-300")}
-            />
-            <FieldError message={errors.email} />
-          </div>
+            <FormRow id="edit-email" label="Email" icon={Mail} error={errors.email}>
+              <Input id="edit-email" type="email" value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                className={cn("h-9 text-sm", errors.email && "border-red-400 focus-visible:ring-red-300")} />
+            </FormRow>
 
-          {/* Role */}
-          <div>
-            <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" /> Role
-              {isRoleLocked && (
-                <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  auto-assigned
-                </span>
+            <FormRow id="edit-role" label="Role" icon={ShieldCheck} error={errors.role}>
+              {isRoleLocked ? (
+                <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 gap-2">
+                  <RolePill role={allowedRoles[0]} />
+                  <span className="text-xs text-muted-foreground">Only assignable role for your access level</span>
+                </div>
+              ) : (
+                <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
+                  <SelectTrigger className={cn("h-9 text-sm", errors.role && "border-red-400 focus:ring-red-300")}>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allowedRoles.map((r) => (
+                      <SelectItem key={r} value={r} className="text-sm">
+                        <div className="flex items-center gap-2"><RolePill role={r} /></div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </Label>
+            </FormRow>
 
-            {isRoleLocked ? (
-              <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3">
-                <RolePill role={allowedRoles[0]} />
-                <span className="ml-2 text-xs text-muted-foreground">Only assignable role</span>
-              </div>
-            ) : (
-              <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
-                <SelectTrigger className={cn("h-9 text-sm", errors.role && "border-red-400 focus:ring-red-300")}>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allowedRoles.map((r) => (
-                    <SelectItem key={r} value={r} className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <RolePill role={r} />
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <FieldError message={errors.role} />
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white">
+          <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
+            <Button type="button" variant="outline" onClick={onClose} className="h-9 px-5 text-[13px]">Cancel</Button>
+            <Button type="submit" className="h-9 px-5 text-[13px] gap-2 shadow-sm">
               <Pencil className="h-3.5 w-3.5" />
               Save Changes
             </Button>
           </div>
-
         </form>
+
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
-import { AlertTriangle, Trash2, X } from "lucide-react";
+﻿import { useState, useEffect } from "react";
+import { AlertTriangle, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,80 +19,101 @@ function RolePill({ role }) {
   );
 }
 
-function Avatar({ name }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+function UserAvatar({ name }) {
+  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 text-sm font-bold text-white shadow-md">
+    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 text-sm font-bold text-white shadow-md shrink-0">
       {initials}
     </div>
   );
 }
 
 export default function DeleteUserModal({ user, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (user) setDeleting(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const handler = (e) => { if (e.key === "Escape" && !deleting) onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [user, deleting, onClose]);
+
   if (!user) return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="relative w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl">
+  const handleConfirm = () => {
+    setDeleting(true);
+    setTimeout(() => {
+      onConfirm();
+      setDeleting(false);
+    }, 400);
+  };
 
-        {/* Header */}
-        <div className="flex items-center gap-3 rounded-t-2xl border-b border-border bg-muted/40 px-6 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-          </div>
-          <h2 className="text-[15px] font-semibold text-foreground">Delete User</h2>
-          <button
-            onClick={onClose}
-            className="ml-auto rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="delete-user-title">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={!deleting ? onClose : undefined} aria-hidden="true" />
+      <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          disabled={deleting}
+          aria-label="Close"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:pointer-events-none disabled:opacity-50"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
         {/* Body */}
-        <div className="flex flex-col items-center gap-4 px-6 py-6">
+        <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center gap-4">
 
-          {/* User preview card */}
-          <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
-            <Avatar name={user.fullName} />
+          {/* Warning icon */}
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-8 ring-red-500/5">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-1.5">
+            <h2 id="delete-user-title" className="text-[18px] font-bold text-foreground">Delete User?</h2>
+            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">{user.fullName}</span>?
+              This action cannot be undone.
+            </p>
+          </div>
+
+          {/* User detail card */}
+          <div className="w-full rounded-xl border border-border bg-muted/40 px-4 py-3 flex items-center gap-3 text-left">
+            <UserAvatar name={user.fullName} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">{user.fullName}</p>
-              <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
+              <p className="truncate text-xs text-muted-foreground font-mono">@{user.username}</p>
               <div className="mt-1">
                 <RolePill role={user.role} />
               </div>
             </div>
           </div>
 
-          {/* Warning text */}
-          <p className="text-center text-sm text-muted-foreground leading-relaxed">
-            Are you sure you want to delete{" "}
-            <span className="font-semibold text-foreground">{user.fullName}</span>?
-            <br />
-            <span className="text-xs text-red-500 font-medium">This action cannot be undone.</span>
-          </p>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 rounded-b-2xl border-t border-border bg-muted/20 px-6 py-4">
-          <Button variant="outline" size="sm" onClick={onClose}>
+        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
+          <Button variant="outline" onClick={onClose} disabled={deleting} className="h-9 px-5 text-[13px]">
             Cancel
           </Button>
           <Button
-            size="sm"
-            className="gap-1.5 bg-red-500 hover:bg-red-600 text-white"
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={deleting}
+            className={cn("h-9 px-5 text-[13px] gap-2 shadow-sm", "bg-red-600 hover:bg-red-700 active:bg-red-800 text-white")}
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete User
+            {deleting ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" />Deleting</>
+            ) : (
+              <><Trash2 className="h-3.5 w-3.5" />Delete User</>
+            )}
           </Button>
         </div>
 
