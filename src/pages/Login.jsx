@@ -74,36 +74,38 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Form card */}
-        <div className="rounded-2xl border border-border bg-card shadow-xl shadow-black/5 px-8 py-10 space-y-6">
+        {/* Form card — same panel style as modals */}
+        <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
 
           {/* Card header */}
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-              <Lock className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 border-b border-border px-6 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+              <Lock className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-[18px] font-bold text-foreground">Welcome Back</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Sign in to access your workspace.</p>
+              <h2 className="text-[16px] font-bold text-foreground leading-tight">Welcome Back</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Sign in to access your workspace.</p>
             </div>
           </div>
 
-          {/* Error alert */}
-          {error && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 dark:border-red-800 dark:bg-red-950/30">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-              <p className="text-xs font-medium text-red-700 dark:text-red-400">{error}</p>
-            </div>
-          )}
+          {/* Form body */}
+          <div className="px-6 py-5 space-y-5">
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
-            <div className="space-y-1.5">
-              <label htmlFor="login-username" className="block text-xs font-semibold text-foreground">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            {/* Error alert */}
+            {error && (
+              <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 dark:border-red-800 dark:bg-red-950/30">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                <p className="text-xs font-medium text-red-700 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Username */}
+              <div className="space-y-1.5">
+                <label htmlFor="login-username" className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  Username
+                </label>
                 <input
                   id="login-username"
                   type="text"
@@ -112,73 +114,76 @@ export default function Login() {
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setError(""); }}
                   className={cn(
-                    "h-10 w-full rounded-lg border border-border bg-background pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground",
+                    "h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground",
                     "outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20",
                     error && "border-red-400 focus:border-red-400 focus:ring-red-200"
                   )}
                 />
               </div>
-            </div>
 
-            {/* Password */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="login-password" className="block text-xs font-semibold text-foreground">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  className="text-[11px] font-medium text-primary hover:underline focus:outline-none"
-                  onClick={() => {/* Forgot-Password placeholder — wire up later */}}
-                  tabIndex={-1}
-                >
-                  Forgot password?
-                </button>
+              {/* Password */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="login-password" className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-primary hover:underline focus:outline-none"
+                    onClick={() => {}}
+                    tabIndex={-1}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={showPass ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                    className={cn(
+                      "h-9 w-full rounded-lg border border-border bg-background px-3 pr-9 text-sm text-foreground placeholder:text-muted-foreground",
+                      "outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20",
+                      error && "border-red-400 focus:border-red-400 focus:ring-red-200"
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPass ? "Hide password" : "Show password"}
+                  >
+                    {showPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+
+              {/* Remember Me */}
+              <label className="flex cursor-pointer items-center gap-2 select-none">
                 <input
-                  id="login-password"
-                  type={showPass ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  className={cn(
-                    "h-10 w-full rounded-lg border border-border bg-background pl-9 pr-10 text-sm text-foreground placeholder:text-muted-foreground",
-                    "outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20",
-                    error && "border-red-400 focus:border-red-400 focus:ring-red-200"
-                  )}
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPass ? "Hide password" : "Show password"}
-                >
-                  {showPass ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            </div>
+                <span className="text-xs text-muted-foreground">Remember me</span>
+              </label>
+            </form>
+          </div>
 
-            {/* Remember Me */}
-            <label className="flex cursor-pointer items-center gap-2 select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-border accent-primary cursor-pointer"
-              />
-              <span className="text-xs text-muted-foreground">Remember me</span>
-            </label>
-
-            {/* Submit */}
+          {/* Card footer — submit button */}
+          <div className="border-t border-border px-6 py-4">
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={loading}
               className={cn(
-                "flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm",
+                "flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm",
                 "transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/40",
                 "disabled:cursor-not-allowed disabled:opacity-60"
               )}
@@ -198,7 +203,7 @@ export default function Login() {
                 </>
               )}
             </button>
-          </form>
+          </div>
         </div>
 
         {/* Demo accounts */}

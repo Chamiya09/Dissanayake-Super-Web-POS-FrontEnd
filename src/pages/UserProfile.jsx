@@ -115,7 +115,7 @@ function RoleSection({ role }) {
   if (role === "Staff") {
     return (
       <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex items-center gap-3 border-b border-border px-8 py-5">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
             <BarChart2 className="h-5 w-5 text-green-600" />
           </div>
@@ -127,7 +127,7 @@ function RoleSection({ role }) {
             Live
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4 p-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
           <StatTile icon={TrendingUp} label="Total Sales Today"    value={data.totalSales}   accent="bg-green-500/10  text-green-600"  />
           <StatTile icon={BarChart2}  label="Transactions Handled" value={data.transactions}  accent="bg-violet-500/10 text-violet-600" />
           <StatTile icon={Clock}      label="Shift Hours"          value={data.shiftHours}    accent="bg-amber-500/10  text-amber-600"  />
@@ -141,7 +141,7 @@ function RoleSection({ role }) {
   if (role === "Manager") {
     return (
       <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex items-center gap-3 border-b border-border px-8 py-5">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
             <Users className="h-5 w-5 text-blue-600" />
           </div>
@@ -150,7 +150,7 @@ function RoleSection({ role }) {
             <p className="text-xs text-muted-foreground">Staff under your supervision today.</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 p-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
           <StatTile icon={Users}      label="Staff Managed"        value={data.staffManaged}    accent="bg-blue-500/10   text-blue-600"   />
           <StatTile icon={UserCheck}  label="Active Today"         value={data.activeToday}     accent="bg-green-500/10  text-green-600"  />
           <StatTile icon={TrendingUp} label="Team Sales Total"     value={data.teamSalesTotal}  accent="bg-violet-500/10 text-violet-600" />
@@ -164,7 +164,7 @@ function RoleSection({ role }) {
   if (role === "Owner") {
     return (
       <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex items-center gap-3 border-b border-border px-8 py-5">
+        <div className="flex items-center gap-3 border-b border-border px-6 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10">
             <Briefcase className="h-5 w-5 text-red-600" />
           </div>
@@ -173,7 +173,7 @@ function RoleSection({ role }) {
             <p className="text-xs text-muted-foreground">High-level overview of your POS system.</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 p-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
           <StatTile icon={Store}      label="Store Name"           value={data.storeName}       accent="bg-red-500/10     text-red-600"     />
           <StatTile icon={Users}      label="Registered Users"     value={data.totalUsers}      accent="bg-blue-500/10    text-blue-600"    />
           <StatTile icon={BarChart2}  label="Total Products"       value={data.totalProducts}   accent="bg-violet-500/10  text-violet-600"  />
@@ -316,16 +316,22 @@ export default function UserProfile() {
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
 
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
 
-          {/* ── Page title ── */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">My Profile</h1>
-            <p className="text-sm text-muted-foreground mt-1">View your account details and manage your password.</p>
+          {/* ── Page header ── */}
+          <div className="flex items-start gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground leading-tight">My Profile</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">View your account details and manage your password.</p>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
           {/* ── Left column · Profile Info ── */}
           <div className="lg:col-span-1">
@@ -396,7 +402,7 @@ export default function UserProfile() {
           </div>{/* end left column */}
 
           {/* ── Right columns · Stats + Password ── */}
-          <div className="space-y-8 lg:col-span-2">
+          <div className="space-y-6 lg:col-span-2">
 
           {/* ── Role-specific section ── */}
           <RoleSection role={user?.role} />
@@ -405,7 +411,7 @@ export default function UserProfile() {
           <div className="rounded-xl border border-border bg-card shadow-sm">
 
             {/* Card header */}
-            <div className="flex items-center gap-3 border-b border-border px-8 py-5">
+            <div className="flex items-center gap-3 border-b border-border px-6 py-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
                 <KeyRound className="h-5 w-5 text-primary" />
               </div>
@@ -416,7 +422,7 @@ export default function UserProfile() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="px-8 py-8 space-y-5">
+            <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
 
               <PasswordField
                 id="cur-pass"
@@ -491,7 +497,6 @@ export default function UserProfile() {
           </div>{/* end right columns */}
           </div>{/* end grid */}
 
-        </div>
       </div>
 
       {/* Success / Error popup */}
