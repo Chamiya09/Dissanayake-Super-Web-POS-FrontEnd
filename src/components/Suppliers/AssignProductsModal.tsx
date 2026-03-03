@@ -1,35 +1,62 @@
 import { useEffect, useState } from "react";
-import { X, PackageCheck, Package, Search, CheckSquare, Square, Loader2 } from "lucide-react";
+import { X, PackageCheck, Package, Search, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
-import { products, type Product } from "@/data/products";
+
+/* ── Backend product shape (mirrors ProductManagement / /api/products) ── */
+export interface MgmtProduct {
+  id: number;
+  productName: string;
+  sku: string;
+  category: string;
+  buyingPrice: number;
+  sellingPrice: number;
+  unit?: string;
+}
 
 interface AssignProductsModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
+  /** Real products fetched from /api/products by the parent page */
+  availableProducts: MgmtProduct[];
+  /** True while the parent is still loading the product list */
+  productsLoading?: boolean;
+  /** Called with the selected product IDs; parent handles the API call */
+  onAssign: (productIds: number[]) => Promise<void>;
 }
 
-/* Category pill colour map */
-const categoryColour: Record<string, string> = {
-  Fruits:     "bg-rose-500/10   text-rose-600   dark:text-rose-400",
-  Dairy:      "bg-blue-500/10   text-blue-600   dark:text-blue-400",
-  Beverages:  "bg-sky-500/10    text-sky-600    dark:text-sky-400",
-  Bakery:     "bg-amber-500/10  text-amber-600  dark:text-amber-400",
-  Snacks:     "bg-lime-500/10   text-lime-600   dark:text-lime-500",
-  Meat:       "bg-red-500/10    text-red-600    dark:text-red-400",
-  Vegetables: "bg-green-500/10  text-green-600  dark:text-green-400",
+/* ── Category emoji map ── */
+const categoryEmoji: Record<string, string> = {
+  Fruits:     "🍎",
+  Dairy:      "🥛",
+  Beverages:  "🧃",
+  Bakery:     "🍞",
+  Snacks:     "🍿",
+  Meat:       "🥩",
+  Vegetables: "🥦",
 };
 
-/* Product row */
+/* ── Category pill colour map ── */
+const categoryColour: Record<string, string> = {
+  Fruits:     "bg-rose-50   text-rose-600",
+  Dairy:      "bg-blue-50   text-blue-600",
+  Beverages:  "bg-sky-50    text-sky-600",
+  Bakery:     "bg-amber-50  text-amber-600",
+  Snacks:     "bg-lime-50   text-lime-600",
+  Meat:       "bg-red-50    text-red-600",
+  Vegetables: "bg-green-50  text-green-600",
+};
+
+/* ── Single product row ── */
 function ProductRow({
   product,
   checked,
   onToggle,
 }: {
-  product: Product;
+  product: MgmtProduct;
   checked: boolean;
   onToggle: () => void;
 }) {
@@ -37,11 +64,10 @@ function ProductRow({
     <label
       htmlFor={`assign-${product.id}`}
       className={cn(
-        "flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer transition-colors",
-        "border",
+        "flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer transition-colors border",
         checked
-          ? "border-primary/40 bg-primary/5"
-          : "border-transparent hover:bg-muted/50"
+          ? "border-indigo-200 bg-indigo-50/60"
+          : "border-transparent hover:bg-slate-50"
       )}
     >
       {/* Custom checkbox */}
@@ -49,8 +75,8 @@ function ProductRow({
         className={cn(
           "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
           checked
-            ? "border-primary bg-primary text-white"
-            : "border-border bg-background"
+            ? "border-indigo-500 bg-indigo-500 text-white"
+            : "border-slate-300 bg-white"
         )}
       >
         {checked && (
@@ -67,58 +93,48 @@ function ProductRow({
         onChange={onToggle}
       />
 
-      {/* Product icon */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[18px] select-none">
-        {product.category === "Dairy"      && "🥛"}
-        {product.category === "Fruits"     && "🍎"}
-        {product.category === "Beverages"  && "🧃"}
-        {product.category === "Bakery"     && "🍞"}
-        {product.category === "Snacks"     && "🍿"}
-        {product.category === "Meat"       && "🥩"}
-        {product.category === "Vegetables" && "🥦"}
+      {/* Category emoji icon */}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[17px] select-none">
+        {categoryEmoji[product.category] ?? "📦"}
       </div>
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className={cn("text-[13px] font-semibold leading-tight", checked ? "text-foreground" : "text-foreground")}>
-          {product.name}
+        <p className="text-[13px] font-semibold text-slate-900 leading-tight truncate">
+          {product.productName}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className={cn("text-[10px] font-semibold rounded-full px-2 py-0.5", categoryColour[product.category] ?? "bg-muted text-muted-foreground")}>
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span
+            className={cn(
+              "text-[10px] font-semibold rounded-full px-2 py-0.5",
+              categoryColour[product.category] ?? "bg-slate-100 text-slate-500"
+            )}
+          >
             {product.category}
           </span>
-          <span className="text-[11px] text-muted-foreground">${product.price.toFixed(2)} / {product.unit}</span>
+          <span className="text-[11px] text-slate-400">
+            Rs.{product.sellingPrice.toFixed(2)}{product.unit ? ` / ${product.unit}` : ""}
+          </span>
+          <span className="text-[11px] text-slate-300">·</span>
+          <span className="text-[11px] text-slate-400 font-mono">{product.sku}</span>
         </div>
       </div>
-
-      {/* Stock */}
-      <span className={cn(
-        "text-[11px] font-semibold shrink-0 tabular-nums",
-        product.stock === 0
-          ? "text-red-500"
-          : product.stock <= 5
-          ? "text-amber-500"
-          : "text-muted-foreground"
-      )}>
-        {product.stock === 0 ? "Out" : `${product.stock} in stock`}
-      </span>
     </label>
   );
 }
 
-/* We show only the first 5 diverse products from the existing mock list */
-const ASSIGNABLE_PRODUCTS: Product[] = [
-  products.find((p) => p.id === "4")!, // Whole Milk
-  products.find((p) => p.id === "9")!, // Sourdough Bread
-  products.find((p) => p.id === "2")!, // Fuji Apples
-  products.find((p) => p.id === "7")!, // Orange Juice
-  products.find((p) => p.id === "12")!, // Chicken Breast
-];
-
-export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProductsModalProps) {
-  const [selected, setSelected]   = useState<Set<string>>(new Set());
+export function AssignProductsModal({
+  isOpen,
+  onClose,
+  supplier,
+  availableProducts,
+  productsLoading = false,
+  onAssign,
+}: AssignProductsModalProps) {
+  const [selected, setSelected]   = useState<Set<number>>(new Set());
   const [search, setSearch]       = useState("");
   const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   /* Reset every time the modal opens */
   useEffect(() => {
@@ -126,6 +142,7 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
       setSelected(new Set());
       setSearch("");
       setSaving(false);
+      setSaveError(null);
     }
   }, [isOpen]);
 
@@ -137,7 +154,7 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  const toggle = (id: string) => {
+  const toggle = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -145,29 +162,49 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
     });
   };
 
+  const filtered = availableProducts.filter((p) => {
+    const q = search.toLowerCase();
+    return (
+      !q ||
+      p.productName.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      p.sku.toLowerCase().includes(q)
+    );
+  });
+
+  const allChecked  = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const someChecked = filtered.some((p) => selected.has(p.id)) && !allChecked;
+
   const toggleAll = () => {
-    if (selected.size === filtered.length) {
-      setSelected(new Set());
+    if (allChecked) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((p) => next.delete(p.id));
+        return next;
+      });
     } else {
-      setSelected(new Set(filtered.map((p) => p.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((p) => next.add(p.id));
+        return next;
+      });
     }
   };
 
-  const filtered = ASSIGNABLE_PRODUCTS.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const allChecked   = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
-  const someChecked  = filtered.some((p) => selected.has(p.id)) && !allChecked;
-
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (selected.size === 0) return;
     setSaving(true);
-    setTimeout(() => {
-      if (onAssign) onAssign([...selected]);
-      setSaving(false);
+    setSaveError(null);
+    try {
+      await onAssign(Array.from(selected));
       onClose();
-    }, 400);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to assign products. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isOpen || !supplier) return null;
@@ -187,87 +224,124 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
       />
 
       {/* Panel */}
-      <div className={cn(
-        "relative z-10 flex flex-col w-full max-w-lg max-h-[90vh] rounded-2xl border border-border bg-card shadow-2xl",
-        "animate-in fade-in-0 zoom-in-95 duration-200"
-      )}>
-
+      <div
+        className={cn(
+          "relative z-10 flex flex-col w-full max-w-lg max-h-[90vh]",
+          "rounded-2xl border border-slate-100 bg-white shadow-2xl",
+          "animate-in fade-in-0 zoom-in-95 duration-200"
+        )}
+      >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <PackageCheck className="h-4.5 w-4.5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <PackageCheck className="h-4 w-4" />
             </div>
             <div>
-              <h2 id="assign-products-title" className="text-[16px] font-bold text-foreground leading-tight">
+              <h2
+                id="assign-products-title"
+                className="text-[16px] font-bold text-slate-900 leading-tight"
+              >
                 Assign Products
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-[12px] text-slate-400 mt-0.5">
                 Supplier:{" "}
-                <span className="font-semibold text-foreground">{supplier.companyName}</span>
+                <span className="font-semibold text-slate-700">{supplier.companyName}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* ── Search + select-all bar ── */}
-        <div className="px-6 pt-4 pb-2 space-y-3 shrink-0">
+        <div className="px-6 pt-4 pb-3 space-y-3 shrink-0 border-b border-slate-50">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products…"
-              className="h-9 pl-8 text-[13px]"
+              placeholder="Search by name, category, or SKU…"
+              className="h-10 pl-8 text-[13px] bg-slate-50 border-slate-200 rounded-xl focus-visible:ring-indigo-300"
+              disabled={productsLoading}
             />
           </div>
 
           {/* Select all row */}
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <div
-              onClick={toggleAll}
-              className={cn(
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
-                allChecked
-                  ? "border-primary bg-primary text-white"
-                  : someChecked
-                  ? "border-primary bg-primary/20"
-                  : "border-border bg-background"
-              )}
-            >
-              {allChecked && (
-                <svg viewBox="0 0 12 10" className="h-3 w-3 fill-none stroke-current stroke-[2.5]">
-                  <polyline points="1.5,5 4.5,8 10.5,2" />
-                </svg>
-              )}
-              {someChecked && <div className="h-2 w-2 rounded-sm bg-primary" />}
-            </div>
-            <span className="text-[12px] font-medium text-muted-foreground">
-              {allChecked ? "Deselect all" : "Select all"}
-            </span>
-            {selected.size > 0 && (
-              <span className="ml-auto text-[11px] font-semibold text-primary">
-                {selected.size} selected
+          {!productsLoading && filtered.length > 0 && (
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <div
+                onClick={toggleAll}
+                className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors cursor-pointer",
+                  allChecked
+                    ? "border-indigo-500 bg-indigo-500 text-white"
+                    : someChecked
+                    ? "border-indigo-400 bg-indigo-100"
+                    : "border-slate-300 bg-white"
+                )}
+              >
+                {allChecked && (
+                  <svg viewBox="0 0 12 10" className="h-3 w-3 fill-none stroke-current stroke-[2.5]">
+                    <polyline points="1.5,5 4.5,8 10.5,2" />
+                  </svg>
+                )}
+                {someChecked && <div className="h-2 w-2 rounded-sm bg-indigo-500" />}
+              </div>
+              <span className="text-[12px] font-medium text-slate-500">
+                {allChecked ? "Deselect all" : "Select all"}
               </span>
-            )}
-          </label>
+              {selected.size > 0 && (
+                <span className="ml-auto text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                  {selected.size} selected
+                </span>
+              )}
+            </label>
+          )}
         </div>
 
         {/* ── Product list (scrollable) ── */}
-        <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-1 min-h-0">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
-              <Package className="h-8 w-8 opacity-30" />
+        <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1 min-h-0">
+          {/* Loading skeleton */}
+          {productsLoading && (
+            <div className="space-y-2 py-2">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="flex items-center gap-3 rounded-xl px-4 py-3 border border-transparent animate-pulse">
+                  <div className="h-5 w-5 rounded-md bg-slate-200 shrink-0" />
+                  <div className="h-9 w-9 rounded-lg bg-slate-100 shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-slate-200 rounded w-2/3" />
+                    <div className="h-2.5 bg-slate-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty — no products on the backend */}
+          {!productsLoading && availableProducts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+              <Package className="h-10 w-10 opacity-20" />
+              <p className="text-sm font-medium text-slate-500">No products found</p>
+              <p className="text-xs">Add products in Product Management first.</p>
+            </div>
+          )}
+
+          {/* Empty — search has no matches */}
+          {!productsLoading && availableProducts.length > 0 && filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10 gap-2 text-slate-400">
+              <Package className="h-8 w-8 opacity-20" />
               <p className="text-sm">No products match your search.</p>
             </div>
-          ) : (
+          )}
+
+          {/* Product rows */}
+          {!productsLoading &&
             filtered.map((product) => (
               <ProductRow
                 key={product.id}
@@ -275,30 +349,37 @@ export function AssignProductsModal({ isOpen, onClose, supplier }: AssignProduct
                 checked={selected.has(product.id)}
                 onToggle={() => toggle(product.id)}
               />
-            ))
-          )}
+            ))}
         </div>
 
+        {/* ── Save error ── */}
+        {saveError && (
+          <div className="mx-6 mb-2 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {saveError}
+          </div>
+        )}
+
         {/* ── Footer ── */}
-        <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-4 shrink-0">
-          <p className="text-[12px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 shrink-0">
+          <p className="text-[12px] text-slate-400">
             {selected.size === 0
               ? "No products selected"
               : `${selected.size} product${selected.size !== 1 ? "s" : ""} will be assigned`}
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-2.5">
             <Button
               variant="outline"
               onClick={onClose}
               disabled={saving}
-              className="h-9 px-5 text-[13px]"
+              className="h-9 px-5 text-[13px] border-slate-200 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || selected.size === 0}
-              className="h-9 px-5 text-[13px] gap-2 shadow-sm"
+              disabled={saving || selected.size === 0 || productsLoading}
+              className="h-9 px-5 text-[13px] gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm"
             >
               {saving ? (
                 <>

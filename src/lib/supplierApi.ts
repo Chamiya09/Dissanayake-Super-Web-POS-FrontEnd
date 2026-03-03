@@ -25,4 +25,11 @@ export const supplierApi = {
   remove(id: number): Promise<void> {
     return api.delete(`${BASE}/${id}`).then(() => undefined);
   },
+
+  /** POST /api/suppliers/:id/products — assign a list of product IDs to a supplier */
+  assignProducts(supplierId: number, productIds: number[]): Promise<void> {
+    return api
+      .post(`${BASE}/${supplierId}/products`, { productIds })
+      .then(() => undefined);
+  },
 };
