@@ -5,11 +5,12 @@ import { SupplierTable } from "@/components/Suppliers/SupplierTable";
 import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
-import { AssignProductsModal } from "@/components/Suppliers/AssignProductsModal";
+import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
+import api from "@/lib/axiosInstance";
 
 /** Converts an AxiosError or plain Error into a user-readable string. */
 function extractApiError(err: unknown): string {
@@ -25,10 +26,14 @@ function extractApiError(err: unknown): string {
 }
 
 export default function Suppliers() {
-  /* ── Master list & async state ── */
+  /* ── Supplier list & async state ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
+
+  /* ── Product list (fetched once for the Assign modal) ── */
+  const [availableProducts, setAvailableProducts] = useState<MgmtProduct[]>([]);
+  const [productsLoading, setProductsLoading]     = useState(false);
 
   /* ── Modal visibility / target state ── */
   const [isAddOpen, setIsAddOpen]       = useState(false);
@@ -60,6 +65,19 @@ export default function Suppliers() {
   }, []);
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
+
+  /* ── Fetch real products from /api/products ── */
+  useEffect(() => {
+    setProductsLoading(true);
+    api
+      .get<MgmtProduct[]>("/api/products")
+      .then((r) => setAvailableProducts(r.data))
+      .catch(() => {
+        // Non-fatal: the assign modal will just show an empty state
+        setAvailableProducts([]);
+      })
+      .finally(() => setProductsLoading(false));
+  }, []);
 
   /* ── POST ── */
   const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
@@ -93,6 +111,20 @@ export default function Suppliers() {
       throw new Error(extractApiError(err));
     }
   }, [deleteTarget, fetchSuppliers]);
+
+  /* ── ASSIGN products to a supplier ── */
+  const handleAssign = useCallback(
+    async (productIds: number[]) => {
+      if (!assignTarget) return;
+      try {
+        await supplierApi.assignProducts(assignTarget.id, productIds);
+        setAssignTarget(null);
+      } catch (err) {
+        throw new Error(extractApiError(err));
+      }
+    },
+    [assignTarget],
+  );
 
   return (
     <div className="flex h-screen flex-col bg-slate-50/50">
@@ -188,6 +220,9 @@ export default function Suppliers() {
         isOpen={isAssignOpen}
         onClose={() => setAssignTarget(null)}
         supplier={assignTarget}
+        availableProducts={availableProducts}
+        productsLoading={productsLoading}
+        onAssign={handleAssign}
       />
     </div>
   );
