@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Sparkles, Search, SlidersHorizontal } from "lucide-react";
+import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,18 +39,32 @@ function LeadTimeBadge({ days }: { days: number }) {
   );
 }
 
-/* ── Auto-Reorder status badge ── */
-function AutoReorderBadge({ enabled }: { enabled: boolean }) {
-  return enabled ? (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-400 whitespace-nowrap">
-      <Sparkles className="h-3 w-3" />
-      Active
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
-      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-      Inactive
-    </span>
+/* ── Auto-Reorder toggle (visual-only pill switch) ── */
+function AutoReorderToggle({ enabled }: { enabled: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 cursor-default items-center rounded-full border-2 border-transparent transition-colors duration-200",
+          enabled ? "bg-emerald-500" : "bg-slate-200"
+        )}
+      >
+        <span
+          className={cn(
+            "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200",
+            enabled ? "translate-x-4" : "translate-x-0.5"
+          )}
+        />
+      </div>
+      <span
+        className={cn(
+          "text-xs font-medium",
+          enabled ? "text-emerald-700" : "text-slate-400"
+        )}
+      >
+        {enabled ? "Active" : "Inactive"}
+      </span>
+    </div>
   );
 }
 
@@ -63,7 +77,7 @@ function CompanyAvatar({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-[13px] font-bold select-none">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 text-[12px] font-bold select-none tracking-wide">
       {initials}
     </div>
   );
@@ -105,26 +119,26 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
   const hasActiveFilters = search !== "" || filterStatus !== "all";
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
 
       {/* ── Search & Filter toolbar ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-4 py-3 border-b border-border bg-muted/20">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
         {/* Search */}
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           <Input
             placeholder="Search suppliers…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-sm bg-background"
+            className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
           />
         </div>
 
         {/* Status filter */}
         <div className="flex items-center gap-2 shrink-0">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+          <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-9 w-44 text-sm bg-background">
+            <SelectTrigger className="h-10 w-44 text-sm bg-white border-slate-200 rounded-xl focus:ring-slate-300">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -142,7 +156,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 px-3 text-[12px] text-muted-foreground hover:text-foreground shrink-0"
+            className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
             onClick={() => { setSearch(""); setFilterStatus("all"); }}
           >
             Clear
@@ -153,119 +167,112 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-slate-100">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Supplier
               </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Contact Person
               </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Email
               </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Phone
               </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Lead Time
               </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Auto-Reorder
               </th>
-              <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.map((supplier, idx) => (
+          <tbody className="divide-y divide-slate-50">
+            {filtered.map((supplier) => (
               <tr
                 key={supplier.id}
-                className={cn(
-                  "group transition-colors hover:bg-muted/30",
-                  idx % 2 === 0 ? "bg-card" : "bg-muted/10"
-                )}
+                className="group transition-colors duration-150 hover:bg-slate-50/60"
               >
                 {/* Company */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-6">
                   <div className="flex items-center gap-3">
                     <CompanyAvatar name={supplier.companyName} />
                     <div>
-                      <p className="font-semibold text-foreground leading-tight">
+                      <p className="font-semibold text-slate-900 leading-tight">
                         {supplier.companyName}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{supplier.id}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{supplier.id}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* Contact */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5 text-foreground">
-                    <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <td className="px-6 py-6">
+                  <div className="flex items-center gap-1.5 text-slate-700 text-sm">
+                    <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     {supplier.contactPerson}
                   </div>
                 </td>
 
                 {/* Email */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-6">
                   <a
                     href={`mailto:${supplier.email}`}
-                    className="flex items-center gap-1.5 text-primary hover:underline underline-offset-2"
+                    className="flex items-center gap-1.5 text-slate-500 text-sm hover:text-indigo-600 hover:underline underline-offset-2 transition-colors"
                   >
-                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     {supplier.email}
                   </a>
                 </td>
 
                 {/* Phone */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5 text-foreground">
-                    <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <td className="px-6 py-6">
+                  <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                    <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     {supplier.phone}
                   </div>
                 </td>
 
                 {/* Lead time */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-6">
                   <LeadTimeBadge days={supplier.leadTime} />
                 </td>
 
                 {/* Auto-Reorder */}
-                <td className="px-5 py-4">
-                  <AutoReorderBadge enabled={supplier.isAutoReorderEnabled} />
+                <td className="px-6 py-6">
+                  <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
                 </td>
 
                 {/* Actions */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-6 py-6">
+                  <div className="flex items-center justify-end gap-1">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => onAssign(supplier)}
-                      className="h-8 gap-1.5 text-[12px] hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-300 dark:hover:text-emerald-400"
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg px-3"
                     >
                       <PackageCheck className="h-3.5 w-3.5" />
                       Assign
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
                       onClick={() => onEdit(supplier)}
-                      className="h-8 gap-1.5 text-[12px] hover:bg-primary/10 hover:text-primary hover:border-primary/40"
+                      className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                      title="Edit"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => onDelete(supplier)}
-                      className="h-8 gap-1.5 text-[12px] hover:bg-red-500/10 hover:text-red-600 hover:border-red-300 dark:hover:text-red-400"
+                      className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
+                      title="Delete"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -275,64 +282,64 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
       </div>
 
       {/* ── Mobile card list ── */}
-      <div className="md:hidden divide-y divide-border">
+      <div className="md:hidden divide-y divide-slate-100">
         {filtered.map((supplier) => (
-          <div key={supplier.id} className="p-4 space-y-3">
+          <div key={supplier.id} className="p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <CompanyAvatar name={supplier.companyName} />
                 <div>
-                  <p className="font-semibold text-foreground leading-tight">{supplier.companyName}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{supplier.id}</p>
+                  <p className="font-semibold text-slate-900 leading-tight">{supplier.companyName}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{supplier.id}</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <div className="flex flex-col items-end gap-2 shrink-0">
                 <LeadTimeBadge days={supplier.leadTime} />
-                <AutoReorderBadge enabled={supplier.isAutoReorderEnabled} />
+                <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-1.5 text-[13px]">
-              <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <div className="flex items-center gap-2 text-slate-400">
                 <User className="h-3.5 w-3.5 shrink-0" />
-                <span className="text-foreground">{supplier.contactPerson}</span>
+                <span className="text-slate-700">{supplier.contactPerson}</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-slate-400">
                 <Mail className="h-3.5 w-3.5 shrink-0" />
-                <a href={`mailto:${supplier.email}`} className="text-primary hover:underline truncate">
+                <a href={`mailto:${supplier.email}`} className="text-slate-500 hover:text-indigo-600 hover:underline truncate transition-colors">
                   {supplier.email}
                 </a>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-slate-400">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
-                <span className="text-foreground">{supplier.phone}</span>
+                <span className="text-slate-700">{supplier.phone}</span>
               </div>
             </div>
 
             <div className="flex gap-2 pt-1 flex-wrap">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => onAssign(supplier)}
-                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-300 dark:hover:text-emerald-400"
+                className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl border border-slate-200"
               >
                 <PackageCheck className="h-3.5 w-3.5" />
                 Assign
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => onEdit(supplier)}
-                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-primary/10 hover:text-primary hover:border-primary/40"
+                className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl border border-slate-200"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => onDelete(supplier)}
-                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-red-500/10 hover:text-red-600 hover:border-red-300 dark:hover:text-red-400"
+                className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
@@ -344,17 +351,17 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
 
       {/* ── Empty state ── */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Building2 className="h-10 w-10 mb-3 opacity-30" />
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <Building2 className="h-12 w-12 mb-4 opacity-20" />
           {hasActiveFilters ? (
             <>
-              <p className="text-sm font-medium">No suppliers match your search</p>
-              <p className="text-xs mt-1">Try adjusting your search term or clearing the filters.</p>
+              <p className="text-sm font-semibold text-slate-500">No suppliers match your search</p>
+              <p className="text-xs mt-1.5 text-slate-400">Try adjusting your search term or clearing the filters.</p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium">No suppliers found</p>
-              <p className="text-xs mt-1">Add your first supplier to get started.</p>
+              <p className="text-sm font-semibold text-slate-500">No suppliers found</p>
+              <p className="text-xs mt-1.5 text-slate-400">Add your first supplier to get started.</p>
             </>
           )}
         </div>

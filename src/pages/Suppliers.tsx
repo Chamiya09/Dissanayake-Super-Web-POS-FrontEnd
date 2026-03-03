@@ -6,7 +6,7 @@ import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal } from "@/components/Suppliers/AssignProductsModal";
-import { Building2, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
@@ -95,76 +95,75 @@ export default function Suppliers() {
   }, [deleteTarget, fetchSuppliers]);
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-slate-50/50">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full px-8 py-8 space-y-7">
 
-        {/* ── Page header ── */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-              <Building2 className="h-5 w-5" />
-            </div>
+          {/* ── Page header ── */}
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">
+              <h1 className="text-[22px] font-bold text-slate-900 leading-tight tracking-tight">
                 Supplier Management
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-sm text-slate-400 mt-0.5">
                 {loading
                   ? "Loading…"
-                  : `${suppliers.length} supplier${suppliers.length !== 1 ? "s" : ""} registered`}
+                  : `Manage your supplier network · ${suppliers.length} supplier${suppliers.length !== 1 ? "s" : ""} registered`}
               </p>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchSuppliers}
-              disabled={loading}
-              title="Refresh"
-              className="h-9 w-9"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-sm">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add New Supplier</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* ── Error banner ── */}
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
-            {error}
-          </div>
-        )}
-
-        {/* ── Stats strip ── */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Suppliers", value: suppliers.length },
-            { label: "AI Auto-Reorder", value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
-            { label: "Slow (> 5 days)", value: suppliers.filter((s) => s.leadTime > 5).length },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-              <p className="text-[22px] font-bold text-foreground tabular-nums">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                onClick={fetchSuppliers}
+                disabled={loading}
+                title="Refresh"
+                className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </button>
+              <Button
+                onClick={() => setIsAddOpen(true)}
+                className="gap-2 h-10 px-5 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Supplier</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* ── Table ── */}
-        <SupplierTable
-          suppliers={suppliers}
-          onEdit={(s) => setEditTarget(s)}
-          onDelete={(s) => setDeleteTarget(s)}
-          onAssign={(s) => setAssignTarget(s)}
-        />
+          {/* ── Error banner ── */}
+          {error && (
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-600 flex items-center gap-3">
+              <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {/* ── Stats strip ── */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: "Total Suppliers",  value: suppliers.length },
+              { label: "AI Auto-Reorder",  value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
+              { label: "Slow (> 5 days)",  value: suppliers.filter((s) => s.leadTime > 5).length },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
+                <p className="text-3xl font-bold text-slate-900 tabular-nums">{stat.value}</p>
+                <p className="text-[11px] text-slate-400 mt-1.5 font-semibold uppercase tracking-widest">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Table ── */}
+          <SupplierTable
+            suppliers={suppliers}
+            onEdit={(s) => setEditTarget(s)}
+            onDelete={(s) => setDeleteTarget(s)}
+            onAssign={(s) => setAssignTarget(s)}
+          />
+        </div>
       </div>
 
       {/* ── Modals ── */}
