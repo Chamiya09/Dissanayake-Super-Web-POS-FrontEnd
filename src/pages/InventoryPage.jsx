@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Mouse,
+  Keyboard,
+  Cable,
+  Monitor,
+  Headphones,
+} from "lucide-react";
 
 const MOCK_INVENTORY = [
   {
@@ -9,6 +20,9 @@ const MOCK_INVENTORY = [
     price: 29.99,
     stock: 142,
     status: "In Stock",
+    icon: Mouse,
+    iconColor: "text-violet-500",
+    iconBg: "bg-violet-50 dark:bg-violet-950/40",
   },
   {
     id: 2,
@@ -17,6 +31,9 @@ const MOCK_INVENTORY = [
     price: 89.99,
     stock: 38,
     status: "In Stock",
+    icon: Keyboard,
+    iconColor: "text-blue-500",
+    iconBg: "bg-blue-50 dark:bg-blue-950/40",
   },
   {
     id: 3,
@@ -25,14 +42,20 @@ const MOCK_INVENTORY = [
     price: 49.99,
     stock: 7,
     status: "Low Stock",
+    icon: Cable,
+    iconColor: "text-amber-500",
+    iconBg: "bg-amber-50 dark:bg-amber-950/40",
   },
   {
     id: 4,
-    name: "27\" IPS Monitor",
+    name: '27" IPS Monitor',
     category: "Displays",
     price: 319.99,
     stock: 0,
     status: "Out of Stock",
+    icon: Monitor,
+    iconColor: "text-slate-500",
+    iconBg: "bg-slate-100 dark:bg-slate-800",
   },
   {
     id: 5,
@@ -41,6 +64,9 @@ const MOCK_INVENTORY = [
     price: 129.99,
     stock: 55,
     status: "In Stock",
+    icon: Headphones,
+    iconColor: "text-emerald-500",
+    iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
   },
 ];
 
@@ -166,8 +192,15 @@ const InventoryPage = () => {
                   `}
                 >
                   {/* Product Name */}
-                  <td className="py-6 px-6 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                    {item.name}
+                  <td className="py-6 px-6 whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <span className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${item.iconBg}`}>
+                        <item.icon size={16} className={item.iconColor} strokeWidth={1.8} />
+                      </span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
+                        {item.name}
+                      </span>
+                    </div>
                   </td>
 
                   {/* Category */}
@@ -182,18 +215,27 @@ const InventoryPage = () => {
 
                   {/* Stock Level */}
                   <td className="py-6 px-6">
-                    <span
-                      className={`font-semibold ${
-                        item.stock === 0
-                          ? "text-red-600 dark:text-red-400"
-                          : item.stock <= 10
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      {item.stock}
-                    </span>
-                    <span className="text-slate-400 dark:text-slate-500 ml-1 text-xs">units</span>
+                    <div className="flex items-center gap-1.5">
+                      {item.stock <= 10 && (
+                        <AlertTriangle
+                          size={13}
+                          strokeWidth={2.2}
+                          className={item.stock === 0 ? "text-red-500 dark:text-red-400" : "text-amber-500 dark:text-amber-400"}
+                        />
+                      )}
+                      <span
+                        className={`font-semibold ${
+                          item.stock === 0
+                            ? "text-red-600 dark:text-red-400"
+                            : item.stock <= 10
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        {item.stock}
+                      </span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs">units</span>
+                    </div>
                   </td>
 
                   {/* Status Badge */}
@@ -207,20 +249,20 @@ const InventoryPage = () => {
 
                   {/* Actions */}
                   <td className="py-6 px-6">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
-                        title="Edit"
+                        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-colors duration-150"
+                        title="Edit product"
                       >
-                        <Pencil size={15} />
+                        <Pencil size={15} strokeWidth={1.8} />
                       </button>
                       <button
                         type="button"
                         className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-colors duration-150"
-                        title="Delete"
+                        title="Delete product"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={15} strokeWidth={1.8} />
                       </button>
                     </div>
                   </td>
