@@ -1,8 +1,69 @@
 import { useState } from "react";
-import { Search, Plus, Package } from "lucide-react";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+
+const MOCK_INVENTORY = [
+  {
+    id: 1,
+    name: "Wireless Mouse",
+    category: "Peripherals",
+    price: 29.99,
+    stock: 142,
+    status: "In Stock",
+  },
+  {
+    id: 2,
+    name: "Mechanical Keyboard",
+    category: "Peripherals",
+    price: 89.99,
+    stock: 38,
+    status: "In Stock",
+  },
+  {
+    id: 3,
+    name: "USB-C Hub 7-in-1",
+    category: "Accessories",
+    price: 49.99,
+    stock: 7,
+    status: "Low Stock",
+  },
+  {
+    id: 4,
+    name: "27\" IPS Monitor",
+    category: "Displays",
+    price: 319.99,
+    stock: 0,
+    status: "Out of Stock",
+  },
+  {
+    id: 5,
+    name: "Noise Cancelling Headset",
+    category: "Audio",
+    price: 129.99,
+    stock: 55,
+    status: "In Stock",
+  },
+];
+
+const STATUS_STYLES = {
+  "In Stock":
+    "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800",
+  "Low Stock":
+    "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800",
+  "Out of Stock":
+    "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-800",
+};
 
 const InventoryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredInventory = MOCK_INVENTORY.filter((item) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      item.status.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="w-full min-h-screen bg-slate-50/50 dark:bg-slate-950 p-8">
@@ -65,13 +126,122 @@ const InventoryPage = () => {
         </button>
       </div>
 
-      {/* Placeholder Content Area */}
-      <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400 dark:text-slate-600">
-          <Package size={48} strokeWidth={1.2} />
-          <p className="text-sm font-medium">No inventory items to display</p>
-          <p className="text-xs text-slate-400 dark:text-slate-600">
-            Add a product to get started
+      {/* Inventory Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
+        <table className="w-full text-sm">
+          {/* Table Head */}
+          <thead>
+            <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              {["Product Name", "Category", "Price", "Stock Level", "Status", "Actions"].map(
+                (col) => (
+                  <th
+                    key={col}
+                    className="py-5 px-6 text-left text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap"
+                  >
+                    {col}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+
+          {/* Table Body */}
+          <tbody>
+            {filteredInventory.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-16 text-center text-slate-400 dark:text-slate-600 text-sm">
+                  No products match your search.
+                </td>
+              </tr>
+            ) : (
+              filteredInventory.map((item, idx) => (
+                <tr
+                  key={item.id}
+                  className={`
+                    border-b border-slate-100 dark:border-slate-800
+                    last:border-0
+                    hover:bg-slate-50/70 dark:hover:bg-slate-800/40
+                    transition-colors duration-150
+                    ${idx % 2 === 0 ? "" : "bg-slate-50/30 dark:bg-slate-800/20"}
+                  `}
+                >
+                  {/* Product Name */}
+                  <td className="py-6 px-6 font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                    {item.name}
+                  </td>
+
+                  {/* Category */}
+                  <td className="py-6 px-6 text-slate-500 dark:text-slate-400">
+                    {item.category}
+                  </td>
+
+                  {/* Price */}
+                  <td className="py-6 px-6 font-medium text-slate-700 dark:text-slate-300">
+                    ${item.price.toFixed(2)}
+                  </td>
+
+                  {/* Stock Level */}
+                  <td className="py-6 px-6">
+                    <span
+                      className={`font-semibold ${
+                        item.stock === 0
+                          ? "text-red-600 dark:text-red-400"
+                          : item.stock <= 10
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      {item.stock}
+                    </span>
+                    <span className="text-slate-400 dark:text-slate-500 ml-1 text-xs">units</span>
+                  </td>
+
+                  {/* Status Badge */}
+                  <td className="py-6 px-6">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[item.status]}`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="py-6 px-6">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors duration-150"
+                        title="Edit"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-colors duration-150"
+                        title="Delete"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Footer row — item count */}
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Showing{" "}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">
+              {filteredInventory.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">
+              {MOCK_INVENTORY.length}
+            </span>{" "}
+            products
           </p>
         </div>
       </div>
