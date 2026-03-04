@@ -23,6 +23,7 @@ import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 import InventoryStock from "./pages/InventoryStock";
 import ReorderManagement from "./pages/ReorderManagement";
+import LowStockAlerts   from "./pages/LowStockAlerts";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ const App = () => (
                   <Route path="/inventory"  element={<InventoryStock />} />
                   <Route path="/sales"      element={<SalesManagement />} />
                   <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
+                  <Route path="/low-stock"  element={<LowStockAlerts />} />
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />

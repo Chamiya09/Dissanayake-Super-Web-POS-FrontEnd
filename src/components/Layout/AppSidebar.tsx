@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid, Boxes, ClipboardList } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid, Boxes, ClipboardList, AlertTriangle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const NAV_ROLES: Record<string, string[]> = {
   "Sales":              ["Owner", "Manager"],
   "Suppliers":          ["Owner", "Manager"],
   "Users":              ["Owner", "Manager"],
+  "Low Stock Alerts":   ["Owner", "Manager"],
   "Reorder Management": ["Owner", "Manager"],
 };
 
@@ -31,6 +32,7 @@ const navItems = [
   { title: "Products",           url: "/products",        icon: Package          },
   { title: "Inventory",          url: "/inventory",       icon: Boxes            },
   { title: "Sales",              url: "/sales",           icon: ReceiptText      },
+  { title: "Low Stock Alerts",   url: "/low-stock",       icon: AlertTriangle    },
   { title: "Reorder Management", url: "/reorder",         icon: ClipboardList    },
   { title: "Suppliers",          url: "/suppliers",       icon: Building2        },
   { title: "Users",              url: "/users",           icon: Users            },

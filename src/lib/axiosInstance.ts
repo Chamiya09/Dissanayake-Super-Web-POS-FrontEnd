@@ -5,14 +5,20 @@ const LS_KEY = "pos_auth_user";
 /**
  * Pre-configured Axios instance for all backend API calls.
  *
- * Base URL  : http://localhost:8080
+ * Base URL  : Empty string in development so every request is relative
+ *             (e.g. "/api/products") and routed through the Vite dev-server
+ *             proxy to http://localhost:8080.  In production builds override
+ *             with VITE_API_URL (e.g. https://api.yourdomain.com).
+ *
  * Interceptor: Reads the JWT token from localStorage and appends
  *              Authorization: Bearer <token> to every outgoing request.
  *              If no token is present the header is omitted (public routes
  *              like /api/auth/login work without it).
  */
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  // Vite exposes VITE_* variables via import.meta.env.
+  // Fallback to "" so the Vite proxy handles routing in local dev.
+  baseURL: import.meta.env.VITE_API_URL ?? "",
   headers: { "Content-Type": "application/json" },
 });
 
