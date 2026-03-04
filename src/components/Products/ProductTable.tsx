@@ -1,18 +1,9 @@
 import { useState } from "react";
 import {
-  Pencil, Trash2, Search, SlidersHorizontal,
-  Package, ShoppingBag, Apple, Milk, Coffee,
+  Pencil, Trash2, Search, ChevronDown, X,
+  Package, Apple, Milk, Coffee,
   Wheat, Cookie, Beef, Leaf, Tag,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
 
@@ -68,7 +59,7 @@ function ProfitBadge({ buying, selling }: { buying: number; selling: number }) {
 /* ── Category chip ── */
 function CategoryChip({ category }: { category: string }) {
   const Icon   = categoryIcon[category] ?? Tag;
-  const colour = categoryBg[category]   ?? "bg-muted text-muted-foreground";
+  const colour = categoryBg[category]   ?? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400";
 
   return (
     <span
@@ -92,7 +83,7 @@ function ProductAvatar({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-[13px] font-bold select-none">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 dark:bg-violet-400/20 text-violet-600 dark:text-violet-400 text-[13px] font-bold select-none">
       {initials}
     </div>
   );
@@ -135,48 +126,55 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
     n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
 
       {/* ── Search & Filter toolbar ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-4 py-3 border-b border-border bg-muted/20">
-        {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        {/* Search input */}
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search products…"
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-slate-400 dark:text-slate-500 pointer-events-none" />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              <X className="h-3 w-3" strokeWidth={2.5} />
+            </button>
+          )}
+          <input
+            type="text"
+            placeholder="Search by name, SKU or category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-sm bg-background"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm pl-9 pr-8 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-600 transition-all duration-200"
           />
         </div>
 
-        {/* Category filter */}
-        <div className="flex items-center gap-2 shrink-0">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="h-9 w-44 text-sm bg-background">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c === "All" ? "All Categories" : c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Category dropdown */}
+        <div className="relative sm:w-52">
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm pl-4 pr-9 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-600 cursor-pointer transition-all duration-200"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
         </div>
 
-        {/* Clear filters — only visible when active */}
+        {/* Clear filters — only when active */}
         {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 text-[12px] text-muted-foreground hover:text-foreground shrink-0"
+          <button
+            type="button"
             onClick={() => { setSearch(""); setFilterCategory("All"); }}
+            className="self-center sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-150 whitespace-nowrap"
           >
-            Clear
-          </Button>
+            <X className="h-3 w-3" strokeWidth={2.5} />
+            Clear filters
+          </button>
         )}
       </div>
 
@@ -184,114 +182,109 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40">
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Product
-              </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                SKU / Barcode
-              </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Category
-              </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Unit
-              </th>
-              <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Buying Price
-              </th>
-              <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Selling Price
-              </th>
-              <th className="px-5 py-3.5 text-left text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Margin
-              </th>
-              <th className="px-5 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Actions
-              </th>
+            <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
+              {[
+                { label: "Product",       align: "text-left" },
+                { label: "SKU",            align: "text-left" },
+                { label: "Category",       align: "text-left" },
+                { label: "Unit",           align: "text-left" },
+                { label: "Buying Price",   align: "text-right" },
+                { label: "Selling Price",  align: "text-right" },
+                { label: "Margin",         align: "text-left" },
+                { label: "Actions",        align: "text-right" },
+              ].map(({ label, align }) => (
+                <th
+                  key={label}
+                  className={cn(
+                    "px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap",
+                    align
+                  )}
+                >
+                  {label}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {filtered.map((product, idx) => (
               <tr
                 key={product.id}
                 className={cn(
-                  "group transition-colors hover:bg-muted/30",
-                  idx % 2 === 0 ? "bg-card" : "bg-muted/10"
+                  "border-b border-slate-100 dark:border-slate-800 last:border-0",
+                  "hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-150",
+                  idx % 2 !== 0 ? "bg-slate-50/30 dark:bg-slate-800/[0.15]" : ""
                 )}
               >
                 {/* Product name + ID */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <ProductAvatar name={product.productName} />
                     <div>
-                      <p className="font-semibold text-foreground leading-tight">
+                      <p className="font-semibold text-slate-900 dark:text-slate-50 leading-tight">
                         {product.productName}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{product.id}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">#{product.id}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* SKU */}
-                <td className="px-5 py-4">
-                  <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[12px] font-mono font-medium text-foreground">
+                <td className="px-6 py-4">
+                  <span className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/60 px-2 py-0.5 text-[12px] font-mono font-medium text-slate-600 dark:text-slate-300">
                     {product.sku}
                   </span>
                 </td>
 
                 {/* Category */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-4">
                   <CategoryChip category={product.category} />
                 </td>
 
                 {/* Unit */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-4">
                   {product.unit ? (
-                    <span className="inline-flex items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-mono font-medium text-muted-foreground">
+                    <span className="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/60 px-2 py-0.5 text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400">
                       {product.unit}
                     </span>
                   ) : (
-                    <span className="text-[12px] text-muted-foreground/40">—</span>
+                    <span className="text-[13px] text-slate-300 dark:text-slate-600">—</span>
                   )}
                 </td>
 
                 {/* Buying price */}
-                <td className="px-5 py-4 text-right tabular-nums text-foreground font-medium">
+                <td className="px-6 py-4 text-right tabular-nums text-slate-600 dark:text-slate-300 font-medium">
                   {fmt(product.buyingPrice)}
                 </td>
 
                 {/* Selling price */}
-                <td className="px-5 py-4 text-right tabular-nums text-foreground font-semibold">
+                <td className="px-6 py-4 text-right tabular-nums text-slate-800 dark:text-slate-100 font-semibold">
                   {fmt(product.sellingPrice)}
                 </td>
 
                 {/* Margin */}
-                <td className="px-5 py-4">
+                <td className="px-6 py-4">
                   <ProfitBadge buying={product.buyingPrice} selling={product.sellingPrice} />
                 </td>
 
                 {/* Actions */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                <td className="px-6 py-4">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      title="Edit product"
                       onClick={() => onEdit(product)}
-                      className="h-8 gap-1.5 text-[12px] hover:bg-primary/10 hover:text-primary hover:border-primary/40"
+                      className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-all duration-150"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      <Pencil className="h-[15px] w-[15px]" strokeWidth={1.8} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete product"
                       onClick={() => onDelete(product)}
-                      className="h-8 gap-1.5 text-[12px] hover:bg-red-500/10 hover:text-red-600 hover:border-red-300 dark:hover:text-red-400"
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-all duration-150"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
+                      <Trash2 className="h-[15px] w-[15px]" strokeWidth={1.8} />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -301,15 +294,15 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       </div>
 
       {/* ── Mobile card list ── */}
-      <div className="md:hidden divide-y divide-border">
+      <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
         {filtered.map((product) => (
           <div key={product.id} className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ProductAvatar name={product.productName} />
                 <div>
-                  <p className="font-semibold text-foreground leading-tight">{product.productName}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{product.id}</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-50 leading-tight">{product.productName}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">#{product.id}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -318,56 +311,42 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+            <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                  SKU
-                </p>
-                <span className="font-mono font-medium text-foreground text-[12px]">
-                  {product.sku}
-                </span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">SKU</p>
+                <span className="font-mono font-medium text-slate-700 dark:text-slate-200 text-[12px]">{product.sku}</span>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                  Unit
-                </p>
-                <span className="font-mono font-medium text-foreground text-[12px]">
-                  {product.unit ?? "—"}
-                </span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Unit</p>
+                <span className="font-mono font-medium text-slate-700 dark:text-slate-200 text-[12px]">{product.unit ?? "—"}</span>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                  Buying
-                </p>
-                <p className="font-medium text-foreground tabular-nums">{fmt(product.buyingPrice)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Buying</p>
+                <p className="font-medium text-slate-600 dark:text-slate-300 tabular-nums">{fmt(product.buyingPrice)}</p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                  Selling
-                </p>
-                <p className="font-semibold text-foreground tabular-nums">{fmt(product.sellingPrice)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Selling</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{fmt(product.sellingPrice)}</p>
               </div>
             </div>
 
             <div className="flex gap-2 pt-1">
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => onEdit(product)}
-                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-primary/10 hover:text-primary hover:border-primary/40"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:border-blue-900 transition-all duration-150"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
                 Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
+              </button>
+              <button
+                type="button"
                 onClick={() => onDelete(product)}
-                className="flex-1 h-9 gap-1.5 text-[13px] hover:bg-red-500/10 hover:text-red-600 hover:border-red-300 dark:hover:text-red-400"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:text-red-400 dark:hover:bg-red-950/40 dark:hover:border-red-900 transition-all duration-150"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                 Delete
-              </Button>
+              </button>
             </div>
           </div>
         ))}
@@ -375,18 +354,36 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
       {/* ── Empty state ── */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Package className="h-10 w-10 mb-3 opacity-30" />
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600">
+          <Package className="h-10 w-10 mb-3 opacity-40" strokeWidth={1.2} />
           {hasActiveFilters ? (
             <>
-              <p className="text-sm font-medium">No products match your search</p>
-              <p className="text-xs mt-1">Try adjusting your search term or clearing the filters.</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No products match your filters</p>
+              <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">Try adjusting your search term or clearing the filters.</p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium">No products found</p>
-              <p className="text-xs mt-1">Add your first product to get started.</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No products found</p>
+              <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">Add your first product to get started.</p>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ── Footer count ── */}
+      {filtered.length > 0 && (
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Showing{" "}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">{filtered.length}</span>
+            {" "}of{" "}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">{products.length}</span>
+            {" "}products
+          </p>
+          {hasActiveFilters && (
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              {products.length - filtered.length} hidden by filters
+            </span>
           )}
         </div>
       )}

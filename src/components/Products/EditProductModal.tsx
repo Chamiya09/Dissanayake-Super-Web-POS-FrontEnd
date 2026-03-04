@@ -114,27 +114,26 @@ export function EditProductModal({
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5">
           <div className="flex items-center gap-3">
-            {/* Icon badge — matches h-9 w-9 rounded-xl bg-primary/10 pattern */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Package className="h-[18px] w-[18px]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
+              <Package className="h-[18px] w-[18px] text-white dark:text-slate-900" />
             </div>
             <div>
               <h2
                 id="edit-product-title"
-                className="text-[16px] font-bold text-foreground leading-tight"
+                className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight"
               >
                 Edit Product
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Update details for{" "}
-                <span className="font-semibold text-foreground">{product.productName}</span>.
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{product.productName}</span>.
               </p>
             </div>
           </div>
@@ -143,7 +142,7 @@ export function EditProductModal({
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -205,7 +204,7 @@ export function EditProductModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
                   $
                 </span>
                 <Input
@@ -226,7 +225,7 @@ export function EditProductModal({
 
             <FormRow id="edit-sellingPrice" label="Selling Price" icon={Tag} error={errors.sellingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
                   $
                 </span>
                 <Input
@@ -262,22 +261,20 @@ export function EditProductModal({
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          {/* Cancel — outline, exact match to AddProductModal */}
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-6 py-4">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px]"
+            className="h-9 px-5 text-[13px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             Cancel
           </Button>
 
-          {/* Save — primary with spinner */}
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-5 text-[13px] gap-2 shadow-sm"
+            className="h-9 px-5 text-[13px] gap-2 shadow-sm bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200"
           >
             {saving ? (
               <>

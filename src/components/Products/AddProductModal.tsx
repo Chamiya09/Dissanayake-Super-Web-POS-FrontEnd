@@ -113,9 +113,9 @@ export function FormRow({
     <div className="space-y-1.5">
       <Label
         htmlFor={id}
-        className="text-[13px] font-medium text-foreground flex items-center gap-1.5"
+        className="text-[13px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
       >
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <Icon className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
         {label}
       </Label>
       {children}
@@ -242,25 +242,24 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5">
           <div className="flex items-center gap-3">
-            {/* Icon badge — mirrors h-9 w-9 rounded-xl bg-primary/10 from Supplier modals */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Package className="h-[18px] w-[18px]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
+              <Package className="h-[18px] w-[18px] text-white dark:text-slate-900" />
             </div>
             <div>
               <h2
                 id="add-product-title"
-                className="text-[16px] font-bold text-foreground leading-tight"
+                className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight"
               >
                 Add Product
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Fill in the details to register a new product.
               </p>
             </div>
@@ -270,7 +269,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -280,13 +279,13 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
         <div className="px-6 py-5 space-y-4">
 
           {/* ── Barcode Scan Section ── */}
-          <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 dark:bg-violet-400/20 text-violet-600 dark:text-violet-400">
                 <ScanLine className="h-3.5 w-3.5" />
               </div>
-              <span className="text-[13px] font-semibold text-foreground">Scan Barcode</span>
-              <span className="ml-auto text-[11px] text-muted-foreground">Point scanner at barcode</span>
+              <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">Scan Barcode</span>
+              <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500">Point scanner at barcode</span>
             </div>
 
             {/* Scanner input — full width, captures scanner keystrokes */}
@@ -294,7 +293,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
               <ScanLine
                 className={cn(
                   "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
-                  scanStatus === "scanning" ? "text-primary animate-pulse" : "text-muted-foreground"
+                  scanStatus === "scanning" ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-slate-400 dark:text-slate-500"
                 )}
               />
               {scanStatus === "scanning" && (
@@ -307,8 +306,8 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 placeholder="Ready to scan…"
                 autoComplete="off"
                 className={cn(
-                  "flex h-11 w-full rounded-md border bg-background px-3 py-2 text-[13px] font-mono pl-9 pr-9",
-                  "ring-offset-background placeholder:text-muted-foreground",
+                  "flex h-11 w-full rounded-md border bg-white dark:bg-slate-950 px-3 py-2 text-[13px] font-mono pl-9 pr-9",
+                  "placeholder:text-slate-400 dark:placeholder:text-slate-500",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   scanStatus === "scanning" && "border-primary/60",
                   scanStatus === "found"    && "border-emerald-500 focus-visible:ring-emerald-400",
@@ -320,7 +319,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
             {/* Scan status banners */}
             {scanStatus === "scanning" && (
-              <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg bg-violet-500/5 dark:bg-violet-400/10 border border-violet-200 dark:border-violet-800/40 px-3 py-2">
                 <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
                 <span className="text-[12px] text-primary font-medium">Scanning…</span>
               </div>
@@ -345,9 +344,9 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Product Details</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Product Details</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
           </div>
 
           {/* Product Name — full width */}
@@ -404,7 +403,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
                   $
                 </span>
                 <Input
@@ -425,7 +424,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
             <FormRow id="sellingPrice" label="Selling Price" icon={Tag} error={errors.sellingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
                   $
                 </span>
                 <Input
@@ -461,22 +460,20 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          {/* Cancel — outline, mirrors Supplier modals exactly */}
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-6 py-4">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px]"
+            className="h-9 px-5 text-[13px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             Cancel
           </Button>
 
-          {/* Save — primary with spinner */}
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-5 text-[13px] gap-2 shadow-sm"
+            className="h-9 px-5 text-[13px] gap-2 shadow-sm bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200"
           >
             {saving ? (
               <>
