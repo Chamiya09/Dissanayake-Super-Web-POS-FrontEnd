@@ -228,7 +228,7 @@ export default function ReorderManagement() {
             </div>
             <button
               onClick={() => navigate("/low-stock")}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-900"
             >
               <ArrowLeft className="h-4 w-4" />
               View Low Stock Alerts
@@ -458,7 +458,7 @@ export default function ReorderManagement() {
             <button
               onClick={handlePrepareEmail}
               disabled={!selectedSupplier}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-900"
             >
               <Mail className="h-4 w-4" />
               Prepare Email
@@ -486,7 +486,7 @@ export default function ReorderManagement() {
                 </div>
                 <button
                   onClick={handleReset}
-                  className="mt-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                  className="mt-2 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-950"
                 >
                   â† New Reorder
                 </button>
@@ -546,7 +546,7 @@ export default function ReorderManagement() {
                       <button
                         onClick={handleSend}
                         disabled={sending}
-                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-75 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-800"
                       >
                         {sending
                           ? <><Loader2 className="h-4 w-4 animate-spin" /> Sendingâ€¦</>
