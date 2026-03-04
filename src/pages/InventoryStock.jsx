@@ -24,7 +24,6 @@ import {
   Sparkles,
   PlusCircle,
   PackagePlus,
-  ClipboardList,
   Hash,
   Loader2,
 } from "lucide-react";
@@ -91,77 +90,114 @@ const Field = ({ label, error, icon: Icon, children }) => (
   </div>
 );
 
-// ─── Add Inventory Stock Modal ──────────────────────────────────────────────────
-const AddStockModal = ({ open, onClose, onSave, products }) => {
-  const [form, setForm] = useState(EMPTY_STOCK_FORM);
-  const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-
-  // ── Searchable combobox state
+// ─── Add Inventory Stock Modal ───────────────────────────────────────────────
+const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
+  // ── Product selection
+  const [selectedId,   setSelectedId]   = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const comboRef = useRef(null);
 
-  // Close dropdown on outside click
+  // ── Live stock (fetched fresh when a product is picked)
+  const [currentStock,  setCurrentStock]  = useState(null);   // null = not yet loaded
+  const [fetchingStock, setFetchingStock] = useState(false);
+  const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
+
+  // ── Manual quantity input
+  const [qtyToAdd, setQtyToAdd] = useState("");
+
+  // ── Submission state
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError,   setApiError]   = useState(null);
+  const [success,    setSuccess]    = useState(false);
+
+  // ── Validation errors
+  const [errors, setErrors] = useState({});
+
+  // ── Close combobox on outside click
   useEffect(() => {
     if (!dropdownOpen) return;
     const handler = (e) => {
-      if (comboRef.current && !comboRef.current.contains(e.target)) {
+      if (comboRef.current && !comboRef.current.contains(e.target))
         setDropdownOpen(false);
-      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
+  // ── Fetch fresh stock whenever a product is selected
+  useEffect(() => {
+    if (!selectedId) { setCurrentStock(null); return; }
+    setFetchingStock(true);
+    setCurrentStock(null);
+    api
+      .get(`/api/products/${selectedId}`)
+      .then((res) => setCurrentStock(Number(res.data.stockQuantity ?? 0)))
+      .catch(() => {
+        // Gracefully fallback to the value we already have in the list
+        const found = products.find((p) => p.id === selectedId);
+        setCurrentStock(found ? (found.stockQuantity ?? 0) : 0);
+      })
+      .finally(() => setFetchingStock(false));
+  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!open) return null;
 
-  const selectedProduct = products.find((p) => p.id === form.productId) ?? null;
+  // ── Derived values
+  const qtyNum    = parseInt(qtyToAdd, 10);
+  const validQty  = !isNaN(qtyNum) && qtyNum > 0;
+  const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
 
-  const filteredProducts = products.filter((p) =>
-    p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.sku.toLowerCase().includes(productSearch.toLowerCase())
+  const filteredProducts = products.filter(
+    (p) =>
+      p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
+  // ── Handlers
   const selectProduct = (p) => {
-    setForm((prev) => ({ ...prev, productId: p.id }));
+    setSelectedId(p.id);
     setProductSearch("");
     setDropdownOpen(false);
-    if (errors.productId) setErrors((e) => ({ ...e, productId: undefined }));
+    setErrors((e) => ({ ...e, product: undefined }));
   };
 
-  const set = (key) => (e) =>
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-  const validate = (f) => {
-    const e = {};
-    if (!f.productId) e.productId = "Please select a product.";
-    if (!f.qtyToAdd || isNaN(f.qtyToAdd) || !Number.isInteger(Number(f.qtyToAdd)) || Number(f.qtyToAdd) <= 0)
-      e.qtyToAdd = "Enter a positive whole number.";
-    return e;
-  };
-
-  const handleSubmit = (e) => {
+  const handleManualStockUpdate = async (e) => {
     e.preventDefault();
-    const errs = validate(form);
+    const errs = {};
+    if (!selectedId)  errs.product = "Please select a product.";
+    if (!validQty)    errs.qty     = "Enter a positive whole number.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-    setSubmitted(true);
-    setTimeout(() => {
-      onSave({ ...form, qtyToAdd: Number(form.qtyToAdd) });
-      setForm(EMPTY_STOCK_FORM);
-      setProductSearch("");
-      setErrors({});
-      setSubmitted(false);
-      onClose();
-    }, 900);
+
+    setSubmitting(true);
+    setApiError(null);
+    try {
+      await api.patch(`/api/products/${selectedId}/add-stock`, { quantity: qtyNum });
+      setSuccess(true);
+      setTimeout(() => {
+        onStockUpdated?.();   // Refresh the table
+        handleClose();
+      }, 1200);
+    } catch (err) {
+      setApiError(
+        err.response?.data?.message ??
+        "Failed to update stock. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
-    setForm(EMPTY_STOCK_FORM);
+    setSelectedId(null);
     setProductSearch("");
+    setDropdownOpen(false);
+    setCurrentStock(null);
+    setQtyToAdd("");
     setErrors({});
-    setSubmitted(false);
+    setApiError(null);
+    setSuccess(false);
     onClose();
   };
 
@@ -172,6 +208,10 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
     "outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
     "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150";
 
+  const selectedMeta  = selectedId ? getCategoryMeta(products.find((p) => p.id === selectedId)?.category ?? "") : null;
+  const SelectedIcon  = selectedMeta?.icon;
+  const selectedProductObj = products.find((p) => p.id === selectedId);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -181,20 +221,20 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
       <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm" />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
 
-        {/* Header */}
+        {/* ── Modal Header ────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-50">
-              <PackagePlus size={17} className="text-white dark:text-slate-900" strokeWidth={1.8} />
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-50 flex-shrink-0">
+              <PackagePlus size={18} className="text-white dark:text-slate-900" strokeWidth={1.8} />
             </span>
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
                 Add Inventory Stock
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Update stock level for an existing product
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Select a product, enter quantity to add, and confirm.
               </p>
             </div>
           </div>
@@ -207,52 +247,66 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">
+        {/* ── Form ────────────────────────────────────────────── */}
+        <form onSubmit={handleManualStockUpdate} noValidate>
+          <div className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
 
-            {/* ── 1. Searchable Product Selector ─────────────────────── */}
-            <Field label="Product" error={errors.productId}>
+            {/* API error banner */}
+            {apiError && (
+              <div className="flex items-start gap-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-4 py-3 text-sm">
+                <AlertCircle size={15} className="text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" strokeWidth={2} />
+                <p className="text-red-700 dark:text-red-400">{apiError}</p>
+              </div>
+            )}
+
+            {/* ── Step 1 · Product ─────────────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Product <span className="text-red-500 normal-case tracking-normal">*</span>
+              </label>
+
               <div ref={comboRef} className="relative">
-                {/* Trigger */}
+                {/* Trigger button */}
                 <button
                   type="button"
                   onClick={() => setDropdownOpen((v) => !v)}
                   className={`
-                    w-full flex items-center justify-between
+                    w-full flex items-center justify-between gap-2
                     bg-slate-50 dark:bg-slate-800
-                    border rounded-xl px-3.5 py-2.5 text-sm
+                    border rounded-xl px-4 py-3 text-sm
                     transition-all duration-150
-                    ${errors.productId
-                      ? "border-red-400 dark:border-red-600"
-                      : "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10"
+                    ${errors.product
+                      ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30"
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                     }
                   `}
                 >
-                  {selectedProduct ? (
-                    (() => {
-                      const { icon: SelIcon, color: selColor } = getCategoryMeta(selectedProduct.category);
-                      return (
-                        <span className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                          <SelIcon size={14} className={selColor} strokeWidth={1.8} />
-                          <span className="font-medium">{selectedProduct.productName}</span>
-                          <span className="text-slate-400 dark:text-slate-500 text-xs">{selectedProduct.sku}</span>
+                  {selectedProductObj ? (
+                    <span className="flex items-center gap-2.5 text-slate-800 dark:text-slate-100 min-w-0">
+                      {SelectedIcon && (
+                        <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${selectedMeta.bg}`}>
+                          <SelectedIcon size={13} className={selectedMeta.color} strokeWidth={1.8} />
                         </span>
-                      );
-                    })()
+                      )}
+                      <span className="font-semibold truncate">{selectedProductObj.productName}</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs flex-shrink-0">{selectedProductObj.sku}</span>
+                    </span>
                   ) : (
-                    <span className="text-slate-400 dark:text-slate-500">Search and select a product…</span>
+                    <span className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                      <Search size={13} />
+                      Search and select a product…
+                    </span>
                   )}
                   <ChevronDown
                     size={15}
-                    className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                    className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                   />
                 </button>
 
                 {/* Dropdown */}
                 {dropdownOpen && (
-                  <div className="absolute z-10 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
-                    {/* Search inside dropdown */}
+                  <div className="absolute z-20 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                    {/* Search bar inside dropdown */}
                     <div className="px-3 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="relative">
                         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -261,48 +315,56 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                           type="text"
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
-                          placeholder="Type to search…"
-                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-400"
+                          placeholder="Type name or SKU…"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-500"
                         />
                       </div>
                     </div>
 
-                    {/* Options list */}
-                    <ul className="max-h-48 overflow-y-auto py-1.5">
+                    {/* Options */}
+                    <ul className="max-h-52 overflow-y-auto py-1.5">
                       {filteredProducts.length === 0 ? (
-                        <li className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500 text-center">
-                          No products found
+                        <li className="px-4 py-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+                          No products match your search
                         </li>
                       ) : (
                         filteredProducts.map((p) => {
                           const { icon: PIcon, color: pColor, bg: pBg } = getCategoryMeta(p.category);
-                          const qty = p.stockQuantity ?? 0;
+                          const pQty = p.stockQuantity ?? 0;
                           return (
-                          <li key={p.id}>
-                            <button
-                              type="button"
-                              onClick={() => selectProduct(p)}
-                              className={`
-                                w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left
-                                hover:bg-slate-50 dark:hover:bg-slate-800
-                                transition-colors duration-100
-                                ${form.productId === p.id ? "bg-slate-50 dark:bg-slate-800 font-semibold" : ""}
-                              `}
-                            >
-                              <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${pBg}`}>
-                                <PIcon size={13} className={pColor} strokeWidth={1.8} />
-                              </span>
-                              <span className="flex flex-col leading-tight">
-                                <span className="text-slate-800 dark:text-slate-100 font-medium">{p.productName}</span>
-                                <span className="text-xs text-slate-400 dark:text-slate-500">{p.sku} &bull; {p.category}</span>
-                              </span>
-                              <span className={`ml-auto text-xs font-semibold ${
-                                qty < 10 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
-                              }`}>
-                                {qty} {p.unit ?? "units"}
-                              </span>
-                            </button>
-                          </li>
+                            <li key={p.id}>
+                              <button
+                                type="button"
+                                onClick={() => selectProduct(p)}
+                                className={`
+                                  w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left
+                                  hover:bg-slate-50 dark:hover:bg-slate-800
+                                  transition-colors duration-100
+                                  ${selectedId === p.id ? "bg-slate-50 dark:bg-slate-800" : ""}
+                                `}
+                              >
+                                <span className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${pBg}`}>
+                                  <PIcon size={14} className={pColor} strokeWidth={1.8} />
+                                </span>
+                                <span className="flex flex-col leading-snug min-w-0">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                    {p.productName}
+                                  </span>
+                                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                                    {p.sku} &bull; {p.category}
+                                  </span>
+                                </span>
+                                <span className={`ml-auto flex-shrink-0 text-xs font-semibold ${
+                                  pQty === 0
+                                    ? "text-red-500 dark:text-red-400"
+                                    : pQty < 10
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-slate-500 dark:text-slate-400"
+                                }`}>
+                                  {pQty} {p.unit ?? "units"}
+                                </span>
+                              </button>
+                            </li>
                           );
                         })
                       )}
@@ -310,90 +372,143 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                   </div>
                 )}
               </div>
-            </Field>
 
-            {/* ── 2. Current Stock (read-only) ─────────────────────── */}
-            {selectedProduct && (
-              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  Current Stock
-                </span>
-                <span className={`flex items-center gap-1.5 font-bold text-sm ${
-                  (selectedProduct.stockQuantity ?? 0) < 10
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-slate-700 dark:text-slate-200"
-                }`}>
-                  {(selectedProduct.stockQuantity ?? 0) < 10 && <AlertTriangle size={13} strokeWidth={2.2} />}
-                  {selectedProduct.stockQuantity ?? 0} {selectedProduct.unit ?? "units"}
-                </span>
-              </div>
-            )}
+              {errors.product && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                  {errors.product}
+                </p>
+              )}
+            </div>
 
-            {/* ── 3. Quantity to Add ───────────────────────────── */}
-            <Field label="Quantity to Add" error={errors.qtyToAdd} icon={Hash}>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={form.qtyToAdd}
-                onChange={set("qtyToAdd")}
-                placeholder="e.g. 50"
-                className={`${inputBase} pl-9 ${
-                  errors.qtyToAdd ? "border-red-400 dark:border-red-600" : ""
-                }`}
-              />
-            </Field>
-
-            {/* Running total hint */}
-            {selectedProduct && form.qtyToAdd && !isNaN(form.qtyToAdd) && Number(form.qtyToAdd) > 0 && (
-              <div className="-mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                <CheckCircle2 size={12} strokeWidth={2.2} />
-                New total will be <span className="font-bold">{selectedProduct.quantity + Number(form.qtyToAdd)} units</span>
-              </div>
-            )}
-
-            {/* ── 4. Reason / Note (optional) ────────────────────── */}
+            {/* ── Step 2 · Current Stock (read-only) ────────────── */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Reason / Note
-                </label>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">Optional</span>
-              </div>
-              {/* Quick-pick presets */}
-              <div className="flex flex-wrap gap-1.5 mb-1">
-                {REASON_PRESETS.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, reason: r }))}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150 ${
-                      form.reason === r
-                        ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-50 dark:text-slate-900 dark:border-slate-50"
-                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-              <div className="relative">
-                <ClipboardList
-                  size={14}
-                  className="absolute left-3.5 top-3 text-slate-400 pointer-events-none"
-                />
-                <textarea
-                  value={form.reason}
-                  onChange={set("reason")}
-                  rows={2}
-                  placeholder="e.g. New Shipment from Supplier A…"
-                  className={`${inputBase} pl-9 resize-none`}
-                />
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Current Stock
+              </label>
+              <div className={`
+                flex items-center justify-between
+                rounded-xl border px-4 py-3
+                bg-slate-50 dark:bg-slate-800/60
+                border-slate-200 dark:border-slate-700
+                ${!selectedId ? "opacity-50" : ""}
+              `}>
+                {!selectedId ? (
+                  <span className="text-sm text-slate-400 dark:text-slate-500 italic">
+                    — select a product first —
+                  </span>
+                ) : fetchingStock ? (
+                  <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                    <Loader2 size={14} className="animate-spin" />
+                    Fetching latest stock…
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    {(currentStock ?? 0) < 10 && (
+                      <AlertTriangle size={14} className="text-amber-500 dark:text-amber-400" strokeWidth={2.2} />
+                    )}
+                    {currentStock ?? 0}
+                    <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                  </span>
+                )}
+                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
+                  read-only
+                </span>
               </div>
             </div>
+
+            {/* ── Step 3 · Quantity to Add ───────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
+              </label>
+              <div className="relative">
+                <Hash
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={qtyToAdd}
+                  onChange={(e) => {
+                    setQtyToAdd(e.target.value);
+                    if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
+                  }}
+                  placeholder="e.g. 50"
+                  className={`${inputBase} pl-9 ${
+                    errors.qty ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
+                  }`}
+                />
+              </div>
+              {errors.qty && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                  {errors.qty}
+                </p>
+              )}
+            </div>
+
+            {/* ── Step 4 · New Total Preview ─────────────────────── */}
+            <div className={`
+              rounded-xl border px-4 py-4
+              transition-all duration-300
+              ${newTotal !== null
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 opacity-50"
+              }
+            `}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
+                New Total Preview
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Current */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
+                    {currentStock ?? "—"}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Current</span>
+                </div>
+
+                {/* Plus sign */}
+                <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">+</span>
+
+                {/* Qty to add */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
+                    {validQty ? qtyNum : "—"}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Adding</span>
+                </div>
+
+                {/* Equals sign */}
+                <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">=</span>
+
+                {/* New total */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className={`text-2xl font-bold tabular-nums ${
+                    newTotal !== null
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-slate-400 dark:text-slate-500"
+                  }`}>
+                    {newTotal ?? "—"}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">New Total</span>
+                </div>
+
+                {newTotal !== null && (
+                  <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg">
+                    <CheckCircle2 size={12} strokeWidth={2.2} />
+                    {selectedUnit}
+                  </span>
+                )}
+              </div>
+            </div>
+
           </div>
 
-          {/* Footer */}
+          {/* ── Footer ─────────────────────────────────────────── */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
             <button
               type="button"
@@ -404,26 +519,32 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
             </button>
             <button
               type="submit"
-              disabled={submitted}
+              disabled={submitting || success || fetchingStock}
               className="
                 inline-flex items-center gap-2
-                px-5 py-2.5 rounded-xl text-sm font-medium
+                px-6 py-2.5 rounded-xl text-sm font-semibold
                 bg-slate-900 dark:bg-slate-50
                 text-white dark:text-slate-900
                 hover:bg-slate-700 dark:hover:bg-slate-200
-                active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed
+                active:scale-95
+                disabled:opacity-60 disabled:cursor-not-allowed
                 transition-all duration-150
               "
             >
-              {submitted ? (
+              {success ? (
                 <>
                   <CheckCircle2 size={15} className="text-emerald-400" />
                   Stock Updated!
                 </>
+              ) : submitting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Updating…
+                </>
               ) : (
                 <>
                   <PlusCircle size={15} strokeWidth={2} />
-                  Add Stock
+                  Confirm Stock Update
                 </>
               )}
             </button>
@@ -470,39 +591,28 @@ const InventoryStock = () => {
   const [sortDir, setSortDir]   = useState("asc");
   const [modalOpen, setModalOpen] = useState(false);
 
-  // ── Fetch products from backend
-  useEffect(() => {
-    let cancelled = false;
+  // ── Fetch / refresh products
+  const fetchProducts = () => {
     setLoading(true);
     setFetchError(null);
     api
       .get("/api/products")
       .then((res) => {
-        if (!cancelled) {
-          // Normalise: ensure numeric fields are JS numbers
-          const normalised = res.data.map((p) => ({
-            ...p,
-            sellingPrice:  Number(p.sellingPrice),
-            buyingPrice:   Number(p.buyingPrice),
-            stockQuantity: p.stockQuantity  != null ? Number(p.stockQuantity)  : 0,
-            reorderLevel:  p.reorderLevel   != null ? Number(p.reorderLevel)   : 10,
-          }));
-          setProducts(normalised);
-        }
+        const normalised = res.data.map((p) => ({
+          ...p,
+          sellingPrice:  Number(p.sellingPrice),
+          buyingPrice:   Number(p.buyingPrice),
+          stockQuantity: p.stockQuantity  != null ? Number(p.stockQuantity)  : 0,
+          reorderLevel:  p.reorderLevel   != null ? Number(p.reorderLevel)   : 10,
+        }));
+        setProducts(normalised);
       })
-      .catch(() => {
-        if (!cancelled) setFetchError("Failed to load products. Please check your connection and try again.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleAddStock = (formData) => {
-    // TODO: wire to stock-update API — formData: { productId, qtyToAdd, reason }
-    console.log("Stock update:", formData);
+      .catch(() => setFetchError("Failed to load products. Please check your connection and try again."))
+      .finally(() => setLoading(false));
   };
+
+  // ── Initial load
+  useEffect(() => { fetchProducts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sorting
   const handleSort = (key) => {
@@ -546,8 +656,8 @@ const InventoryStock = () => {
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleAddStock}
         products={products}
+        onStockUpdated={fetchProducts}
       />
 
       {/* ── Error Banner ────────────────────────────────────────── */}
