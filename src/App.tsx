@@ -18,6 +18,7 @@ import UserManagement from "./pages/UserManagement";
 import StaffDashboard from "./pages/StaffDashboard";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
+import InventoryStock from "./pages/InventoryStock";
 
 const queryClient = new QueryClient();
 
@@ -66,7 +67,7 @@ const App = () => (
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
                   <Route path="/dashboard"  element={<Dashboard />} />
                   <Route path="/products"   element={<ProductManagement />} />
-                  <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
+                  <Route path="/inventory"  element={<InventoryStock />} />
                   <Route path="/sales"      element={<SalesManagement />} />
                   <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
