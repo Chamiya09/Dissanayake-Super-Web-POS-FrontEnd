@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppHeader } from "@/components/Layout/AppHeader";
 import {
   Search,
   Plus,
@@ -427,7 +428,11 @@ const InventoryStock = () => {
   );
 
   return (
-    <div className="w-full bg-slate-50/50 dark:bg-slate-950 min-h-screen p-10">
+    <div className="flex h-screen flex-col bg-background">
+      <AppHeader />
+
+      {/* ── Scrollable page content ─────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto w-full bg-slate-50/50 dark:bg-slate-950 p-10">
       <AddProductModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -731,6 +736,7 @@ const InventoryStock = () => {
             </span>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
