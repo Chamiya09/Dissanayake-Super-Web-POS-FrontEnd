@@ -174,7 +174,7 @@ const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
     setSubmitting(true);
     setApiError(null);
     try {
-      await api.patch(`/api/products/${selectedId}/add-stock`, { quantity: qtyNum });
+      await api.put(`/api/inventory/add-stock/${selectedId}`, { quantity: qtyNum });
       showSuccess("Stock updated successfully!");
       setSuccess(true);
       setTimeout(() => {
