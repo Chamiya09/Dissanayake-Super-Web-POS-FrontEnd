@@ -584,36 +584,74 @@ const COLUMNS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const InventoryStock = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [fetchError, setFetchError] = useState(null);
-  const [search, setSearch]     = useState("");
-  const [sortKey, setSortKey]   = useState("productName");
-  const [sortDir, setSortDir]   = useState("asc");
-  const [modalOpen, setModalOpen] = useState(false);
+  // products   = all products (dropdown list for AddStockModal)
+  // inventoryItems = only tracked items from /api/inventory/status (table)
+  const [products,       setProducts]       = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [fetchError,     setFetchError]     = useState(null);
+  const [search,         setSearch]         = useState("");
+  const [sortKey,        setSortKey]        = useState("productName");
+  const [sortDir,        setSortDir]        = useState("asc");
+  const [modalOpen,      setModalOpen]      = useState(false);
+  const [editTarget,     setEditTarget]     = useState(null);   // inventory item to edit
+  const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
+  const [deleting,       setDeleting]       = useState(false);
 
-  // ── Fetch / refresh products
-  const fetchProducts = () => {
-    setLoading(true);
-    setFetchError(null);
-    api
-      .get("/api/products")
-      .then((res) => {
-        const normalised = res.data.map((p) => ({
+  // ── Fetch all products (for AddStockModal dropdown)
+  const fetchProducts = () =>
+    api.get("/api/products").then((res) => {
+      setProducts(
+        res.data.map((p) => ({
           ...p,
           sellingPrice:  Number(p.sellingPrice),
           buyingPrice:   Number(p.buyingPrice),
-          stockQuantity: p.stockQuantity  != null ? Number(p.stockQuantity)  : 0,
-          reorderLevel:  p.reorderLevel   != null ? Number(p.reorderLevel)   : 10,
-        }));
-        setProducts(normalised);
-      })
-      .catch(() => setFetchError("Failed to load products. Please check your connection and try again."))
+          stockQuantity: p.stockQuantity != null ? Number(p.stockQuantity) : 0,
+          reorderLevel:  p.reorderLevel  != null ? Number(p.reorderLevel)  : 10,
+        }))
+      );
+    });
+
+  // ── Fetch tracked inventory items (for the table)
+  const fetchInventory = () =>
+    api.get("/api/inventory/status").then((res) => {
+      setInventoryItems(
+        res.data.map((item) => ({
+          ...item,
+          sellingPrice:  Number(item.sellingPrice  ?? 0),
+          stockQuantity: Number(item.stockQuantity ?? 0),
+          reorderLevel:  Number(item.reorderLevel  ?? 10),
+        }))
+      );
+    });
+
+  // ── Refresh both (used after any mutation)
+  const refreshAll = () => {
+    setLoading(true);
+    setFetchError(null);
+    Promise.all([fetchProducts(), fetchInventory()])
+      .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
   };
 
   // ── Initial load
-  useEffect(() => { fetchProducts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Delete inventory record (stops tracking; does NOT delete the product)
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/inventory/${deleteTarget.inventoryId}`);
+      showSuccess(`Stopped tracking "${deleteTarget.productName}".`);
+      setDeleteTarget(null);
+      refreshAll();
+    } catch (err) {
+      showError(err.response?.data?.message ?? "Something went wrong. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // ── Sorting
   const handleSort = (key) => {
@@ -626,8 +664,8 @@ const InventoryStock = () => {
     }
   };
 
-  // ── Filtered + Sorted Data (uses real backend field names)
-  const filtered = products
+  // ── Filtered + Sorted Data (from /api/inventory/status → inventoryItems only)
+  const filtered = inventoryItems
     .filter(({ productName, category, sku }) => {
       const q = search.toLowerCase();
       return (
@@ -643,10 +681,10 @@ const InventoryStock = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
-  // ── Summary Stats
-  const totalProducts  = products.length;
-  const lowStockCount  = products.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
-  const totalValue     = products.reduce((sum, p) => sum + p.sellingPrice * p.stockQuantity, 0);
+  // ── Summary Stats (based on tracked inventory items)
+  const totalProducts  = inventoryItems.length;
+  const lowStockCount  = inventoryItems.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
+  const totalValue     = inventoryItems.reduce((sum, p) => sum + p.sellingPrice * p.stockQuantity, 0);
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -722,8 +760,58 @@ const InventoryStock = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         products={products}
-        onStockUpdated={fetchProducts}
+        onStockUpdated={refreshAll}
       />
+      <EditInventoryModal
+        open={!!editTarget}
+        item={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={refreshAll}
+      />
+      {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}
+        >
+          <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40">
+                <Trash2 size={18} className="text-red-500" strokeWidth={1.8} />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">Remove from Tracking</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This will NOT delete the product.</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              Stop tracking inventory for{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-50">{deleteTarget.productName}</span>?{" "}
+              The product will remain in your catalogue.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 active:scale-95 disabled:opacity-60 transition-all"
+              >
+                {deleting
+                  ? <><Loader2 size={14} className="animate-spin" />Removing…</>
+                  : <><Trash2 size={14} />Remove</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -871,7 +959,7 @@ const InventoryStock = () => {
 
                 return (
                   <tr
-                    key={item.id}
+                    key={item.inventoryId}
                     className={`
                       border-b border-slate-100 dark:border-slate-800 last:border-0
                       hover:bg-slate-50/80 dark:hover:bg-slate-800/50
@@ -974,7 +1062,8 @@ const InventoryStock = () => {
 
                         <button
                           type="button"
-                          title="Edit product"
+                          title="Edit inventory settings"
+                          onClick={() => setEditTarget(item)}
                           className="
                             p-2 rounded-lg
                             text-slate-400
@@ -987,7 +1076,8 @@ const InventoryStock = () => {
                         </button>
                         <button
                           type="button"
-                          title="Delete product"
+                          title="Remove from inventory tracking"
+                          onClick={() => setDeleteTarget(item)}
                           className="
                             p-2 rounded-lg
                             text-slate-400
@@ -1016,9 +1106,9 @@ const InventoryStock = () => {
             </span>{" "}
             of{" "}
             <span className="font-semibold text-slate-600 dark:text-slate-300">
-              {products.length}
+              {inventoryItems.length}
             </span>{" "}
-            products
+            tracked items
           </p>
           {lowStockCount > 0 && (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
