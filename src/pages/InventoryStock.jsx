@@ -92,16 +92,15 @@ const Field = ({ label, error, icon: Icon, children }) => (
 );
 
 // ─── Add Inventory Stock Modal ───────────────────────────────────────────────
-const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
+const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUpdated }) => {
   // ── Product selection
   const [selectedId,   setSelectedId]   = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const comboRef = useRef(null);
 
-  // ── Live stock (fetched fresh when a product is picked)
-  const [currentStock,  setCurrentStock]  = useState(null);   // null = not yet loaded
-  const [fetchingStock, setFetchingStock] = useState(false);
+  // ── Current stock resolved from inventoryItems (no extra API call needed)
+  const [currentStock, setCurrentStock] = useState(null);
   const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
 
   // ── Manual quantity input
@@ -126,28 +125,19 @@ const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
-  // ── Fetch fresh stock whenever a product is selected
+  // ── Resolve current stock from inventoryItems when a product is selected
   useEffect(() => {
     if (!selectedId) { setCurrentStock(null); return; }
-    setFetchingStock(true);
-    setCurrentStock(null);
-    api
-      .get(`/api/products/${selectedId}`)
-      .then((res) => setCurrentStock(Number(res.data.stockQuantity ?? 0)))
-      .catch(() => {
-        // Gracefully fallback to the value we already have in the list
-        const found = products.find((p) => p.id === selectedId);
-        setCurrentStock(found ? (found.stockQuantity ?? 0) : 0);
-      })
-      .finally(() => setFetchingStock(false));
-  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+    const tracked = inventoryItems.find((item) => item.productId === selectedId);
+    setCurrentStock(tracked ? Number(tracked.stockQuantity ?? 0) : 0);
+  }, [selectedId, inventoryItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
-  // ── Derived values
-  const qtyNum    = parseInt(qtyToAdd, 10);
-  const validQty  = !isNaN(qtyNum) && qtyNum > 0;
-  const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
+  // ── Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
+  const qtyNum   = parseFloat(qtyToAdd);
+  const validQty = !isNaN(qtyNum) && qtyNum > 0;
+  const newTotal = currentStock !== null && validQty ? currentStock + qtyNum : null;
 
   const filteredProducts = products.filter(
     (p) =>
@@ -398,11 +388,6 @@ const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
                   <span className="text-sm text-slate-400 dark:text-slate-500 italic">
                     — select a product first —
                   </span>
-                ) : fetchingStock ? (
-                  <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                    <Loader2 size={14} className="animate-spin" />
-                    Fetching latest stock…
-                  </span>
                 ) : (
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                     {(currentStock ?? 0) < 10 && (
@@ -520,7 +505,7 @@ const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
             </button>
             <button
               type="submit"
-              disabled={submitting || success || fetchingStock}
+              disabled={submitting || success}
               className="
                 inline-flex items-center gap-2
                 px-6 py-2.5 rounded-xl text-sm font-semibold
@@ -852,6 +837,7 @@ const InventoryStock = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         products={products}
+        inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
       <EditInventoryModal
