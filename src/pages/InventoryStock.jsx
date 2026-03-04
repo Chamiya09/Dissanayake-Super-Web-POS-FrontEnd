@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { showSuccess, showError } from "@/utils/toastUtils";
+import { useInventory } from "@/context/InventoryContext";
+import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import {
   Search,
   Package,
@@ -675,6 +677,8 @@ const InventoryStock = () => {
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
 
+  const { refreshInventory } = useInventory();
+
   // ── Fetch all products (for AddStockModal dropdown)
   const fetchProducts = () =>
     api.get("/api/products").then((res) => {
@@ -707,6 +711,7 @@ const InventoryStock = () => {
     setLoading(true);
     setFetchError(null);
     Promise.all([fetchProducts(), fetchInventory()])
+      .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
   };

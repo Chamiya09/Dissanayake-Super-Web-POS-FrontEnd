@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
+import { InventoryProvider } from "./context/InventoryContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -26,14 +27,16 @@ const queryClient = new QueryClient();
 
 /** Sidebar + main layout — used for all authenticated pages */
 const AppLayout = () => (
-  <SidebarProvider>
-    <div className="flex min-h-screen w-full">
-      <AppSidebar />
-      <main className="flex-1 overflow-hidden">
-        <Outlet />
-      </main>
-    </div>
-  </SidebarProvider>
+  <InventoryProvider>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <main className="flex-1 overflow-hidden">
+          <Outlet />
+        </main>
+      </div>
+    </SidebarProvider>
+  </InventoryProvider>
 );
 
 /** Generic placeholder for stub pages */
