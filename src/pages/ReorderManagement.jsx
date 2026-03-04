@@ -228,7 +228,7 @@ export default function ReorderManagement() {
             </div>
             <button
               onClick={() => navigate("/low-stock")}
-              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-900"
+              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:shadow-blue-500/20 dark:focus:ring-offset-gray-900"
             >
               <ArrowLeft className="h-4 w-4" />
               View Low Stock Alerts
@@ -300,18 +300,18 @@ export default function ReorderManagement() {
                 <div className="mt-4 flex items-center gap-3">
                   <button
                     onClick={() => setOrderQty((q) => Math.max(1, q - 1))}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-lg font-bold text-foreground transition hover:bg-accent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50 text-lg font-bold text-blue-700 transition-all hover:border-blue-500 hover:bg-blue-100 active:scale-95 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:border-blue-500 dark:hover:bg-blue-800/50"
                   >âˆ’</button>
                   <input
                     type="number"
                     min={1}
                     value={orderQty}
                     onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-center text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    className="w-24 rounded-lg border border-blue-200 bg-background px-3 py-2 text-center text-base font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-blue-700 dark:bg-gray-900 dark:text-white"
                   />
                   <button
                     onClick={() => setOrderQty((q) => q + 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-lg font-bold text-foreground transition hover:bg-accent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50 text-lg font-bold text-blue-700 transition-all hover:border-blue-500 hover:bg-blue-100 active:scale-95 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:border-blue-500 dark:hover:bg-blue-800/50"
                   >+</button>
                   <span className="text-sm text-muted-foreground dark:text-gray-400">
                     {product.unit ?? "units"}
@@ -458,7 +458,7 @@ export default function ReorderManagement() {
             <button
               onClick={handlePrepareEmail}
               disabled={!selectedSupplier}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-900"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500 dark:shadow-blue-500/20 dark:focus:ring-offset-gray-900"
             >
               <Mail className="h-4 w-4" />
               Prepare Email
@@ -486,7 +486,7 @@ export default function ReorderManagement() {
                 </div>
                 <button
                   onClick={handleReset}
-                  className="mt-2 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-950"
+                  className="mt-2 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:shadow-blue-500/20 dark:focus:ring-offset-gray-950"
                 >
                   â† New Reorder
                 </button>
@@ -546,7 +546,7 @@ export default function ReorderManagement() {
                       <button
                         onClick={handleSend}
                         disabled={sending}
-                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:focus:ring-offset-gray-800"
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-75 dark:bg-blue-600 dark:hover:bg-blue-500 dark:shadow-blue-500/20 dark:focus:ring-offset-gray-800"
                       >
                         {sending
                           ? <><Loader2 className="h-4 w-4 animate-spin" /> Sendingâ€¦</>
