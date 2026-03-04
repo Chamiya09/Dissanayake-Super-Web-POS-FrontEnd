@@ -630,7 +630,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
               step="0.01"
               value={reorderLevel}
               onChange={(e) => setReorderLevel(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
               required
             />
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this quantity</p>
@@ -645,14 +645,14 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder="e.g. kg, pcs, L"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
             />
           </div>
           <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150"
             >
               Cancel
             </button>
@@ -1283,10 +1283,10 @@ const InventoryStock = () => {
           Stock Movement History
         </h2>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-gray-800">
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
                 {[
                   { label: "Product",          w: "w-[35%]" },
                   { label: "Qty Changed",      w: "w-[18%]" },
@@ -1296,7 +1296,7 @@ const InventoryStock = () => {
                 ].map(({ label, w }) => (
                   <th
                     key={label}
-                    className={`${w} px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500`}
+                    className={`${w} px-5 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400`}
                   >
                     {label}
                   </th>
@@ -1304,7 +1304,7 @@ const InventoryStock = () => {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
@@ -1335,7 +1335,7 @@ const InventoryStock = () => {
                   return (
                     <tr
                       key={log.id}
-                      className="hover:bg-slate-50/60 dark:hover:bg-gray-700/40 transition-colors duration-100"
+                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-100"
                     >
                       {/* Product name */}
                       <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-200 truncate max-w-0">
@@ -1380,7 +1380,7 @@ const InventoryStock = () => {
 
           {/* Footer */}
           {!loading && logs.length > 0 && (
-            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-gray-800/60">
+            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {logs.length} transaction{logs.length > 1 ? "s" : ""} recorded
               </p>
@@ -1389,8 +1389,8 @@ const InventoryStock = () => {
         </div>
       </section>
 
-      </div>{/* end flex-1 overflow-y-auto padded wrapper */}
-      )}{/* end !loading && !fetchError */}
+      </div>
+      )}
     </div>
   );
 };
