@@ -8,6 +8,7 @@ import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import type { Product, CartItem } from "@/data/products";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { useInventory } from "@/context/InventoryContext";
 
 /* ── Management-side product shape (written by ProductManagement page) ── */
 interface MgmtProduct {
@@ -82,15 +83,39 @@ const Index = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number; paymentMethod: string } | null>(null);
 
-  /* ── Fetch products from backend API ── */
-  const [posProducts, setPosProducts] = useState<Product[]>([]);
+  /* ── Live inventory data from shared context ── */
+  const { inventoryItems, refreshInventory } = useInventory();
+
+  /* ── Fetch raw product list from backend API ── */
+  const [rawProducts, setRawProducts] = useState<MgmtProduct[]>([]);
 
   useEffect(() => {
     api
       .get<MgmtProduct[]>("/api/products")
-      .then(({ data }) => setPosProducts(data.map(mapToPOS)))
+      .then(({ data }) => setRawProducts(data))
       .catch((err) => console.error("Failed to load products:", err));
   }, []);
+
+  /* ── Merge inventory stock into POS product list ──
+   *  Re-runs whenever rawProducts or inventoryItems change,
+   *  so stock levels stay live without a page refresh.
+   */
+  const posProducts = useMemo<Product[]>(
+    () =>
+      rawProducts.map((p) => {
+        const inv = inventoryItems.find((i) => i.productId === p.id);
+        return {
+          id:       String(p.id),
+          name:     p.productName,
+          price:    p.sellingPrice,
+          category: p.category,
+          unit:     p.unit ?? "pcs",
+          barcode:  p.sku,
+          stock:    inv ? inv.stockQuantity : 0,
+        };
+      }),
+    [rawProducts, inventoryItems]
+  );
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
     setCart((prev) => {
@@ -149,6 +174,7 @@ const Index = () => {
       setCartOpen(false);
       setLastSale({ receiptNo, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
+      refreshInventory();   // re-fetch inventory so stock levels update across all pages
       toast.success(`Sale ${receiptNo} recorded successfully!`, {
         duration: 4000,
       });

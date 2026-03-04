@@ -8,6 +8,7 @@ import { Package, Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
+import { showSuccess, showError } from "@/utils/toastUtils";
 export type { Product };
 
 
@@ -53,20 +54,38 @@ export default function ProductManagement() {
 
   /* ── CRUD handlers ── */
   const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
-    const created = await productApi.create(data);
-    setProducts((prev) => [...prev, created]);
+    try {
+      const created = await productApi.create(data);
+      setProducts((prev) => [...prev, created]);
+      showSuccess("Product added successfully!");
+    } catch {
+      showError("Something went wrong. Please try again.");
+      throw new Error("Failed to create product.");
+    }
   }, []);
 
   const handleEdit = useCallback(async (updated: Product) => {
-    const { id, ...payload } = updated;
-    const saved = await productApi.update(id, payload);
-    setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
+    try {
+      const { id, ...payload } = updated;
+      const saved = await productApi.update(id, payload);
+      setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
+      showSuccess("Product updated successfully!");
+    } catch {
+      showError("Something went wrong. Please try again.");
+      throw new Error("Failed to update product.");
+    }
   }, []);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
-    await productApi.remove(deleteTarget.id);
-    setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+    try {
+      await productApi.remove(deleteTarget.id);
+      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      showSuccess("Product deleted successfully!");
+    } catch {
+      showError("Something went wrong. Please try again.");
+      throw new Error("Failed to delete product.");
+    }
   }, [deleteTarget]);
 
   /* ── Derived stats ── */

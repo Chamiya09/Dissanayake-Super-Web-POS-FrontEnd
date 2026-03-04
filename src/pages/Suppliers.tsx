@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
 import api from "@/lib/axiosInstance";
+import { showSuccess, showError } from "@/utils/toastUtils";
 
 /** Converts an AxiosError or plain Error into a user-readable string. */
 function extractApiError(err: unknown): string {
@@ -84,7 +85,9 @@ export default function Suppliers() {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
+      showSuccess("Supplier added successfully!");
     } catch (err) {
+      showError("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -95,7 +98,9 @@ export default function Suppliers() {
       const { id, createdAt: _createdAt, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
+      showSuccess("Supplier updated successfully!");
     } catch (err) {
+      showError("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -107,7 +112,9 @@ export default function Suppliers() {
       await supplierApi.remove(deleteTarget.id);
       setDeleteTarget(null);
       await fetchSuppliers();
+      showSuccess("Supplier deleted successfully!");
     } catch (err) {
+      showError("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [deleteTarget, fetchSuppliers]);
@@ -119,7 +126,9 @@ export default function Suppliers() {
       try {
         await supplierApi.assignProducts(assignTarget.id, productIds);
         setAssignTarget(null);
+        showSuccess("Products assigned successfully!");
       } catch (err) {
+        showError("Something went wrong. Please try again.");
         throw new Error(extractApiError(err));
       }
     },

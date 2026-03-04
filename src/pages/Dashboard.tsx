@@ -4,6 +4,7 @@ import { TrendingUp, Package, Truck, LayoutDashboard } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -229,6 +230,9 @@ export default function Dashboard() {
             iconColor="text-orange-600 dark:text-orange-400"
           />
         </div>
+
+        {/* ── Inventory Analytics ── */}
+        <InventoryAnalyticsCards />
 
         {/* ── Charts row ── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

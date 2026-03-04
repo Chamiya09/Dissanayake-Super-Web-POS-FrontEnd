@@ -7,7 +7,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
+import { InventoryProvider } from "./context/InventoryContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -18,19 +21,22 @@ import UserManagement from "./pages/UserManagement";
 import StaffDashboard from "./pages/StaffDashboard";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
+import InventoryStock from "./pages/InventoryStock";
 
 const queryClient = new QueryClient();
 
 /** Sidebar + main layout — used for all authenticated pages */
 const AppLayout = () => (
-  <SidebarProvider>
-    <div className="flex min-h-screen w-full">
-      <AppSidebar />
-      <main className="flex-1 overflow-hidden">
-        <Outlet />
-      </main>
-    </div>
-  </SidebarProvider>
+  <InventoryProvider>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <main className="flex-1 overflow-hidden">
+          <Outlet />
+        </main>
+      </div>
+    </SidebarProvider>
+  </InventoryProvider>
 );
 
 /** Generic placeholder for stub pages */
@@ -49,6 +55,18 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      {/* react-toastify — globally available to all CRUD modules */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -66,7 +84,7 @@ const App = () => (
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
                   <Route path="/dashboard"  element={<Dashboard />} />
                   <Route path="/products"   element={<ProductManagement />} />
-                  <Route path="/inventory"  element={<PlaceholderPage title="Inventory" />} />
+                  <Route path="/inventory"  element={<InventoryStock />} />
                   <Route path="/sales"      element={<SalesManagement />} />
                   <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
                   <Route path="/suppliers"  element={<Suppliers />} />

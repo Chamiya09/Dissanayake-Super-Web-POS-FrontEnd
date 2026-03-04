@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid, Boxes } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -17,6 +17,7 @@ const NAV_ROLES: Record<string, string[]> = {
   "My Dashboard": ["Staff"],
   "Dashboard":    ["Owner", "Manager"],
   "Products":     ["Owner", "Manager"],
+  "Inventory":    ["Owner", "Manager"],
   "Sales":        ["Owner", "Manager"],
   "Suppliers":    ["Owner", "Manager"],
   "Users":        ["Owner", "Manager"],
@@ -27,6 +28,7 @@ const navItems = [
   { title: "Dashboard",    url: "/dashboard",       icon: LayoutDashboard  },
   { title: "POS Checkout", url: "/",               icon: ShoppingCart     },
   { title: "Products",     url: "/products",        icon: Package          },
+  { title: "Inventory",    url: "/inventory",       icon: Boxes            },
   { title: "Sales",        url: "/sales",           icon: ReceiptText      },
   { title: "Suppliers",    url: "/suppliers",       icon: Building2        },
   { title: "Users",        url: "/users",           icon: Users            },
