@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import {
   Search,
-  Plus,
   Package,
   Pencil,
   Trash2,
@@ -14,13 +13,14 @@ import {
   AlertTriangle,
   ChevronUp,
   ChevronDown,
+  ChevronDown as ChevronDownSm,
   X,
-  Tag,
-  Hash,
-  DollarSign,
-  Layers,
   CheckCircle2,
   Sparkles,
+  PlusCircle,
+  PackagePlus,
+  ClipboardList,
+  Hash,
 } from "lucide-react";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
@@ -99,27 +99,15 @@ const MOCK_PRODUCTS = [
   },
 ];
 
-// ─── Categories ──────────────────────────────────────────────────────────────
-const CATEGORIES = [
-  "Peripherals",
-  "Accessories",
-  "Displays",
-  "Audio",
-  "Networking",
-  "Storage",
-  "Components",
-  "Other",
-];
-
-// ─── Empty Form State ─────────────────────────────────────────────────────────
-const EMPTY_FORM = {
-  name: "",
-  category: "",
-  sku: "",
-  costPrice: "",
-  sellingPrice: "",
-  quantity: "",
+// ─── Stock Form Empty State ──────────────────────────────────────────────────────
+const EMPTY_STOCK_FORM = {
+  productId: null,
+  qtyToAdd: "",
+  reason: "",
 };
+
+// ─── Reason presets ────────────────────────────────────────────────────────────
+const REASON_PRESETS = ["New Shipment", "Return / Refund", "Stock Correction", "Supplier Restock", "Damaged Replacement"];
 
 // ─── Field helper ─────────────────────────────────────────────────────────────
 const Field = ({ label, error, icon: Icon, children }) => (
@@ -145,28 +133,53 @@ const Field = ({ label, error, icon: Icon, children }) => (
   </div>
 );
 
-// ─── Add Product Modal ────────────────────────────────────────────────────────
-const AddProductModal = ({ open, onClose, onSave }) => {
-  const [form, setForm] = useState(EMPTY_FORM);
+// ─── Add Inventory Stock Modal ──────────────────────────────────────────────────
+const AddStockModal = ({ open, onClose, onSave, products }) => {
+  const [form, setForm] = useState(EMPTY_STOCK_FORM);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
+  // ── Searchable combobox state
+  const [productSearch, setProductSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const comboRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e) => {
+      if (comboRef.current && !comboRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen]);
+
   if (!open) return null;
+
+  const selectedProduct = products.find((p) => p.id === form.productId) ?? null;
+
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.sku.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
+  const selectProduct = (p) => {
+    setForm((prev) => ({ ...prev, productId: p.id }));
+    setProductSearch("");
+    setDropdownOpen(false);
+    if (errors.productId) setErrors((e) => ({ ...e, productId: undefined }));
+  };
 
   const set = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const validate = (f) => {
     const e = {};
-    if (!f.name.trim()) e.name = "Product name is required.";
-    if (!f.category) e.category = "Please select a category.";
-    if (!f.sku.trim()) e.sku = "SKU is required.";
-    if (!f.costPrice || isNaN(f.costPrice) || Number(f.costPrice) < 0)
-      e.costPrice = "Enter a valid cost price.";
-    if (!f.sellingPrice || isNaN(f.sellingPrice) || Number(f.sellingPrice) < 0)
-      e.sellingPrice = "Enter a valid selling price.";
-    if (!f.quantity || isNaN(f.quantity) || !Number.isInteger(Number(f.quantity)) || Number(f.quantity) < 0)
-      e.quantity = "Enter a valid whole number quantity.";
+    if (!f.productId) e.productId = "Please select a product.";
+    if (!f.qtyToAdd || isNaN(f.qtyToAdd) || !Number.isInteger(Number(f.qtyToAdd)) || Number(f.qtyToAdd) <= 0)
+      e.qtyToAdd = "Enter a positive whole number.";
     return e;
   };
 
@@ -177,8 +190,9 @@ const AddProductModal = ({ open, onClose, onSave }) => {
     if (Object.keys(errs).length > 0) return;
     setSubmitted(true);
     setTimeout(() => {
-      onSave(form);
-      setForm(EMPTY_FORM);
+      onSave({ ...form, qtyToAdd: Number(form.qtyToAdd) });
+      setForm(EMPTY_STOCK_FORM);
+      setProductSearch("");
       setErrors({});
       setSubmitted(false);
       onClose();
@@ -186,7 +200,8 @@ const AddProductModal = ({ open, onClose, onSave }) => {
   };
 
   const handleClose = () => {
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_STOCK_FORM);
+    setProductSearch("");
     setErrors({});
     setSubmitted(false);
     onClose();
@@ -194,32 +209,36 @@ const AddProductModal = ({ open, onClose, onSave }) => {
 
   const inputBase =
     "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 " +
-    "rounded-lg py-2.5 pr-3 text-sm text-slate-800 dark:text-slate-100 " +
+    "rounded-xl py-2.5 px-3.5 text-sm text-slate-800 dark:text-slate-100 " +
     "placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
     "outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
     "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150";
 
   return (
-    // Backdrop
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      {/* Soft blur backdrop */}
-      <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm" />
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm" />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
 
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-50">
-              Add New Product
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Fill in the details below to add a product to inventory.
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-50">
+              <PackagePlus size={17} className="text-white dark:text-slate-900" strokeWidth={1.8} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
+                Add Inventory Stock
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Update stock level for an existing product
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -232,89 +251,182 @@ const AddProductModal = ({ open, onClose, onSave }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-6 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">
+          <div className="px-6 py-5 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">
 
-            {/* Product Name */}
-            <Field label="Product Name" error={errors.name} icon={Tag}>
-              <input
-                type="text"
-                value={form.name}
-                onChange={set("name")}
-                placeholder="e.g. Wireless Mouse"
-                className={`${inputBase} pl-9`}
-              />
+            {/* ── 1. Searchable Product Selector ─────────────────────── */}
+            <Field label="Product" error={errors.productId}>
+              <div ref={comboRef} className="relative">
+                {/* Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((v) => !v)}
+                  className={`
+                    w-full flex items-center justify-between
+                    bg-slate-50 dark:bg-slate-800
+                    border rounded-xl px-3.5 py-2.5 text-sm
+                    transition-all duration-150
+                    ${errors.productId
+                      ? "border-red-400 dark:border-red-600"
+                      : "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10"
+                    }
+                  `}
+                >
+                  {selectedProduct ? (
+                    <span className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                      <selectedProduct.icon size={14} className={selectedProduct.iconColor} strokeWidth={1.8} />
+                      <span className="font-medium">{selectedProduct.name}</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs">{selectedProduct.sku}</span>
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 dark:text-slate-500">Search and select a product…</span>
+                  )}
+                  <ChevronDownSm
+                    size={15}
+                    className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {/* Dropdown */}
+                {dropdownOpen && (
+                  <div className="absolute z-10 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
+                    {/* Search inside dropdown */}
+                    <div className="px-3 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="relative">
+                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          placeholder="Type to search…"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Options list */}
+                    <ul className="max-h-48 overflow-y-auto py-1.5">
+                      {filteredProducts.length === 0 ? (
+                        <li className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500 text-center">
+                          No products found
+                        </li>
+                      ) : (
+                        filteredProducts.map((p) => (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() => selectProduct(p)}
+                              className={`
+                                w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left
+                                hover:bg-slate-50 dark:hover:bg-slate-800
+                                transition-colors duration-100
+                                ${form.productId === p.id ? "bg-slate-50 dark:bg-slate-800 font-semibold" : ""}
+                              `}
+                            >
+                              <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${p.iconBg}`}>
+                                <p.icon size={13} className={p.iconColor} strokeWidth={1.8} />
+                              </span>
+                              <span className="flex flex-col leading-tight">
+                                <span className="text-slate-800 dark:text-slate-100 font-medium">{p.name}</span>
+                                <span className="text-xs text-slate-400 dark:text-slate-500">{p.sku} &bull; {p.category}</span>
+                              </span>
+                              <span className={`ml-auto text-xs font-semibold ${
+                                p.quantity < 10 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
+                              }`}>
+                                {p.quantity} units
+                              </span>
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </Field>
 
-            {/* Category */}
-            <Field label="Category" error={errors.category} icon={Layers}>
-              <select
-                value={form.category}
-                onChange={set("category")}
-                className={`${inputBase} pl-9 appearance-none cursor-pointer`}
-              >
-                <option value="" disabled>
-                  Select a category…
-                </option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {/* ── 2. Current Stock (read-only) ─────────────────────── */}
+            {selectedProduct && (
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  Current Stock
+                </span>
+                <span className={`flex items-center gap-1.5 font-bold text-sm ${
+                  selectedProduct.quantity < 10
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-slate-700 dark:text-slate-200"
+                }`}>
+                  {selectedProduct.quantity < 10 && <AlertTriangle size={13} strokeWidth={2.2} />}
+                  {selectedProduct.quantity} units
+                </span>
+              </div>
+            )}
 
-            {/* SKU */}
-            <Field label="SKU" error={errors.sku} icon={Hash}>
-              <input
-                type="text"
-                value={form.sku}
-                onChange={set("sku")}
-                placeholder="e.g. PRF-007"
-                className={`${inputBase} pl-9`}
-              />
-            </Field>
-
-            {/* Price Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Cost Price" error={errors.costPrice} icon={DollarSign}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.costPrice}
-                  onChange={set("costPrice")}
-                  placeholder="0.00"
-                  className={`${inputBase} pl-9`}
-                />
-              </Field>
-              <Field label="Selling Price" error={errors.sellingPrice} icon={DollarSign}>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.sellingPrice}
-                  onChange={set("sellingPrice")}
-                  placeholder="0.00"
-                  className={`${inputBase} pl-9`}
-                />
-              </Field>
-            </div>
-
-            {/* Initial Quantity */}
-            <Field label="Initial Quantity" error={errors.quantity} icon={Package}>
+            {/* ── 3. Quantity to Add ───────────────────────────── */}
+            <Field label="Quantity to Add" error={errors.qtyToAdd} icon={Hash}>
               <input
                 type="number"
-                min="0"
+                min="1"
                 step="1"
-                value={form.quantity}
-                onChange={set("quantity")}
+                value={form.qtyToAdd}
+                onChange={set("qtyToAdd")}
                 placeholder="e.g. 50"
-                className={`${inputBase} pl-9`}
+                className={`${inputBase} pl-9 ${
+                  errors.qtyToAdd ? "border-red-400 dark:border-red-600" : ""
+                }`}
               />
             </Field>
+
+            {/* Running total hint */}
+            {selectedProduct && form.qtyToAdd && !isNaN(form.qtyToAdd) && Number(form.qtyToAdd) > 0 && (
+              <div className="-mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                <CheckCircle2 size={12} strokeWidth={2.2} />
+                New total will be <span className="font-bold">{selectedProduct.quantity + Number(form.qtyToAdd)} units</span>
+              </div>
+            )}
+
+            {/* ── 4. Reason / Note (optional) ────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Reason / Note
+                </label>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">Optional</span>
+              </div>
+              {/* Quick-pick presets */}
+              <div className="flex flex-wrap gap-1.5 mb-1">
+                {REASON_PRESETS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, reason: r }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150 ${
+                      form.reason === r
+                        ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-50 dark:text-slate-900 dark:border-slate-50"
+                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <ClipboardList
+                  size={14}
+                  className="absolute left-3.5 top-3 text-slate-400 pointer-events-none"
+                />
+                <textarea
+                  value={form.reason}
+                  onChange={set("reason")}
+                  rows={2}
+                  placeholder="e.g. New Shipment from Supplier A…"
+                  className={`${inputBase} pl-9 resize-none`}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Modal Footer */}
+          {/* Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
             <button
               type="button"
@@ -339,12 +451,12 @@ const AddProductModal = ({ open, onClose, onSave }) => {
               {submitted ? (
                 <>
                   <CheckCircle2 size={15} className="text-emerald-400" />
-                  Saved!
+                  Stock Updated!
                 </>
               ) : (
                 <>
-                  <Plus size={15} strokeWidth={2.5} />
-                  Add Product
+                  <PlusCircle size={15} strokeWidth={2} />
+                  Add Stock
                 </>
               )}
             </button>
@@ -384,9 +496,9 @@ const InventoryStock = () => {
   const [sortDir, setSortDir] = useState("asc");
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleSaveProduct = (formData) => {
-    // TODO: wire to API — formData contains { name, category, sku, costPrice, sellingPrice, quantity }
-    console.log("New product:", formData);
+  const handleAddStock = (formData) => {
+    // TODO: wire to API — formData: { productId, qtyToAdd, reason }
+    console.log("Stock update:", formData);
   };
 
   // ── Sorting
@@ -432,11 +544,12 @@ const InventoryStock = () => {
       <AppHeader />
 
       {/* ── Scrollable page content ─────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto w-full bg-slate-50/50 dark:bg-slate-950 p-10">
-      <AddProductModal
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleSaveProduct}
+        onSave={handleAddStock}
+        products={MOCK_PRODUCTS}
       />
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
@@ -466,8 +579,8 @@ const InventoryStock = () => {
             whitespace-nowrap
           "
         >
-          <Plus size={16} strokeWidth={2.5} />
-          Add New Product
+          <PlusCircle size={16} strokeWidth={2} />
+          Add Inventory Stock
         </button>
       </div>
 
