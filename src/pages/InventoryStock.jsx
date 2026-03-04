@@ -763,10 +763,8 @@ const InventoryStock = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
-  // ── Summary Stats (based on tracked inventory items)
-  const totalProducts  = inventoryItems.length;
+  // ── lowStockCount still used in the table footer badge
   const lowStockCount  = inventoryItems.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
-  const totalValue     = inventoryItems.reduce((sum, p) => sum + p.sellingPrice * p.stockQuantity, 0);
 
   return (
     <div className="flex h-screen flex-col bg-background">

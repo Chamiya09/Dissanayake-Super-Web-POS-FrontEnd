@@ -19,7 +19,7 @@ const CARDS: CardConfig[] = [
     valueKey:  "totalTrackedItems",
     sub:       "Products with inventory records",
     icon:      Package,
-    iconBg:    "bg-violet-500/10",
+    iconBg:    "bg-violet-500/10 dark:bg-violet-400/20",
     iconColor: "text-violet-600 dark:text-violet-400",
   },
   {
@@ -27,7 +27,7 @@ const CARDS: CardConfig[] = [
     valueKey:  "lowStockAlerts",
     sub:       "Items below reorder level",
     icon:      AlertTriangle,
-    iconBg:    "bg-amber-500/10",
+    iconBg:    "bg-amber-500/10 dark:bg-amber-400/20",
     iconColor: "text-amber-600 dark:text-amber-400",
   },
   {
@@ -35,7 +35,7 @@ const CARDS: CardConfig[] = [
     valueKey:  "outOfStock",
     sub:       "Items with zero quantity",
     icon:      PackageX,
-    iconBg:    "bg-red-500/10",
+    iconBg:    "bg-red-500/10 dark:bg-red-400/20",
     iconColor: "text-red-600 dark:text-red-400",
   },
   {
@@ -43,7 +43,7 @@ const CARDS: CardConfig[] = [
     valueKey:  "totalInventoryValue",
     sub:       "Total value at selling price",
     icon:      Wallet,
-    iconBg:    "bg-emerald-500/10",
+    iconBg:    "bg-emerald-500/10 dark:bg-emerald-400/20",
     iconColor: "text-emerald-600 dark:text-emerald-400",
     format:    formatCurrency,
   },
@@ -70,7 +70,7 @@ export function InventoryAnalyticsCards({ className }: Props) {
         return (
           <div
             key={card.label}
-            className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm"
+            className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm transition-colors duration-200"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -84,7 +84,7 @@ export function InventoryAnalyticsCards({ className }: Props) {
               </div>
               <div
                 className={cn(
-                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
                   card.iconBg
                 )}
               >
