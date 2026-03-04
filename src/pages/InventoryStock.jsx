@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import api from "@/lib/axiosInstance";
 import {
   Search,
   Package,
@@ -10,10 +11,14 @@ import {
   Cable,
   Monitor,
   Headphones,
+  Utensils,
+  Wifi,
+  HardDrive,
+  Box,
   AlertTriangle,
+  AlertCircle,
   ChevronUp,
   ChevronDown,
-  ChevronDown as ChevronDownSm,
   X,
   CheckCircle2,
   Sparkles,
@@ -21,83 +26,36 @@ import {
   PackagePlus,
   ClipboardList,
   Hash,
+  Loader2,
 } from "lucide-react";
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    name: "Wireless Mouse",
-    category: "Peripherals",
-    price: 29.99,
-    quantity: 142,
-    status: "In Stock",
-    sku: "PRF-001",
-    icon: Mouse,
-    iconColor: "text-violet-500",
-    iconBg: "bg-violet-50 dark:bg-violet-950/40",
-  },
-  {
-    id: 2,
-    name: "Mechanical Keyboard",
-    category: "Peripherals",
-    price: 89.99,
-    quantity: 38,
-    status: "In Stock",
-    sku: "PRF-002",
-    icon: Keyboard,
-    iconColor: "text-blue-500",
-    iconBg: "bg-blue-50 dark:bg-blue-950/40",
-  },
-  {
-    id: 3,
-    name: "USB-C Hub 7-in-1",
-    category: "Accessories",
-    price: 49.99,
-    quantity: 7,
-    status: "Low Stock",
-    sku: "ACC-003",
-    icon: Cable,
-    iconColor: "text-amber-500",
-    iconBg: "bg-amber-50 dark:bg-amber-950/40",
-  },
-  {
-    id: 4,
-    name: '27" IPS Monitor',
-    category: "Displays",
-    price: 319.99,
-    quantity: 5,
-    status: "Low Stock",
-    sku: "DSP-004",
-    icon: Monitor,
-    iconColor: "text-rose-500",
-    iconBg: "bg-rose-50 dark:bg-rose-950/40",
-  },
-  {
-    id: 5,
-    name: "Noise Cancelling Headset",
-    category: "Audio",
-    price: 129.99,
-    quantity: 55,
-    status: "In Stock",
-    sku: "AUD-005",
-    icon: Headphones,
-    iconColor: "text-emerald-500",
-    iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
-  },
-  {
-    id: 6,
-    name: "Ergonomic Laptop Stand",
-    category: "Accessories",
-    price: 39.99,
-    quantity: 89,
-    status: "In Stock",
-    sku: "ACC-006",
-    icon: Package,
-    iconColor: "text-cyan-500",
-    iconBg: "bg-cyan-50 dark:bg-cyan-950/40",
-  },
-];
+// ─── Category → icon mapping ──────────────────────────────────────────────────
+const CATEGORY_ICON = {
+  peripherals:  { icon: Mouse,      color: "text-violet-500",  bg: "bg-violet-50 dark:bg-violet-950/40"  },
+  accessories:  { icon: Cable,      color: "text-amber-500",   bg: "bg-amber-50 dark:bg-amber-950/40"   },
+  displays:     { icon: Monitor,    color: "text-rose-500",    bg: "bg-rose-50 dark:bg-rose-950/40"     },
+  audio:        { icon: Headphones, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/40"},
+  networking:   { icon: Wifi,       color: "text-cyan-500",    bg: "bg-cyan-50 dark:bg-cyan-950/40"     },
+  storage:      { icon: HardDrive,  color: "text-blue-500",    bg: "bg-blue-50 dark:bg-blue-950/40"     },
+  food:         { icon: Utensils,   color: "text-orange-500",  bg: "bg-orange-50 dark:bg-orange-950/40" },
+  keyboards:    { icon: Keyboard,   color: "text-indigo-500",  bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+};
+
+const getCategoryMeta = (category = "") => {
+  const key = category.toLowerCase().trim();
+  return (
+    CATEGORY_ICON[key] ??
+    Object.entries(CATEGORY_ICON).find(([k]) => key.includes(k))?.[1] ??
+    { icon: Box, color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-800" }
+  );
+};
+
+// ─── Derive status from stock level ──────────────────────────────────────────
+const deriveStatus = (qty, reorder) => {
+  if (qty === 0)     return "Out of Stock";
+  if (qty < reorder) return "Low Stock";
+  return "In Stock";
+};
 
 // ─── Stock Form Empty State ──────────────────────────────────────────────────────
 const EMPTY_STOCK_FORM = {
@@ -161,7 +119,7 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
   const selectedProduct = products.find((p) => p.id === form.productId) ?? null;
 
   const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
     p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
@@ -272,15 +230,20 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                   `}
                 >
                   {selectedProduct ? (
-                    <span className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                      <selectedProduct.icon size={14} className={selectedProduct.iconColor} strokeWidth={1.8} />
-                      <span className="font-medium">{selectedProduct.name}</span>
-                      <span className="text-slate-400 dark:text-slate-500 text-xs">{selectedProduct.sku}</span>
-                    </span>
+                    (() => {
+                      const { icon: SelIcon, color: selColor } = getCategoryMeta(selectedProduct.category);
+                      return (
+                        <span className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                          <SelIcon size={14} className={selColor} strokeWidth={1.8} />
+                          <span className="font-medium">{selectedProduct.productName}</span>
+                          <span className="text-slate-400 dark:text-slate-500 text-xs">{selectedProduct.sku}</span>
+                        </span>
+                      );
+                    })()
                   ) : (
                     <span className="text-slate-400 dark:text-slate-500">Search and select a product…</span>
                   )}
-                  <ChevronDownSm
+                  <ChevronDown
                     size={15}
                     className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                   />
@@ -311,7 +274,10 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                           No products found
                         </li>
                       ) : (
-                        filteredProducts.map((p) => (
+                        filteredProducts.map((p) => {
+                          const { icon: PIcon, color: pColor, bg: pBg } = getCategoryMeta(p.category);
+                          const qty = p.stockQuantity ?? 0;
+                          return (
                           <li key={p.id}>
                             <button
                               type="button"
@@ -323,21 +289,22 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                                 ${form.productId === p.id ? "bg-slate-50 dark:bg-slate-800 font-semibold" : ""}
                               `}
                             >
-                              <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${p.iconBg}`}>
-                                <p.icon size={13} className={p.iconColor} strokeWidth={1.8} />
+                              <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${pBg}`}>
+                                <PIcon size={13} className={pColor} strokeWidth={1.8} />
                               </span>
                               <span className="flex flex-col leading-tight">
-                                <span className="text-slate-800 dark:text-slate-100 font-medium">{p.name}</span>
+                                <span className="text-slate-800 dark:text-slate-100 font-medium">{p.productName}</span>
                                 <span className="text-xs text-slate-400 dark:text-slate-500">{p.sku} &bull; {p.category}</span>
                               </span>
                               <span className={`ml-auto text-xs font-semibold ${
-                                p.quantity < 10 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
+                                qty < 10 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
                               }`}>
-                                {p.quantity} units
+                                {qty} {p.unit ?? "units"}
                               </span>
                             </button>
                           </li>
-                        ))
+                          );
+                        })
                       )}
                     </ul>
                   </div>
@@ -352,12 +319,12 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
                   Current Stock
                 </span>
                 <span className={`flex items-center gap-1.5 font-bold text-sm ${
-                  selectedProduct.quantity < 10
+                  (selectedProduct.stockQuantity ?? 0) < 10
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-slate-700 dark:text-slate-200"
                 }`}>
-                  {selectedProduct.quantity < 10 && <AlertTriangle size={13} strokeWidth={2.2} />}
-                  {selectedProduct.quantity} units
+                  {(selectedProduct.stockQuantity ?? 0) < 10 && <AlertTriangle size={13} strokeWidth={2.2} />}
+                  {selectedProduct.stockQuantity ?? 0} {selectedProduct.unit ?? "units"}
                 </span>
               </div>
             )}
@@ -471,11 +438,15 @@ const AddStockModal = ({ open, onClose, onSave, products }) => {
 const STATUS_CONFIG = {
   "In Stock": {
     pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800",
-    dot: "bg-emerald-500",
+    dot:  "bg-emerald-500",
   },
   "Low Stock": {
     pill: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800",
-    dot: "bg-amber-500",
+    dot:  "bg-amber-500",
+  },
+  "Out of Stock": {
+    pill: "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-800",
+    dot:  "bg-red-500",
   },
 };
 
@@ -491,13 +462,45 @@ const COLUMNS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const InventoryStock = () => {
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState("name");
-  const [sortDir, setSortDir] = useState("asc");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const [search, setSearch]     = useState("");
+  const [sortKey, setSortKey]   = useState("productName");
+  const [sortDir, setSortDir]   = useState("asc");
   const [modalOpen, setModalOpen] = useState(false);
 
+  // ── Fetch products from backend
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setFetchError(null);
+    api
+      .get("/api/products")
+      .then((res) => {
+        if (!cancelled) {
+          // Normalise: ensure numeric fields are JS numbers
+          const normalised = res.data.map((p) => ({
+            ...p,
+            sellingPrice:  Number(p.sellingPrice),
+            buyingPrice:   Number(p.buyingPrice),
+            stockQuantity: p.stockQuantity  != null ? Number(p.stockQuantity)  : 0,
+            reorderLevel:  p.reorderLevel   != null ? Number(p.reorderLevel)   : 10,
+          }));
+          setProducts(normalised);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchError("Failed to load products. Please check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const handleAddStock = (formData) => {
-    // TODO: wire to API — formData: { productId, qtyToAdd, reason }
+    // TODO: wire to stock-update API — formData: { productId, qtyToAdd, reason }
     console.log("Stock update:", formData);
   };
 
@@ -512,32 +515,27 @@ const InventoryStock = () => {
     }
   };
 
-  // ── Filtered + Sorted Data
-  const filtered = MOCK_PRODUCTS.filter(({ name, category, sku, status }) => {
-    const q = search.toLowerCase();
-    return (
-      name.toLowerCase().includes(q) ||
-      category.toLowerCase().includes(q) ||
-      sku.toLowerCase().includes(q) ||
-      status.toLowerCase().includes(q)
-    );
-  }).sort((a, b) => {
-    const valA = a[sortKey];
-    const valB = b[sortKey];
-    const cmp =
-      typeof valA === "string"
-        ? valA.localeCompare(valB)
-        : valA - valB;
-    return sortDir === "asc" ? cmp : -cmp;
-  });
+  // ── Filtered + Sorted Data (uses real backend field names)
+  const filtered = products
+    .filter(({ productName, category, sku }) => {
+      const q = search.toLowerCase();
+      return (
+        productName.toLowerCase().includes(q) ||
+        category.toLowerCase().includes(q) ||
+        sku.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const valA = a[sortKey];
+      const valB = b[sortKey];
+      const cmp  = typeof valA === "string" ? valA.localeCompare(valB) : valA - valB;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
   // ── Summary Stats
-  const totalProducts = MOCK_PRODUCTS.length;
-  const lowStockCount = MOCK_PRODUCTS.filter((p) => p.status === "Low Stock").length;
-  const totalValue = MOCK_PRODUCTS.reduce(
-    (sum, p) => sum + p.price * p.quantity,
-    0
-  );
+  const totalProducts  = products.length;
+  const lowStockCount  = products.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
+  const totalValue     = products.reduce((sum, p) => sum + p.sellingPrice * p.stockQuantity, 0);
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -549,8 +547,19 @@ const InventoryStock = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleAddStock}
-        products={MOCK_PRODUCTS}
+        products={products}
       />
+
+      {/* ── Error Banner ────────────────────────────────────────── */}
+      {fetchError && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-5 py-4 text-sm">
+          <AlertCircle size={16} className="text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" strokeWidth={2} />
+          <div>
+            <p className="font-semibold text-red-700 dark:text-red-400">Failed to load inventory</p>
+            <p className="text-red-600 dark:text-red-500 text-xs mt-0.5">{fetchError}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -646,8 +655,13 @@ const InventoryStock = () => {
       </div>
 
       {/* ── Table Card ───────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">        {loading ? (
+          /* Loading skeleton */
+          <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400 dark:text-slate-600">
+            <Loader2 size={32} strokeWidth={1.5} className="animate-spin" />
+            <p className="text-sm font-medium">Loading inventory…</p>
+          </div>
+        ) : (        <table className="w-full text-sm">
 
           {/* Head */}
           <thead>
@@ -688,10 +702,13 @@ const InventoryStock = () => {
               </tr>
             ) : (
               filtered.map((item, idx) => {
-                const Icon = item.icon;
-                const isLow = item.status === "Low Stock";
-                const isWarning = item.quantity < 10;
-                const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG["In Stock"];
+                const qty      = item.stockQuantity  ?? 0;
+                const reorder  = item.reorderLevel   ?? 10;
+                const status   = deriveStatus(qty, reorder);
+                const isLow    = status !== "In Stock";
+                const isWarning = qty < 10;
+                const cfg      = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
+                const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
 
                 return (
                   <tr
@@ -708,13 +725,13 @@ const InventoryStock = () => {
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-3">
                         <span
-                          className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${item.iconBg}`}
+                          className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${iconBg}`}
                         >
-                          <Icon size={16} className={item.iconColor} strokeWidth={1.8} />
+                          <Icon size={16} className={iconColor} strokeWidth={1.8} />
                         </span>
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-slate-50 whitespace-nowrap">
-                            {item.name}
+                            {item.productName}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             {item.sku}
@@ -730,10 +747,10 @@ const InventoryStock = () => {
 
                     {/* Price */}
                     <td className="py-6 px-6 font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                      ${item.price.toFixed(2)}
+                      ${item.sellingPrice.toFixed(2)}
                     </td>
 
-                    {/* Quantity */}
+                    {/* Quantity (stockQuantity) */}
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-1.5">
                         {isWarning && (
@@ -747,26 +764,28 @@ const InventoryStock = () => {
                         )}
                         <span
                           className={`font-semibold tabular-nums ${
-                            isWarning
+                            qty === 0
+                              ? "text-red-600 dark:text-red-400"
+                              : isWarning
                               ? "text-amber-600 dark:text-amber-400"
                               : "text-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          {item.quantity}
+                          {qty}
                         </span>
                         <span className="text-xs text-slate-400 dark:text-slate-500">
-                          units
+                          {item.unit ?? "units"}
                         </span>
                       </div>
                     </td>
 
-                    {/* Status */}
+                    {/* Status (derived from stockQuantity vs reorderLevel) */}
                     <td className="py-6 px-6">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                        {item.status}
+                        {status}
                       </span>
                     </td>
 
@@ -828,6 +847,7 @@ const InventoryStock = () => {
             )}
           </tbody>
         </table>
+        )} {/* end loading ternary */}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-4">
@@ -838,7 +858,7 @@ const InventoryStock = () => {
             </span>{" "}
             of{" "}
             <span className="font-semibold text-slate-600 dark:text-slate-300">
-              {MOCK_PRODUCTS.length}
+              {products.length}
             </span>{" "}
             products
           </p>
