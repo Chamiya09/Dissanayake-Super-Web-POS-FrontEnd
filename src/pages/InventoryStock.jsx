@@ -651,7 +651,71 @@ const InventoryStock = () => {
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
 
-      {/* ── Scrollable page content ─────────────────────────────────── */}
+      {/* ── Scrollable page content ─────────────────────────────── */}
+
+      {/* ── Full-page loading state ────────────────────────── */}
+      {loading && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-5">
+          {/* Layered ring spinner */}
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-100 dark:border-slate-800" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-slate-900 dark:border-t-slate-100 animate-spin" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+              Loading Inventory
+            </p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
+              Fetching your product stock levels…
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Full-page error state ───────────────────────────── */}
+      {!loading && fetchError && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
+          {/* Icon illustration */}
+          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900">
+            <AlertCircle size={36} strokeWidth={1.5} className="text-red-400 dark:text-red-500" />
+          </div>
+          {/* Message */}
+          <div className="text-center max-w-sm">
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-50">
+              Error Loading Data
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              {fetchError}
+            </p>
+          </div>
+          {/* Retry button */}
+          <button
+            type="button"
+            onClick={fetchProducts}
+            className="
+              inline-flex items-center gap-2
+              px-6 py-3 rounded-xl text-sm font-semibold
+              bg-slate-900 dark:bg-slate-50
+              text-white dark:text-slate-900
+              hover:bg-slate-700 dark:hover:bg-slate-200
+              active:scale-95 transition-all duration-150
+              shadow-sm
+            "
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* ── Main content (only when loaded successfully) ──────────── */}
+      {!loading && !fetchError && (
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
       <AddStockModal
         open={modalOpen}
@@ -659,17 +723,6 @@ const InventoryStock = () => {
         products={products}
         onStockUpdated={fetchProducts}
       />
-
-      {/* ── Error Banner ────────────────────────────────────────── */}
-      {fetchError && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-5 py-4 text-sm">
-          <AlertCircle size={16} className="text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" strokeWidth={2} />
-          <div>
-            <p className="font-semibold text-red-700 dark:text-red-400">Failed to load inventory</p>
-            <p className="text-red-600 dark:text-red-500 text-xs mt-0.5">{fetchError}</p>
-          </div>
-        </div>
-      )}
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -765,13 +818,8 @@ const InventoryStock = () => {
       </div>
 
       {/* ── Table Card ───────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">        {loading ? (
-          /* Loading skeleton */
-          <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400 dark:text-slate-600">
-            <Loader2 size={32} strokeWidth={1.5} className="animate-spin" />
-            <p className="text-sm font-medium">Loading inventory…</p>
-          </div>
-        ) : (        <table className="w-full text-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
 
           {/* Head */}
           <thead>
@@ -957,7 +1005,6 @@ const InventoryStock = () => {
             )}
           </tbody>
         </table>
-        )} {/* end loading ternary */}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-4">
@@ -981,6 +1028,7 @@ const InventoryStock = () => {
         </div>
       </div>
       </div>
+      )}
     </div>
   );
 };
