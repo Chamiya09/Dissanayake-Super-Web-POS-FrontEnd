@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
-import { AlertTriangle, PackageSearch, RefreshCw, ShoppingCart } from "lucide-react";
+import { AlertTriangle, PackageSearch, RefreshCw, DollarSign } from "lucide-react";
 import { useInventory } from "@/context/InventoryContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 
@@ -25,18 +25,32 @@ function StatusBadge({ status }) {
   );
 }
 
-/* ── Summary card ─────────────────────────────────────────────────────────── */
-function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
+/* ── Analytics summary card ───────────────────────────────────────────────── */
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub, trend }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-        <Icon className={`h-6 w-6 ${iconColor}`} />
+    <div className="rounded-xl border border-border bg-white p-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+      {/* Top row: label + icon */}
+      <div className="flex items-start justify-between">
+        <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">
+          {label}
+        </p>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
-      </div>
+
+      {/* Value */}
+      <p className="mt-3 text-3xl font-bold tracking-tight text-foreground dark:text-white">
+        {value}
+      </p>
+
+      {/* Sub-label / trend */}
+      {sub && (
+        <p className="mt-1.5 text-xs text-muted-foreground dark:text-gray-400">{sub}</p>
+      )}
+      {trend && (
+        <p className="mt-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">{trend}</p>
+      )}
     </div>
   );
 }
@@ -58,8 +72,15 @@ export default function ReorderManagement() {
     (item) => item.stockStatus === "LOW_STOCK" || item.stockStatus === "OUT_OF_STOCK"
   );
 
-  const lowStockCount  = alertItems.filter((i) => i.stockStatus === "LOW_STOCK").length;
-  const outOfStockCount = alertItems.filter((i) => i.stockStatus === "OUT_OF_STOCK").length;
+  const lowStockCount   = alertItems.filter((i) => i.stockStatus === "LOW_STOCK").length;
+  const outOfStockCount  = alertItems.filter((i) => i.stockStatus === "OUT_OF_STOCK").length;
+
+  /* Estimated reorder value: sum of (reorderLevel - currentStock) × sellingPrice
+     for every item currently below its reorder level.                           */
+  const totalReorderValue = alertItems.reduce((sum, item) => {
+    const deficit = Math.max(0, item.reorderLevel - item.stockQuantity);
+    return sum + deficit * item.sellingPrice;
+  }, 0);
 
   /* Apply filter + search */
   const visibleItems = alertItems
@@ -111,31 +132,35 @@ export default function ReorderManagement() {
           </button>
         </div>
 
-        {/* ── Summary cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* ── Analytics summary cards ─────────────────────────────────────── */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Card 1 — Total Low Stock Items */}
           <SummaryCard
             icon={AlertTriangle}
-            iconBg="bg-amber-100 dark:bg-amber-900/20"
+            iconBg="bg-amber-100 dark:bg-amber-900/30"
             iconColor="text-amber-600 dark:text-amber-400"
-            label="Total Alerts"
-            value={alertItems.length}
-            sub="Products needing attention"
+            label="Total Low Stock Items"
+            value={analyticsLoading ? "—" : lowStockCount}
+            sub="Products below reorder level"
           />
+
+          {/* Card 2 — Out of Stock */}
           <SummaryCard
-            icon={AlertTriangle}
-            iconBg="bg-orange-100 dark:bg-orange-900/20"
-            iconColor="text-orange-600 dark:text-orange-400"
-            label="Low Stock"
-            value={lowStockCount}
-            sub="Below reorder level"
-          />
-          <SummaryCard
-            icon={ShoppingCart}
-            iconBg="bg-red-100 dark:bg-red-900/20"
+            icon={PackageSearch}
+            iconBg="bg-red-100 dark:bg-red-900/30"
             iconColor="text-red-600 dark:text-red-400"
             label="Out of Stock"
-            value={outOfStockCount}
-            sub="Immediately requires reorder"
+            value={analyticsLoading ? "—" : outOfStockCount}
+            sub="Requires immediate reorder"
+          />
+          {/* Card 3 — Total Reorder Value */}
+          <SummaryCard
+            icon={DollarSign}
+            iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+            iconColor="text-emerald-600 dark:text-emerald-400"
+            label="Total Reorder Value"
+            value={analyticsLoading ? "—" : formatCurrency(totalReorderValue)}
+            sub="Estimated cost to restock alerts"
           />
         </div>
 
