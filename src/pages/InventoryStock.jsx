@@ -137,9 +137,10 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   if (!open) return null;
 
   // ── Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
-  const qtyNum   = parseFloat(qtyToAdd);
-  const validQty = !isNaN(qtyNum) && qtyNum > 0;
-  const newTotal = currentStock !== null && validQty ? currentStock + qtyNum : null;
+  const qtyNum    = parseFloat(qtyToAdd);
+  const validQty  = !isNaN(qtyNum) && qtyNum !== 0;
+  const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
+  const belowZero = newTotal !== null && newTotal < 0;
 
   const filteredProducts = products.filter(
     (p) =>
@@ -159,7 +160,8 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     e.preventDefault();
     const errs = {};
     if (!selectedId)  errs.product = "Please select a product.";
-    if (!validQty)    errs.qty     = "Enter a positive whole number.";
+    if (!validQty)    errs.qty     = "Enter a non-zero quantity (positive to add, negative to remove).";
+    if (belowZero)    errs.qty     = "Stock cannot be less than zero.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -227,7 +229,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 Add Inventory Stock
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Select a product, enter quantity to add, and confirm.
+                Enter a positive value to add stock, or negative to correct a mistake.
               </p>
             </div>
           </div>
@@ -408,7 +410,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {/* ── Step 3 · Quantity to Add ───────────────────────── */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
+                Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <div className="relative">
                 <Hash
@@ -417,19 +419,21 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 />
                 <input
                   type="number"
-                  min="1"
-                  step="1"
+                  step="any"
                   value={qtyToAdd}
                   onChange={(e) => {
                     setQtyToAdd(e.target.value);
                     if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
                   }}
-                  placeholder="e.g. 50"
+                  placeholder="e.g. 50 or -5"
                   className={`${inputBase} pl-9 ${
                     errors.qty ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
                   }`}
                 />
               </div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Use a negative number (e.g.&nbsp;<code className="font-mono">-5</code>) to reduce stock.
+              </p>
               {errors.qty && (
                 <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
@@ -439,60 +443,91 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             </div>
 
             {/* ── Step 4 · New Total Preview ─────────────────────── */}
-            <div className={`
-              rounded-xl border px-4 py-4
-              transition-all duration-300
-              ${newTotal !== null
-                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 opacity-50"
-              }
-            `}>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
-                New Total Preview
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Current */}
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
-                    {currentStock ?? "—"}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Current</span>
+            {(() => {
+              // Determine colour theme based on result
+              const theme = belowZero
+                ? { card: "bg-red-50    dark:bg-red-950/30    border-red-200    dark:border-red-800",
+                    total: "text-red-600    dark:text-red-400",
+                    badge: "text-red-600    dark:text-red-400    bg-red-100    dark:bg-red-900/40" }
+                : validQty && qtyNum < 0
+                ? { card: "bg-amber-50  dark:bg-amber-950/30  border-amber-200  dark:border-amber-800",
+                    total: "text-amber-600  dark:text-amber-400",
+                    badge: "text-amber-600  dark:text-amber-400  bg-amber-100  dark:bg-amber-900/40" }
+                : newTotal !== null
+                ? { card: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
+                    total: "text-emerald-600 dark:text-emerald-400",
+                    badge: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" }
+                : { card: "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 opacity-50",
+                    total: "text-slate-400 dark:text-slate-500",
+                    badge: "" };
+
+              return (
+                <div className={`rounded-xl border px-4 py-4 transition-all duration-300 ${theme.card}`}>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
+                    New Total Preview
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap">
+
+                    {/* Current */}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
+                        {currentStock ?? "—"}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Current</span>
+                    </div>
+
+                    {/* Operator */}
+                    <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">
+                      {validQty && qtyNum < 0 ? "−" : "+"}
+                    </span>
+
+                    {/* Quantity */}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`text-2xl font-bold tabular-nums ${
+                        validQty && qtyNum < 0
+                          ? "text-red-500 dark:text-red-400"
+                          : "text-slate-700 dark:text-slate-300"
+                      }`}>
+                        {validQty ? Math.abs(qtyNum) : "—"}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        {validQty && qtyNum < 0 ? "Removing" : "Adding"}
+                      </span>
+                    </div>
+
+                    {/* Equals */}
+                    <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">=</span>
+
+                    {/* New total */}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`text-2xl font-bold tabular-nums ${theme.total}`}>
+                        {newTotal ?? "—"}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">New Total</span>
+                    </div>
+
+                    {/* Trailing badge */}
+                    {newTotal !== null && (
+                      <span className={`ml-auto flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg ${theme.badge}`}>
+                        {belowZero
+                          ? <><AlertTriangle size={12} strokeWidth={2.2} /> Below zero!</>
+                          : <><CheckCircle2 size={12} strokeWidth={2.2} /> {selectedUnit}</>
+                        }
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Inline error under preview */}
+                  {belowZero && (
+                    <p className="mt-3 text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5 font-medium">
+                      <AlertCircle size={13} strokeWidth={2} />
+                      Stock cannot be less than zero.
+                    </p>
+                  )}
                 </div>
+              );
+            })()}
 
-                {/* Plus sign */}
-                <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">+</span>
-
-                {/* Qty to add */}
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
-                    {validQty ? qtyNum : "—"}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Adding</span>
-                </div>
-
-                {/* Equals sign */}
-                <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">=</span>
-
-                {/* New total */}
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className={`text-2xl font-bold tabular-nums ${
-                    newTotal !== null
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-slate-400 dark:text-slate-500"
-                  }`}>
-                    {newTotal ?? "—"}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">New Total</span>
-                </div>
-
-                {newTotal !== null && (
-                  <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 rounded-lg">
-                    <CheckCircle2 size={12} strokeWidth={2.2} />
-                    {selectedUnit}
-                  </span>
-                )}
-              </div>
-            </div>
 
           </div>
 
@@ -677,6 +712,7 @@ const InventoryStock = () => {
   const [editTarget,     setEditTarget]     = useState(null);   // inventory item to edit
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
+  const [logs,           setLogs]           = useState([]);
 
   const { refreshInventory } = useInventory();
 
@@ -694,6 +730,10 @@ const InventoryStock = () => {
       );
     });
 
+  // ── Fetch all stock movement logs
+  const fetchLogs = () =>
+    api.get("/api/inventory/logs").then((res) => setLogs(res.data));
+
   // ── Fetch tracked inventory items (for the table)
   const fetchInventory = () =>
     api.get("/api/inventory/status").then((res) => {
@@ -707,11 +747,11 @@ const InventoryStock = () => {
       );
     });
 
-  // ── Refresh both (used after any mutation)
+  // ── Refresh all (used after any mutation)
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
-    Promise.all([fetchProducts(), fetchInventory()])
+    Promise.all([fetchProducts(), fetchInventory(), fetchLogs()])
       .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
@@ -1236,8 +1276,121 @@ const InventoryStock = () => {
           )}
         </div>
       </div>
-      </div>
-      )}
+
+      {/* ── Stock Movement History ───────────────────────────────────────── */}
+      <section className="mt-2">
+        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">
+          Stock Movement History
+        </h2>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-gray-800">
+                {[
+                  { label: "Product",          w: "w-[35%]" },
+                  { label: "Qty Changed",      w: "w-[18%]" },
+                  { label: "Stock After",      w: "w-[18%]" },
+                  { label: "Type",             w: "w-[14%]" },
+                  { label: "Timestamp",        w: "w-[15%]" },
+                ].map(({ label, w }) => (
+                  <th
+                    key={label}
+                    className={`${w} px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500`}
+                  >
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                    <Loader2 size={18} className="inline-block animate-spin mr-2" />
+                    Loading history…
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                    No recent transactions found.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => {
+                  const isIn     = log.quantityChanged >= 0;
+                  const qtyLabel = isIn
+                    ? `+${log.quantityChanged}`
+                    : `${log.quantityChanged}`;
+                  const typeLabel = isIn ? "Stock In" : "Stock Out";
+
+                  // Format timestamp: YYYY-MM-DD HH:mm
+                  const dt = new Date(log.timestamp);
+                  const pad = (n) => String(n).padStart(2, "0");
+                  const formatted = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ` +
+                    `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+
+                  return (
+                    <tr
+                      key={log.id}
+                      className="hover:bg-slate-50/60 dark:hover:bg-gray-700/40 transition-colors duration-100"
+                    >
+                      {/* Product name */}
+                      <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-200 truncate max-w-0">
+                        <span className="truncate block">{log.productName}</span>
+                      </td>
+
+                      {/* Quantity changed */}
+                      <td className={`px-5 py-3.5 font-semibold tabular-nums ${
+                        isIn
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-500 dark:text-red-400"
+                      }`}>
+                        {qtyLabel}
+                      </td>
+
+                      {/* Stock after */}
+                      <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 tabular-nums">
+                        {log.stockAfter}
+                      </td>
+
+                      {/* Type badge */}
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          isIn
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+                        }`}>
+                          {typeLabel}
+                        </span>
+                      </td>
+
+                      {/* Timestamp */}
+                      <td className="px-5 py-3.5 text-slate-400 dark:text-slate-500 text-xs tabular-nums">
+                        {formatted}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+
+          {/* Footer */}
+          {!loading && logs.length > 0 && (
+            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-gray-800/60">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {logs.length} transaction{logs.length > 1 ? "s" : ""} recorded
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      </div>{/* end flex-1 overflow-y-auto padded wrapper */}
+      )}{/* end !loading && !fetchError */}
     </div>
   );
 };
