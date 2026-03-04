@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { showSuccess, showError } from "@/utils/toastUtils";
 import {
   Search,
   Package,
@@ -174,16 +175,16 @@ const AddStockModal = ({ open, onClose, products, onStockUpdated }) => {
     setApiError(null);
     try {
       await api.patch(`/api/products/${selectedId}/add-stock`, { quantity: qtyNum });
+      showSuccess("Stock updated successfully!");
       setSuccess(true);
       setTimeout(() => {
         onStockUpdated?.();   // Refresh the table
         handleClose();
       }, 1200);
     } catch (err) {
-      setApiError(
-        err.response?.data?.message ??
-        "Failed to update stock. Please try again."
-      );
+      const msg = err.response?.data?.message ?? "Something went wrong. Please try again.";
+      setApiError(msg);
+      showError(msg);
     } finally {
       setSubmitting(false);
     }
