@@ -19,6 +19,7 @@ import {
   DollarSign,
   Layers,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
@@ -571,6 +572,7 @@ const InventoryStock = () => {
               filtered.map((item, idx) => {
                 const Icon = item.icon;
                 const isLow = item.status === "Low Stock";
+                const isWarning = item.quantity < 10;
                 const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG["In Stock"];
 
                 return (
@@ -578,8 +580,9 @@ const InventoryStock = () => {
                     key={item.id}
                     className={`
                       border-b border-slate-100 dark:border-slate-800 last:border-0
-                      hover:bg-slate-50/60 dark:hover:bg-slate-800/40
-                      transition-colors duration-150
+                      hover:bg-slate-50/80 dark:hover:bg-slate-800/50
+                      hover:shadow-[inset_3px_0_0_0] hover:shadow-slate-900/10 dark:hover:shadow-slate-50/5
+                      transition-all duration-200
                       ${idx % 2 !== 0 ? "bg-slate-50/30 dark:bg-slate-800/[0.15]" : ""}
                     `}
                   >
@@ -592,10 +595,10 @@ const InventoryStock = () => {
                           <Icon size={16} className={item.iconColor} strokeWidth={1.8} />
                         </span>
                         <div>
-                          <p className="font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                          <p className="font-semibold text-slate-900 dark:text-slate-50 whitespace-nowrap">
                             {item.name}
                           </p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             {item.sku}
                           </p>
                         </div>
@@ -603,7 +606,7 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Category */}
-                    <td className="py-6 px-6 text-slate-500 dark:text-slate-400">
+                    <td className="py-6 px-6 text-slate-500 dark:text-slate-400 text-sm">
                       {item.category}
                     </td>
 
@@ -615,16 +618,18 @@ const InventoryStock = () => {
                     {/* Quantity */}
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-1.5">
-                        {isLow && (
-                          <AlertTriangle
-                            size={13}
-                            strokeWidth={2.2}
-                            className="text-amber-500 dark:text-amber-400 flex-shrink-0"
-                          />
+                        {isWarning && (
+                          <span title="Low quantity warning">
+                            <AlertTriangle
+                              size={13}
+                              strokeWidth={2.2}
+                              className="text-amber-500 dark:text-amber-400 flex-shrink-0 animate-pulse"
+                            />
+                          </span>
                         )}
                         <span
                           className={`font-semibold tabular-nums ${
-                            isLow
+                            isWarning
                               ? "text-amber-600 dark:text-amber-400"
                               : "text-slate-700 dark:text-slate-300"
                           }`}
@@ -649,7 +654,28 @@ const InventoryStock = () => {
 
                     {/* Actions */}
                     <td className="py-6 px-6">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
+                        {/* AI Reorder — only for low-stock items */}
+                        {isLow && (
+                          <button
+                            type="button"
+                            title="Suggest AI reorder quantity"
+                            className="
+                              inline-flex items-center gap-1.5
+                              px-3 py-1.5 rounded-lg text-xs font-semibold
+                              bg-violet-50 text-violet-700
+                              ring-1 ring-violet-200
+                              dark:bg-violet-950/40 dark:text-violet-400 dark:ring-violet-800
+                              hover:bg-violet-100 dark:hover:bg-violet-950/60
+                              transition-all duration-200
+                              whitespace-nowrap
+                            "
+                          >
+                            <Sparkles size={12} strokeWidth={2} />
+                            Suggest Reorder
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           title="Edit product"
@@ -658,7 +684,7 @@ const InventoryStock = () => {
                             text-slate-400
                             hover:text-blue-600 hover:bg-blue-50
                             dark:hover:text-blue-400 dark:hover:bg-blue-950/40
-                            transition-colors duration-150
+                            transition-all duration-150
                           "
                         >
                           <Pencil size={15} strokeWidth={1.8} />
@@ -671,7 +697,7 @@ const InventoryStock = () => {
                             text-slate-400
                             hover:text-red-600 hover:bg-red-50
                             dark:hover:text-red-400 dark:hover:bg-red-950/40
-                            transition-colors duration-150
+                            transition-all duration-150
                           "
                         >
                           <Trash2 size={15} strokeWidth={1.8} />
