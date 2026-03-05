@@ -51,6 +51,110 @@ function OrderStatusBadge({ status }) {
   );
 }
 
+// ─── Supplier Email Simulation Modal ───────────────────────────────────────
+function SupplierEmailModal({ order, onConfirm, onClose }) {
+  if (!order) return null;
+  const emailLines = [
+    `Dear Procurement Team,`,
+    ``,
+    `We have received your Purchase Order and are pleased to confirm the following:`,
+    ``,
+    `  Order ID    :  ${order.id}`,
+    `  Product     :  ${order.productName}`,
+    `  Supplier    :  ${order.supplierName}`,
+    `  Quantity    :  ${order.quantity} units`,
+    `  Order Date  :  ${order.orderDate}`,
+    ``,
+    `We confirm the availability of the requested stock and will dispatch the`,
+    `shipment within 3–5 business days.`,
+    ``,
+    `Please click the button below to formally confirm this order.`,
+    ``,
+    `Best regards,`,
+    `${order.supplierName} — Supply Chain Team`,
+  ].join("\n");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal card */}
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 border-b border-gray-700 px-6 py-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20">
+              <Mail className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-100">Supplier Email Simulation</p>
+              <p className="text-xs text-gray-400 mt-0.5">This simulates a confirmation email from the supplier</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Email meta */}
+        <div className="space-y-2 border-b border-gray-700/60 px-6 py-4 shrink-0">
+          {[{l:"From", v:`noreply@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.com`},
+            {l:"To",   v:"procurement@dissanayakesuper.lk"},
+            {l:"Subj", v:`RE: Purchase Order Confirmation — ${order.id}`},
+          ].map(({l, v}) => (
+            <div key={l} className="flex items-start gap-3">
+              <span className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-widest text-gray-500 pt-0.5">{l}</span>
+              <span className="text-xs text-gray-300 break-all">{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Email body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-gray-300">{emailLines}</pre>
+        </div>
+
+        {/* CTA */}
+        <div className="border-t border-gray-700 px-6 py-5 shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs text-gray-500">Clicking below simulates the supplier clicking "Confirm" in their email client.</p>
+            <button
+              onClick={onConfirm}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 whitespace-nowrap"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Confirm Order
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Cancellation Overlay ────────────────────────────────────────────────────
+function CancelOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/80 backdrop-blur-sm">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
+        <Loader2 className="h-8 w-8 animate-spin text-red-400" />
+      </div>
+      <div className="text-center">
+        <p className="text-base font-semibold text-gray-100">Sending Cancellation Notification to Supplier...</p>
+        <p className="mt-1 text-sm text-gray-400">Please wait while we notify them.</p>
+      </div>
+    </div>
+  );
+}
+
 function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
   return (
     <button
@@ -184,6 +288,12 @@ export default function ReorderManagement() {
   // ── Per-row loading: { [orderId]: 'confirming' | 'cancelling' | false }
   const [rowLoading, setRowLoading] = useState({});
 
+  // ── Supplier email modal  (null | { order })
+  const [supplierEmailModal, setSupplierEmailModal] = useState(null);
+
+  // ── Cancellation overlay  (null | { orderId })
+  const [cancelOverlay, setCancelOverlay] = useState(null);
+
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
   const scaleMax      = Math.max(expectedStock, (product?.reorderLevel ?? 10)) * 1.5 || 100;
@@ -251,29 +361,37 @@ export default function ReorderManagement() {
   const handleSend = handleCreateReorder;
 
   // ── Row-level action handlers ──────────────────────────────────────────
+
+  // Opens the supplier email simulation modal
   function handleConfirmOrder(id) {
     if (rowLoading[id]) return;
-    setRowLoading((prev) => ({ ...prev, [id]: "confirming" }));
-    setTimeout(() => {
-      setReorders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
-      );
-      setRowLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
-      setToast("Order confirmed with supplier!");
-      setTimeout(() => setToast(null), 3500);
-    }, 2000);
+    const order = reorders.find((o) => o.id === id);
+    if (order) setSupplierEmailModal({ order });
   }
 
+  // Called when user clicks "Confirm Order" inside the email modal
+  function handleSupplierConfirm() {
+    const id = supplierEmailModal?.order?.id;
+    setSupplierEmailModal(null);
+    if (!id) return;
+    setReorders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
+    );
+    setToast("Supplier confirmed the order!");
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  // Shows confirmation prompt, then displays cancellation overlay for 2 s
   function handleCancelOrder(id) {
     if (rowLoading[id]) return;
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
-    setRowLoading((prev) => ({ ...prev, [id]: "cancelling" }));
+    setCancelOverlay({ orderId: id });
     setTimeout(() => {
       setReorders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o))
       );
-      setRowLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
-      setToast("Order has been cancelled.");
+      setCancelOverlay(null);
+      setToast("Cancellation notification sent to supplier.");
       setTimeout(() => setToast(null), 3500);
     }, 2000);
   }
@@ -752,27 +870,18 @@ export default function ReorderManagement() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleConfirmOrder(order.id)}
-                            disabled={!!rowLoading[order.id]}
-                            title="Confirm with Supplier"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/20 transition-all hover:bg-blue-500/20 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Open Supplier Email Simulation"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/20 transition-all hover:bg-blue-500/20 hover:text-blue-300"
                           >
-                            {rowLoading[order.id] === "confirming" ? (
-                              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Confirming...</>
-                            ) : (
-                              <><CheckCircle className="h-3.5 w-3.5" /> Confirm</>
-                            )}
+                            <Mail className="h-3.5 w-3.5" />
+                            Simulate Email
                           </button>
                           <button
                             onClick={() => handleCancelOrder(order.id)}
-                            disabled={!!rowLoading[order.id]}
                             title="Cancel Order"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20 hover:text-red-300"
                           >
-                            {rowLoading[order.id] === "cancelling" ? (
-                              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Cancelling...</>
-                            ) : (
-                              <><XCircle className="h-3.5 w-3.5" /> Cancel</>
-                            )}
+                            <XCircle className="h-3.5 w-3.5" /> Cancel
                           </button>
                         </div>
                       )}
@@ -813,6 +922,16 @@ export default function ReorderManagement() {
 
       {/* Toast */}
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
+      {/* Supplier Email Simulation Modal */}
+      <SupplierEmailModal
+        order={supplierEmailModal?.order ?? null}
+        onConfirm={handleSupplierConfirm}
+        onClose={() => setSupplierEmailModal(null)}
+      />
+
+      {/* Cancellation Overlay */}
+      {cancelOverlay && <CancelOverlay />}
     </div>
   );
 }
