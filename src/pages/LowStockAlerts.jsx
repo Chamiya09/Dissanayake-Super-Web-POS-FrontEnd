@@ -65,8 +65,15 @@ const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
   const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
-  const [step, setStep] = useState(1);
-  const [qty,  setQty]  = useState(aiQty);
+  const [step,    setStep]    = useState(1);
+  const [stepDir, setStepDir] = useState("fwd");
+  const [qty,     setQty]     = useState(aiQty);
+
+  // Directional navigation — sets animation direction before updating step
+  function goTo(n) {
+    setStepDir(n > step ? "fwd" : "bwd");
+    setStep(n);
+  }
 
   // Lock supplier to the product's assigned supplier; fall back to first dummy entry
   const assignedSupplier = {
@@ -127,10 +134,10 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
             </div>
             <div>
               <h2 className="text-[15px] font-black text-slate-950 leading-tight">
-                Place Purchase Order
+                Purchase Order Wizard
               </h2>
-              <p className="text-[12px] text-slate-500 mt-0.5 truncate max-w-[260px]">
-                {item.productName}
+              <p className="text-[12px] text-slate-500 mt-0.5">
+                {step === 1 ? "Step 1 — Order Details" : "Step 2 — Email Preview"}
               </p>
             </div>
           </div>
@@ -151,20 +158,20 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
           ].map(({ n, label }, i) => (
             <div key={n} className="flex items-center gap-0">
               {i > 0 && (
-                <div className={`h-px w-8 mx-2 transition-colors ${step > 1 ? "bg-blue-600" : "bg-slate-200"}`} />
+                <div className={`h-px w-10 mx-2 transition-colors duration-300 ${step > 1 ? "bg-indigo-400" : "bg-slate-200"}`} />
               )}
               <div className="flex items-center gap-2">
-                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300 ring-2 ${
                   step === n
-                    ? "bg-blue-600 text-white"
+                    ? "bg-indigo-600 text-white ring-indigo-200"
                     : step > n
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-200 text-slate-500"
+                    ? "bg-indigo-600 text-white ring-indigo-200"
+                    : "bg-white text-slate-400 ring-slate-200"
                 }`}>
                   {step > n ? "✓" : n}
                 </div>
-                <span className={`text-[12px] font-semibold transition-colors ${
-                  step === n ? "text-slate-900" : step > n ? "text-blue-600" : "text-slate-400"
+                <span className={`text-[12px] font-semibold transition-colors duration-300 ${
+                  step === n ? "text-slate-900" : step > n ? "text-indigo-600" : "text-slate-400"
                 }`}>
                   {label}
                 </span>
@@ -174,7 +181,14 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
         </div>
 
         {/* ── Body (scrollable) ── */}
-        <div className="overflow-y-auto flex-1 px-5 py-4">
+        <div
+          key={step}
+          className={`overflow-y-auto flex-1 px-5 py-4 ${
+            stepDir === "fwd"
+              ? "animate-in slide-in-from-right-4 duration-300"
+              : "animate-in slide-in-from-left-4 duration-300"
+          }`}
+        >
 
           {/* ════ STEP 1: Reorder Details & AI Insight ════ */}
           {step === 1 && (
@@ -299,11 +313,26 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
           {step === 2 && (
             <div className="space-y-5">
 
-              {/* Summary chip */}
-              <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
-                <span className="text-[12px] text-slate-500">Ordering</span>
-                <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[12px] font-bold text-white">{qty} {item.unit ?? "units"}</span>
-                <span className="text-[12px] text-slate-500">of <span className="font-semibold text-slate-700">{item.productName}</span></span>
+              {/* Order Summary card */}
+              <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white px-4 py-3.5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-3">Order Summary</p>
+                <div className="grid grid-cols-3 gap-0 text-center divide-x divide-indigo-100">
+                  <div className="pr-3">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5">Item</p>
+                    <p className="text-[12px] font-bold text-slate-900 leading-tight line-clamp-2">{item.productName}</p>
+                    {item.sku && <p className="text-[10px] font-mono text-slate-400 mt-0.5">{item.sku}</p>}
+                  </div>
+                  <div className="px-3">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5">Quantity</p>
+                    <p className="text-[22px] font-black text-indigo-700 leading-tight tabular-nums">{qty}</p>
+                    <p className="text-[10px] text-slate-400">{item.unit ?? "units"}</p>
+                  </div>
+                  <div className="pl-3">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5">Supplier</p>
+                    <p className="text-[12px] font-bold text-slate-900 leading-tight line-clamp-2">{assignedSupplier.companyName}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">{assignedSupplier.contactPerson}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Assigned Supplier — locked, read-only */}
@@ -379,8 +408,8 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 Cancel
               </button>
               <button
-                onClick={() => setStep(2)}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
+                onClick={() => goTo(2)}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 Next: Review Email
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -389,10 +418,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
           ) : (
             <>
               <button
-                onClick={() => setStep(1)}
-                className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
+                onClick={() => goTo(1)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-5 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
               >
-                ← Back
+                <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+                Back
               </button>
               <button
                 onClick={() => onSubmit({ item, qty, supplier: assignedSupplier, emailBody })}
