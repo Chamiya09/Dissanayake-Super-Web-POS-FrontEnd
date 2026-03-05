@@ -15,6 +15,7 @@ import {
   ChevronRight,
   X,
   Eye,
+  Pencil,
   Trash2,
   ClipboardList,
   CheckCircle,
@@ -179,7 +180,141 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
     </div>
   );
 }
+// ─── Edit Order Modal ──────────────────────────────────────────────────────────
+function EditOrderModal({ order, onUpdate, onClose }) {
+  const [qty, setQty] = useState(order.quantity ?? 1);
 
+  const defaultMessage = [
+    `Dear ${order.supplierName},`,
+    ``,
+    `We would like to submit a revised Purchase Order (${order.id}) with the following updated details:`,
+    ``,
+    `  Product    : ${order.productName}`,
+    `  Quantity   : (see updated quantity above)`,
+    `  Order Date : ${order.orderDate}`,
+    ``,
+    `Please confirm the revised order at your earliest convenience.`,
+    ``,
+    `Warm regards,`,
+    `Dissanayake Super — Inventory Management Team`,
+    `procurement@dissanayakesuper.lk`,
+  ].join("\n");
+
+  const [message, setMessage] = useState(order.emailBody || defaultMessage);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-slate-900/80"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal card */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 shrink-0">
+              <Pencil className="h-[16px] w-[16px] text-white" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-black text-slate-950 leading-tight">Edit Purchase Order</h2>
+              <p className="text-[12px] text-slate-500 mt-0.5 truncate max-w-[240px]">{order.productName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close modal"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Order meta strip */}
+        <div className="flex items-center gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 shrink-0">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Order ID</p>
+            <p className="text-[12px] font-mono text-slate-600 mt-0.5">{order.id}</p>
+          </div>
+          <div className="h-6 w-px bg-slate-200" />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Supplier</p>
+            <p className="text-[12px] font-semibold text-slate-700 mt-0.5">{order.supplierName}</p>
+          </div>
+          <div className="h-6 w-px bg-slate-200" />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</p>
+            <p className="text-[12px] text-slate-600 mt-0.5">{order.orderDate}</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+          {/* Quantity */}
+          <div className="space-y-2">
+            <label className="block text-[13px] font-semibold text-slate-700">
+              Quantity to Order
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
+              >−</button>
+              <input
+                type="number" min="1" value={qty}
+                onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+              />
+              <button
+                onClick={() => setQty((q) => q + 1)}
+                className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
+              >+</button>
+            </div>
+          </div>
+
+          {/* Supplier message */}
+          <div className="space-y-2">
+            <label className="block text-[13px] font-semibold text-slate-700">
+              Supplier Message
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={8}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 shrink-0">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onUpdate({ id: order.id, qty, message })}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Update Purchase Order
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ─── Cancellation Overlay ────────────────────────────────────────────────────
 function CancelOverlay() {
   return (
@@ -190,6 +325,20 @@ function CancelOverlay() {
       <div className="text-center">
         <p className="text-base font-semibold text-white">Sending Cancellation Notice to Supplier...</p>
         <p className="mt-1 text-sm text-slate-400">Please wait while we notify them.</p>
+      </div>
+    </div>
+  );
+}
+
+function UpdateOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-slate-950">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-950 border-2 border-indigo-500">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+      </div>
+      <div className="text-center">
+        <p className="text-base font-semibold text-white">Sending Updated Purchase Order to Supplier...</p>
+        <p className="mt-1 text-sm text-slate-400">Please wait while we resend the order.</p>
       </div>
     </div>
   );
@@ -311,6 +460,12 @@ export default function ReorderManagement() {
   // ── Inline cancel confirmation: which order.id is awaiting confirm
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
 
+  // ── Edit order modal (null | order)
+  const [editOrderModal, setEditOrderModal] = useState(null);
+
+  // ── Update overlay
+  const [updateOverlay, setUpdateOverlay] = useState(false);
+
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
   const scaleMax      = Math.max(expectedStock, (product?.reorderLevel ?? 10)) * 1.5 || 100;
@@ -422,6 +577,23 @@ export default function ReorderManagement() {
       setToast("Cancellation notice sent to supplier.");
       setTimeout(() => setToast(null), 3500);
     }, 2000);
+  }
+
+  function handleUpdateOrder({ id, qty, message }) {
+    setEditOrderModal(null);
+    setUpdateOverlay(true);
+    setTimeout(() => {
+      setReorders((prev) =>
+        prev.map((o) =>
+          o.id === id
+            ? { ...o, quantity: qty, emailBody: message, status: "Pending" }
+            : o
+        )
+      );
+      setUpdateOverlay(false);
+      setToast("Purchase Order updated and resent to supplier.");
+      setTimeout(() => setToast(null), 3500);
+    }, 1500);
   }
 
   function handleMarkAsReceived(id) {
@@ -559,6 +731,17 @@ export default function ReorderManagement() {
                             <Eye className="h-3.5 w-3.5" />
                             View
                           </button>
+                          {/* Edit — Pending only */}
+                          {order.status === "Pending" && (
+                            <button
+                              onClick={() => setEditOrderModal(order)}
+                              title="Edit Order"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 active:scale-95 transition-all duration-200"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
+                            </button>
+                          )}
                           {/* Cancel — Pending only */}
                           {order.status === "Pending" && (
                             <button
@@ -605,6 +788,18 @@ export default function ReorderManagement() {
 
       {/* Cancellation Overlay */}
       {cancelOverlay && <CancelOverlay />}
+
+      {/* Update Overlay */}
+      {updateOverlay && <UpdateOverlay />}
+
+      {/* Edit Order Modal */}
+      {editOrderModal && (
+        <EditOrderModal
+          order={editOrderModal}
+          onUpdate={handleUpdateOrder}
+          onClose={() => setEditOrderModal(null)}
+        />
+      )}
     </div>
   );
 }
