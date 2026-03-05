@@ -2,6 +2,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
 import { useNotification } from "@/context/NotificationContext";
@@ -23,6 +24,8 @@ import {
   CheckCircle,
   XCircle,
   PackageCheck,
+  Search,
+  FileDown,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -478,6 +481,16 @@ export default function ReorderManagement() {
   // ── Cancellation overlay  (null | { orderId })
   const [cancelOverlay, setCancelOverlay] = useState(null);
 
+  // ── Search & filter
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const filteredReorders = reorders.filter((o) => {
+    const matchesSearch = o.supplierName?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "All" || o.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   // ── Inline cancel confirmation: which order.id is awaiting confirm
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
 
@@ -663,19 +676,48 @@ export default function ReorderManagement() {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
           {/* Section header */}
-          <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 shrink-0">
-                <ClipboardList className="h-4 w-4 text-white" />
+          <div className="flex flex-col gap-4 px-6 py-5 border-b border-slate-200">
+            {/* Title row */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 shrink-0">
+                  <ClipboardList className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Purchase Order History</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">All orders placed through this system</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Purchase Order History</h2>
-                <p className="text-xs text-slate-500 mt-0.5">All orders placed through this system</p>
-              </div>
+              <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
+              </span>
             </div>
-            <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-              {reorders.length} orders
-            </span>
+
+            {/* Search + filter controls */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Search by supplier */}
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by supplier name…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
+                />
+              </div>
+
+              {/* Status filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition appearance-none cursor-pointer sm:w-44"
+              >
+                {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
+                  <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Table */}
@@ -694,7 +736,7 @@ export default function ReorderManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {reorders.map((order, idx) => (
+                {filteredReorders.map((order, idx) => (
                   <tr
                     key={order.id}
                     className={`transition-colors hover:bg-blue-50/50 ${
@@ -752,6 +794,15 @@ export default function ReorderManagement() {
                             <Eye className="h-3.5 w-3.5" />
                             View
                           </button>
+                          {/* Download PDF — available for every status */}
+                          <button
+                            onClick={() => generatePurchaseOrderPDF(order, managerName)}
+                            title="Download Purchase Order PDF"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
+                          >
+                            <FileDown className="h-3.5 w-3.5" />
+                            PDF
+                          </button>
                           {/* Edit — Pending only */}
                           {order.status === "Pending" && (
                             <button
@@ -784,10 +835,22 @@ export default function ReorderManagement() {
           </div>
 
           {/* Empty state */}
-          {reorders.length === 0 && (
+          {filteredReorders.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <ClipboardList className="h-10 w-10 text-slate-300" strokeWidth={1.2} />
-              <p className="text-sm font-medium text-slate-500">No purchase orders yet</p>
+              {reorders.length === 0 ? (
+                <p className="text-sm font-medium text-slate-500">No purchase orders yet</p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-500">No orders match your search</p>
+                  <button
+                    onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
