@@ -13,19 +13,38 @@ import {
   Building2,
   ChevronRight,
   X,
+  ClipboardList,
+  MoreHorizontal,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatusBadge({ status }) {
   const map = {
-    LOW_STOCK:    { cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400", label: "Low Stock"    },
-    OUT_OF_STOCK: { cls: "bg-red-100   text-red-700   dark:bg-red-900/20   dark:text-red-400",   label: "Out of Stock" },
+    LOW_STOCK:    { dot: "bg-amber-500", cls: "bg-amber-500/10 text-amber-700 border border-amber-200 dark:text-amber-400 dark:border-amber-800", label: "Low Stock"    },
+    OUT_OF_STOCK: { dot: "bg-red-500",   cls: "bg-red-500/10   text-red-700   border border-red-200   dark:text-red-400   dark:border-red-800",   label: "Out of Stock" },
   };
-  const s = map[status] ?? { cls: "bg-muted text-muted-foreground", label: status };
+  const s = map[status] ?? { dot: "bg-slate-400", cls: "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700", label: status };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${s.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.dot}`} />
       {s.label}
+    </span>
+  );
+}
+
+function OrderStatusBadge({ status }) {
+  const map = {
+    Pending:   { cls: "bg-amber-500/10 text-amber-400 border border-amber-500/20",  dot: "bg-amber-400"  },
+    Confirmed: { cls: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20", dot: "bg-indigo-400" },
+    Received:  { cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", dot: "bg-emerald-400" },
+    Cancelled: { cls: "bg-red-500/10 text-red-400 border border-red-500/20",          dot: "bg-red-400"    },
+  };
+  const s = map[status] ?? { cls: "bg-gray-500/10 text-gray-400 border border-gray-500/20", dot: "bg-gray-400" };
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${s.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.dot}`} />
+      {status}
     </span>
   );
 }
@@ -34,28 +53,28 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-1 items-center gap-3 rounded-xl border-2 p-4 text-left transition-all
+      className={`flex flex-1 items-center gap-3 rounded-xl border-2 p-4 text-left transition-all duration-150
         ${isActive
-          ? "border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/30"
+          ? "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/30"
           : isCompleted
-            ? "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/20"
-            : "border-border dark:border-gray-700"
+            ? "border-emerald-500 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/20"
+            : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
         }`}
     >
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold
-        ${isActive    ? "bg-indigo-600 text-white"
+        ${isActive    ? "bg-blue-600 text-white"
         : isCompleted ? "bg-emerald-500 text-white"
-        :               "bg-muted text-muted-foreground dark:bg-gray-700 dark:text-gray-400"}`}>
+        :               "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>
         {isCompleted ? <Check className="h-4 w-4" /> : step}
       </div>
       <div className="min-w-0">
         <p className={`truncate text-sm font-semibold
-          ${isActive    ? "text-indigo-700 dark:text-indigo-300"
+          ${isActive    ? "text-blue-700 dark:text-blue-300"
           : isCompleted ? "text-emerald-700 dark:text-emerald-400"
-          :               "text-foreground dark:text-gray-100"}`}>
+          :               "text-slate-700 dark:text-slate-200"}`}>
           {label}
         </p>
-        <p className="truncate text-xs text-muted-foreground dark:text-gray-500">{desc}</p>
+        <p className="truncate text-xs text-slate-400 dark:text-slate-500">{desc}</p>
       </div>
     </button>
   );
@@ -89,6 +108,34 @@ export default function ReorderManagement() {
 
   // Product injected by Low Stock Alerts via navigate state
   const [product, setProduct] = useState(location.state?.product ?? null);
+
+  // ── Recent Purchase Orders history ──────────────────────────────────────────
+  const [reorders] = useState([
+    {
+      id: "PO-2025-001",
+      productName: "Araliya Samba Rice 5kg",
+      supplierName: "Araliya Rice Mills",
+      quantity: 50,
+      orderDate: "2025-02-18",
+      status: "Received",
+    },
+    {
+      id: "PO-2025-002",
+      productName: "Sunflower Cooking Oil 1L",
+      supplierName: "Edible Oils Lanka Pvt Ltd",
+      quantity: 120,
+      orderDate: "2025-02-27",
+      status: "Confirmed",
+    },
+    {
+      id: "PO-2025-003",
+      productName: "Anchor Full Cream Milk Powder 400g",
+      supplierName: "Anchor Dairy Distributors",
+      quantity: 75,
+      orderDate: "2025-03-04",
+      status: "Pending",
+    },
+  ]);
 
   // â”€â”€ Steps: "config" | "email" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [step, setStep] = useState("config");
@@ -181,20 +228,24 @@ export default function ReorderManagement() {
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto space-y-6 px-6 py-6">
+      <div className="flex-1 overflow-y-auto space-y-6 px-4 sm:px-6 py-6">
 
-        {/* â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground dark:text-white">
-            <Package className="h-6 w-6 text-indigo-500" />
-            Reorder Management
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground dark:text-gray-400">
-            Configure a purchase order and send it directly to your supplier.
-          </p>
+        {/* Heading */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
+            <Package className="h-5 w-5 text-white dark:text-slate-900" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 leading-tight">
+              Reorder Management
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Configure a purchase order and send it directly to your supplier.
+            </p>
+          </div>
         </div>
 
         {/* â”€â”€ Step pill nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -205,7 +256,7 @@ export default function ReorderManagement() {
             isCompleted={step === "email"}
             onClick={() => { if (product) setStep("config"); }}
           />
-          <ChevronRight className="hidden h-5 w-5 shrink-0 self-center text-muted-foreground dark:text-gray-600 sm:block" />
+          <ChevronRight className="hidden h-5 w-5 shrink-0 self-center text-slate-300 dark:text-slate-600 sm:block" />
           <StepButton
             step={2} label="Supplier Communication" desc="Review &amp; send the email"
             isActive={step === "email"}
@@ -218,11 +269,11 @@ export default function ReorderManagement() {
             NO PRODUCT SELECTED
         â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {!product && (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border py-24 text-center dark:border-gray-700">
-            <Package className="h-14 w-14 text-muted-foreground/30" />
+          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-24 text-center">
+            <Package className="h-14 w-14 text-slate-300 dark:text-slate-700" strokeWidth={1.2} />
             <div>
-              <p className="text-lg font-bold text-foreground dark:text-white">No product selected</p>
-              <p className="mt-1 text-sm text-muted-foreground dark:text-gray-400">
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-50">No product selected</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Go to <strong>Low Stock Alerts</strong> and click "Prepare Order" on a product to start.
               </p>
             </div>
@@ -246,16 +297,16 @@ export default function ReorderManagement() {
             <div className="space-y-5">
 
               {/* Product info */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                       Selected Product
                     </p>
-                    <h2 className="mt-1 text-xl font-bold text-foreground dark:text-white">
+                    <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-50">
                       {product.productName}
                     </h2>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground dark:text-gray-400">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                       <span>{product.category ?? "â€”"}</span>
                       {product.sku && <><span>Â·</span><span className="font-mono text-xs">{product.sku}</span></>}
                     </div>
@@ -264,24 +315,24 @@ export default function ReorderManagement() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-muted/60 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">Current Stock</p>
+                  <div className="rounded-xl bg-slate-50/80 p-4 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Current Stock</p>
                     <p className={`mt-1 text-2xl font-bold tabular-nums ${
                       product.stockStatus === "OUT_OF_STOCK"
                         ? "text-red-600 dark:text-red-400"
                         : "text-amber-600 dark:text-amber-400"
                     }`}>
                       {product.stockQuantity}
-                      <span className="ml-1 text-sm font-normal text-muted-foreground dark:text-gray-400">
+                      <span className="ml-1 text-sm font-normal text-slate-400 dark:text-slate-500">
                         {product.unit ?? "units"}
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-xl bg-muted/60 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">Reorder Level</p>
-                    <p className="mt-1 text-2xl font-bold tabular-nums text-foreground dark:text-white">
+                  <div className="rounded-xl bg-slate-50/80 p-4 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Reorder Level</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-50">
                       {product.reorderLevel}
-                      <span className="ml-1 text-sm font-normal text-muted-foreground dark:text-gray-400">
+                      <span className="ml-1 text-sm font-normal text-slate-400 dark:text-slate-500">
                         {product.unit ?? "units"}
                       </span>
                     </p>
@@ -290,10 +341,10 @@ export default function ReorderManagement() {
               </div>
 
               {/* Order Quantity */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <p className="text-sm font-semibold text-foreground dark:text-white">
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                   Order Quantity
-                  <span className="ml-1.5 text-xs font-normal text-muted-foreground dark:text-gray-400">
+                  <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                     (suggested: {Math.max(1, Math.ceil((product.reorderLevel ?? 0) - (product.stockQuantity ?? 0)))} {product.unit ?? "units"})
                   </span>
                 </p>
@@ -313,7 +364,7 @@ export default function ReorderManagement() {
                     onClick={() => setOrderQty((q) => q + 1)}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50 text-lg font-bold text-blue-700 transition-all hover:border-blue-500 hover:bg-blue-100 active:scale-95 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:border-blue-500 dark:hover:bg-blue-800/50"
                   >+</button>
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
+                  <span className="text-sm text-slate-400 dark:text-slate-500">
                     {product.unit ?? "units"}
                   </span>
                 </div>
@@ -324,10 +375,10 @@ export default function ReorderManagement() {
             <div className="space-y-5">
 
               {/* Stock Preview */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="mb-5 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-indigo-500" />
-                  <h3 className="text-sm font-semibold text-foreground dark:text-white">
+                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                     Stock After Order = {product.stockQuantity} + {orderQty} = <span className="text-emerald-600 dark:text-emerald-400">{expectedStock}</span>
                   </h3>
                 </div>
@@ -342,29 +393,29 @@ export default function ReorderManagement() {
                     }`}>
                       {product.stockQuantity}
                     </div>
-                    <p className="text-xs text-muted-foreground dark:text-gray-500">Current</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Current</p>
                   </div>
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">+</div>
-                    <p className="text-xs font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">{orderQty}</p>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">+</div>
+                    <p className="text-xs font-semibold tabular-nums text-blue-600 dark:text-blue-400">{orderQty}</p>
                   </div>
                   {/* Expected */}
                   <div className="flex flex-col items-center gap-1.5">
                     <div className="flex h-14 w-16 items-center justify-center rounded-xl bg-emerald-100 text-xl font-bold tabular-nums text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
                       {expectedStock}
                     </div>
-                    <p className="text-xs text-muted-foreground dark:text-gray-500">Expected</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Expected</p>
                   </div>
                 </div>
 
                 {/* Progress bars */}
                 <div className="space-y-3">
                   <div>
-                    <div className="mb-1.5 flex justify-between text-xs text-muted-foreground dark:text-gray-400">
+                    <div className="mb-1.5 flex justify-between text-xs text-slate-400 dark:text-slate-500">
                       <span>Current stock</span>
                       <span className="tabular-nums">{product.stockQuantity} {product.unit ?? "units"}</span>
                     </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted dark:bg-gray-700">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                       <div
                         className={`h-2.5 rounded-full transition-all duration-500 ${product.stockQuantity === 0 ? "bg-red-500" : "bg-amber-500"}`}
                         style={{ width: `${Math.max(2, currentPct)}%` }}
@@ -372,20 +423,20 @@ export default function ReorderManagement() {
                     </div>
                   </div>
                   <div>
-                    <div className="mb-1.5 flex justify-between text-xs text-muted-foreground dark:text-gray-400">
+                    <div className="mb-1.5 flex justify-between text-xs text-slate-400 dark:text-slate-500">
                       <span>After reorder</span>
                       <span className="tabular-nums">{expectedStock} {product.unit ?? "units"}</span>
                     </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted dark:bg-gray-700">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                       <div
                         className="h-2.5 rounded-full bg-emerald-500 transition-all duration-500"
                         style={{ width: `${Math.max(2, expectedPct)}%` }}
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground dark:text-gray-500">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     Reorder threshold:{" "}
-                    <span className="font-medium text-foreground dark:text-gray-300">
+                    <span className="font-medium text-slate-600 dark:text-slate-300">
                       {product.reorderLevel} {product.unit ?? "units"}
                     </span>
                     {expectedStock >= product.reorderLevel && (
@@ -396,15 +447,15 @@ export default function ReorderManagement() {
               </div>
 
               {/* Supplier Selection */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="mb-4 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-indigo-500" />
-                  <h3 className="text-sm font-semibold text-foreground dark:text-white">Supplier Information</h3>
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Supplier Information</h3>
                 </div>
 
                 {suppliersLoading ? (
-                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground dark:text-gray-400">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading suppliersâ€¦
+                  <div className="flex items-center gap-2 py-4 text-sm text-slate-400 dark:text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading suppliers…
                   </div>
                 ) : (
                   <>
@@ -413,7 +464,7 @@ export default function ReorderManagement() {
                       onChange={(e) =>
                         setSelectedSupplier(suppliers.find((s) => s.id === parseInt(e.target.value)) ?? null)
                       }
-                      className="mb-4 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                      className="mb-4 w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-600 transition-all duration-200 cursor-pointer"
                     >
                       {suppliers.map((s) => (
                         <option key={s.id} value={s.id}>{s.companyName}</option>
@@ -423,18 +474,18 @@ export default function ReorderManagement() {
                     {selectedSupplier && (
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-xl bg-muted/60 p-3 dark:bg-gray-700/50">
-                            <p className="text-xs text-muted-foreground dark:text-gray-400">Company</p>
-                            <p className="mt-0.5 truncate text-sm font-semibold text-foreground dark:text-white">{selectedSupplier.companyName}</p>
+                          <div className="rounded-xl bg-slate-50/80 p-3 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Company</p>
+                            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-slate-50">{selectedSupplier.companyName}</p>
                           </div>
-                          <div className="rounded-xl bg-muted/60 p-3 dark:bg-gray-700/50">
-                            <p className="text-xs text-muted-foreground dark:text-gray-400">Contact</p>
-                            <p className="mt-0.5 truncate text-sm font-semibold text-foreground dark:text-white">{selectedSupplier.contactPerson}</p>
+                          <div className="rounded-xl bg-slate-50/80 p-3 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Contact</p>
+                            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-slate-50">{selectedSupplier.contactPerson}</p>
                           </div>
                         </div>
-                        <div className="rounded-xl bg-muted/60 p-3 dark:bg-gray-700/50">
-                          <p className="text-xs text-muted-foreground dark:text-gray-400">Email</p>
-                          <p className="mt-0.5 text-sm font-medium text-indigo-600 dark:text-indigo-400">{selectedSupplier.email}</p>
+                        <div className="rounded-xl bg-slate-50/80 p-3 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Email</p>
+                          <p className="mt-0.5 text-sm font-medium text-blue-600 dark:text-blue-400">{selectedSupplier.email}</p>
                         </div>
                       </div>
                     )}
@@ -447,10 +498,10 @@ export default function ReorderManagement() {
 
         {/* Action row for Step 1 */}
         {product && step === "config" && (
-          <div className="flex items-center justify-between border-t border-border pt-4 dark:border-gray-700">
+          <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
             <button
               onClick={() => navigate("/low-stock")}
-              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100"
+              className="flex items-center gap-1.5 text-[13px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Alerts
@@ -473,8 +524,8 @@ export default function ReorderManagement() {
           <div className="space-y-5">
             {sent ? (
               /* Success state */
-              <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-emerald-200 bg-emerald-50 py-16 text-center dark:border-emerald-800 dark:bg-emerald-950/20">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg">
+              <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-emerald-200 bg-emerald-50 py-16 text-center dark:border-emerald-800/50 dark:bg-emerald-950/10">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
                   <Check className="h-8 w-8" />
                 </div>
                 <div>
@@ -494,52 +545,52 @@ export default function ReorderManagement() {
             ) : (
               /* Email compose */
               <div className="mx-auto max-w-3xl">
-                <div className="rounded-2xl border border-border bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
                   {/* Header bar */}
-                  <div className="flex items-center gap-3 border-b border-border px-6 py-4 dark:border-gray-700">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40">
-                      <Mail className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                      <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground dark:text-white">Purchase Order Email</p>
-                      <p className="text-xs text-muted-foreground dark:text-gray-400">Review and send to supplier</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Purchase Order Email</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">Review and send to supplier</p>
                     </div>
                   </div>
 
                   <div className="space-y-5 p-6">
                     {/* To */}
-                    <div className="flex items-center gap-3 rounded-lg bg-muted/60 px-4 py-2.5 dark:bg-gray-700/50">
-                      <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">To</span>
-                      <span className="text-sm text-foreground dark:text-white">{selectedSupplier?.email ?? "â€”"}</span>
+                    <div className="flex items-center gap-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700 px-4 py-2.5">
+                      <span className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">To</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-200">{selectedSupplier?.email ?? "—"}</span>
                     </div>
 
                     {/* Subject */}
-                    <div className="flex items-center gap-3 rounded-lg bg-muted/60 px-4 py-2.5 dark:bg-gray-700/50">
-                      <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">Subject</span>
-                      <span className="text-sm font-medium text-foreground dark:text-white">
+                    <div className="flex items-center gap-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700 px-4 py-2.5">
+                      <span className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Subject</span>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         Purchase Order for {product.productName}
                       </span>
                     </div>
 
                     {/* Body */}
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">
+                      <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                         Message
                       </label>
                       <textarea
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
                         rows={14}
-                        className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-600 transition-all duration-200"
                       />
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between border-t border-border pt-4 dark:border-gray-700">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
                       <button
                         onClick={() => setStep("config")}
-                        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100"
+                        className="flex items-center gap-1.5 text-[13px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
                       >
                         <ArrowLeft className="h-4 w-4" /> Back
                       </button>
@@ -559,6 +610,95 @@ export default function ReorderManagement() {
             )}
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            RECENT PURCHASE ORDERS HISTORY
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="rounded-2xl border border-gray-700 bg-gray-800/50 shadow-lg overflow-hidden">
+
+          {/* Section header */}
+          <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700/60">
+                <ClipboardList className="h-4 w-4 text-gray-300" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-100">Recent Purchase Orders</h2>
+                <p className="text-xs text-gray-400 mt-0.5">History of orders placed through this system</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center justify-center rounded-full bg-gray-700/60 px-2.5 py-0.5 text-xs font-semibold text-gray-300">
+              {reorders.length} orders
+            </span>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 bg-gray-900/40">
+                  {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", "Actions"].map((h) => (
+                    <th
+                      key={h}
+                      className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-400"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/60">
+                {reorders.map((order, idx) => (
+                  <tr
+                    key={order.id}
+                    className={`transition-colors hover:bg-gray-700/30 ${
+                      idx % 2 === 0 ? "bg-transparent" : "bg-gray-800/30"
+                    }`}
+                  >
+                    <td className="px-5 py-4 font-mono text-xs text-gray-300 whitespace-nowrap">
+                      {order.id}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-medium text-gray-100">{order.productName}</span>
+                    </td>
+                    <td className="px-5 py-4 text-gray-300 whitespace-nowrap">
+                      {order.supplierName}
+                    </td>
+                    <td className="px-5 py-4 tabular-nums text-gray-200 font-semibold whitespace-nowrap">
+                      {order.quantity}
+                    </td>
+                    <td className="px-5 py-4 tabular-nums text-gray-400 whitespace-nowrap">
+                      {new Date(order.orderDate).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <OrderStatusBadge status={order.status} />
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-100"
+                        title="Actions"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Empty state (hidden when there are rows, kept for completeness) */}
+          {reorders.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <ClipboardList className="h-10 w-10 text-gray-600" strokeWidth={1.2} />
+              <p className="text-sm font-medium text-gray-400">No purchase orders yet</p>
+            </div>
+          )}
+        </div>
 
       </div>
 
