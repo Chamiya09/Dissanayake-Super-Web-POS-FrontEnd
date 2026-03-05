@@ -12,6 +12,7 @@ interface ViewAssignedProductsModalProps {
   isOpen: boolean;
   onClose: () => void;
   supplier: Supplier | null;
+  onProductUnassigned?: (product: MgmtProduct) => void;
 }
 
 const categoryColour: Record<string, string> = {
@@ -40,6 +41,7 @@ export function ViewAssignedProductsModal({
   isOpen,
   onClose,
   supplier,
+  onProductUnassigned,
 }: ViewAssignedProductsModalProps) {
   const [products, setProducts]     = useState<MgmtProduct[]>([]);
   const [loading, setLoading]       = useState(false);
@@ -73,6 +75,7 @@ export function ViewAssignedProductsModal({
     try {
       await supplierApi.unassignProduct(product.id);
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      onProductUnassigned?.(product);
     } catch {
       setError(`Failed to unassign "${product.productName}". Please try again.`);
     } finally {
