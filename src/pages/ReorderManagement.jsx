@@ -155,7 +155,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
           <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
             <button
               onClick={onClose}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
             >
               Close
             </button>
@@ -168,9 +168,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
             </p>
             <button
               onClick={onConfirm}
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm
-                         hover:bg-indigo-500 active:scale-95 transition-all
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
             >
               <CheckCircle className="h-4 w-4" />
               Confirm Order
@@ -539,13 +537,13 @@ export default function ReorderManagement() {
                           <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Cancel this order?</span>
                           <button
                             onClick={() => handleCancelOrder(order.id)}
-                            className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
+                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
                           >
                             Yes
                           </button>
                           <button
                             onClick={() => setCancelConfirmId(null)}
-                            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition-all duration-200"
                           >
                             No
                           </button>
@@ -556,7 +554,7 @@ export default function ReorderManagement() {
                           <button
                             onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
                             title="View order email"
-                            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             View
@@ -566,7 +564,7 @@ export default function ReorderManagement() {
                             <button
                               onClick={() => setCancelConfirmId(order.id)}
                               title="Cancel Order"
-                              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               Cancel
