@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
@@ -432,6 +432,17 @@ export default function ReorderManagement() {
 
   // ── Recent Purchase Orders — live via ReorderContext ───────────────────────
   const { reorders, setReorders } = useReorder();
+
+  // -- History: fetch from API on mount
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const fetchHistory = useCallback((currentSuppliers = []) => {
+    setHistoryLoading(true);
+    getHistory(currentSuppliers)
+      .then((orders) => setReorders(orders))
+      .catch(() => { /* keep optimistic entries on error */ })
+      .finally(() => setHistoryLoading(false));
+  }, [setReorders]);
 
   // â”€â”€ Steps: "config" | "email" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [step, setStep] = useState("config");
