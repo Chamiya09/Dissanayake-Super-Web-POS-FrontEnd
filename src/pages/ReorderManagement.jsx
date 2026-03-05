@@ -162,7 +162,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
             {/* To */}
             <div className="flex gap-3 px-4 py-2.5">
               <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0 pt-px">To:</span>
-              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail ?? `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.lk`}</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail ?? "—"}</span>
             </div>
             {/* Subject */}
             <div className="flex gap-3 px-4 py-2.5">
@@ -468,7 +468,16 @@ export default function ReorderManagement() {
       .then((r) => {
         const data = Array.isArray(r.data) && r.data.length > 0 ? r.data : DUMMY_SUPPLIERS;
         setSuppliers(data);
-        setSelectedSupplier((prev) => prev ?? data[0]);
+        setSelectedSupplier((prev) => {
+          if (prev) return prev;
+          // Auto-select the supplier that matches the product's assigned supplierEmail
+          const productEmail = location.state?.product?.supplierEmail;
+          if (productEmail) {
+            const match = data.find((s) => s.email === productEmail);
+            if (match) return match;
+          }
+          return data[0];
+        });
       })
       .catch(() => {
         setSuppliers(DUMMY_SUPPLIERS);

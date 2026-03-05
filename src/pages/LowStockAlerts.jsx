@@ -53,14 +53,6 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   );
 }
 
-// ─── Modal suppliers (mirrors ReorderManagement fallback list) ───────────────
-
-const MODAL_SUPPLIERS = [
-  { id: 1, companyName: "Araliya Rice Mills",        contactPerson: "Nihal Perera",   email: "orders@araliyarice.lk"    },
-  { id: 2, companyName: "Edible Oils Lanka Pvt Ltd", contactPerson: "Chaminda Silva", email: "supply@edibleoils.lk"     },
-  { id: 3, companyName: "Anchor Dairy Distributors", contactPerson: "Priya Fernando", email: "purchaseorders@anchor.lk" },
-];
-
 const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
 
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
@@ -77,12 +69,13 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
     setStep(n);
   }
 
-  // Lock supplier to the product's assigned supplier; fall back to first dummy entry
+  // Supplier details come from the real API (supplierName / supplierEmail on the item).
+  // Both fields are nullable — a product with no assigned supplier shows a warning.
   const assignedSupplier = {
-    companyName:   item.supplierName    ?? MODAL_SUPPLIERS[0].companyName,
-    contactPerson: item.supplierContact ?? MODAL_SUPPLIERS[0].contactPerson,
-    email:         item.supplierEmail   ?? MODAL_SUPPLIERS[0].email,
+    companyName:   item.supplierName  ?? null,
+    email:         item.supplierEmail ?? null,
   };
+  const hasSupplier = Boolean(assignedSupplier.email);
 
   const gap      = Math.max(0, (item.reorderLevel ?? 0) - (item.stockQuantity ?? 0));
   const velocity = Math.max(1, Math.round((item.reorderLevel ?? 10) / 3));
@@ -90,7 +83,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
   const stockPct = Math.min(100, ((item.stockQuantity ?? 0) / Math.max(1, item.reorderLevel ?? 1)) * 100);
 
   const emailBody = [
-    `Dear ${assignedSupplier.contactPerson},`,
+    `Dear ${assignedSupplier.companyName ?? "Supplier"},`,
     ``,
     `We are placing a formal purchase order for the following item:`,
     ``,
@@ -331,8 +324,12 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   </div>
                   <div className="pl-3">
                     <p className="text-[10px] font-medium text-slate-400 mb-0.5">Supplier</p>
-                    <p className="text-[12px] font-bold text-slate-900 leading-tight line-clamp-2">{assignedSupplier.companyName}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">{assignedSupplier.contactPerson}</p>
+                    <p className="text-[12px] font-bold text-slate-900 leading-tight line-clamp-2">
+                      {assignedSupplier.companyName ?? <span className="text-slate-400 font-normal italic">Not assigned</span>}
+                    </p>
+                    {assignedSupplier.email && (
+                      <p className="text-[10px] text-slate-400 mt-0.5 truncate">{assignedSupplier.email}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -344,18 +341,30 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   Assigned Supplier
                 </label>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="flex items-start gap-3">
+                  {!hasSupplier && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <p className="text-[12px] font-medium text-amber-700">
+                      No supplier assigned to this product. Please assign one in the Suppliers page before placing an order.
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-start gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200 mt-0.5">
                       <Building2 className="h-4 w-4 text-slate-500" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-slate-900 leading-tight">{assignedSupplier.companyName}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{assignedSupplier.email}</p>
-                      {assignedSupplier.contactPerson && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">Attn: {assignedSupplier.contactPerson}</p>
+                      <p className="text-[13px] font-bold text-slate-900 leading-tight">
+                        {assignedSupplier.companyName ?? <span className="text-slate-400 italic font-normal">No supplier assigned</span>}
+                      </p>
+                      {assignedSupplier.email && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{assignedSupplier.email}</p>
                       )}
                     </div>
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">Assigned</span>
+                    {hasSupplier
+                      ? <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">Assigned</span>
+                      : <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">Unassigned</span>
+                    }
                   </div>
                 </div>
               </div>
@@ -430,7 +439,9 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
               </button>
               <button
                 onClick={() => onSubmit({ item, qty, supplier: assignedSupplier, emailBody })}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                disabled={!hasSupplier}
+                title={!hasSupplier ? "Assign a supplier to this product before placing an order" : undefined}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
               >
                 <Send className="h-3.5 w-3.5" />
                 Send Purchase Order
