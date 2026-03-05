@@ -6,6 +6,7 @@ import { AddSupplierModal } from "@/components/Suppliers/AddSupplierModal";
 import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
+import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
 import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
@@ -41,10 +42,12 @@ export default function Suppliers() {
   const [editTarget, setEditTarget]     = useState<Supplier | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supplier | null>(null);
   const [assignTarget, setAssignTarget] = useState<Supplier | null>(null);
+  const [viewTarget, setViewTarget]     = useState<Supplier | null>(null);
 
   const isEditOpen   = editTarget   !== null;
   const isDeleteOpen = deleteTarget !== null;
   const isAssignOpen = assignTarget !== null;
+  const isViewOpen   = viewTarget   !== null;
 
   /* ── Load suppliers from API ── */
   const fetchSuppliers = useCallback(async () => {
@@ -203,6 +206,7 @@ export default function Suppliers() {
             onEdit={(s) => setEditTarget(s)}
             onDelete={(s) => setDeleteTarget(s)}
             onAssign={(s) => setAssignTarget(s)}
+            onViewProducts={(s) => setViewTarget(s)}
           />
         </div>
       </div>
@@ -232,6 +236,11 @@ export default function Suppliers() {
         availableProducts={availableProducts}
         productsLoading={productsLoading}
         onAssign={handleAssign}
+      />
+      <ViewAssignedProductsModal
+        isOpen={isViewOpen}
+        onClose={() => setViewTarget(null)}
+        supplier={viewTarget}
       />
     </div>
   );

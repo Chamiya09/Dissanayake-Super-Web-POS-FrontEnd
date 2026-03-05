@@ -280,8 +280,25 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
   }, [onUpdateQuantity, onRemoveItem]);
 
   const categoryEmoji: Record<string, string> = {
-    Fruits: "", Dairy: "", Beverages: "",
-    Bakery: "", Snacks: "", Meat: "", Vegetables: "",
+    "Fruits": "🍎",
+    "Vegetables": "🥦",
+    "Rice & Grains": "🌾",
+    "Dhal & Pulses": "🫘",
+    "Flour & Baking": "🌾",
+    "Cooking Oil": "🫙",
+    "Spices & Condiments": "🌶️",
+    "Dairy Products": "🥛",
+    "Eggs & Meat": "🥩",
+    "Instant Food": "🍜",
+    "Snacks": "🍿",
+    "Beverages": "🧃",
+    "Tea & Coffee": "☕",
+    "Frozen Foods": "🧊",
+    "Canned Foods": "🥫",
+    "Baby Products": "👶",
+    "Personal Care": "🧴",
+    "Cleaning Products": "🧹",
+    "Household Items": "🏠",
   };
 
   return (

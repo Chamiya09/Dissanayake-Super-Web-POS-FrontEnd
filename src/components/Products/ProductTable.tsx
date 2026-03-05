@@ -97,7 +97,26 @@ interface ProductTableProps {
 }
 
 export const CATEGORIES = [
-  "All", "Fruits", "Dairy", "Beverages", "Bakery", "Snacks", "Meat", "Vegetables",
+  "All",
+  "Fruits",
+  "Vegetables",
+  "Rice & Grains",
+  "Dhal & Pulses",
+  "Flour & Baking",
+  "Cooking Oil",
+  "Spices & Condiments",
+  "Dairy Products",
+  "Eggs & Meat",
+  "Instant Food",
+  "Snacks",
+  "Beverages",
+  "Tea & Coffee",
+  "Frozen Foods",
+  "Canned Foods",
+  "Baby Products",
+  "Personal Care",
+  "Cleaning Products",
+  "Household Items",
 ] as const;
 
 export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
