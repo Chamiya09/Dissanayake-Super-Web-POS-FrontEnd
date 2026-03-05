@@ -110,7 +110,7 @@ export default function ReorderManagement() {
   const [product, setProduct] = useState(location.state?.product ?? null);
 
   // ── Recent Purchase Orders history ──────────────────────────────────────────
-  const [reorders] = useState([
+  const [reorders, setReorders] = useState([
     {
       id: "PO-2025-001",
       productName: "Araliya Samba Rice 5kg",
@@ -173,10 +173,11 @@ export default function ReorderManagement() {
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
   // â”€â”€ Step B: Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const [emailBody,   setEmailBody]   = useState("");
-  const [sending,     setSending]     = useState(false);
-  const [sent,        setSent]        = useState(false);
-  const [toast,       setToast]       = useState(null);
+  const [emailBody,    setEmailBody]    = useState("");
+  const [sending,      setSending]      = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sent,         setSent]         = useState(false);
+  const [toast,        setToast]        = useState(null);
 
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
@@ -208,15 +209,41 @@ export default function ReorderManagement() {
     setStep("email");
   }
 
-  function handleSend() {
+  function handleCreateReorder(e) {
+    e?.preventDefault();
+    if (!product || !selectedSupplier || isSubmitting) return;
+
+    setIsSubmitting(true);
     setSending(true);
+
     setTimeout(() => {
+      // Build the new history entry
+      const newOrder = {
+        id:           `PO-${Date.now()}`,
+        productName:  product.productName,
+        supplierName: selectedSupplier.companyName,
+        quantity:     orderQty,
+        orderDate:    new Date().toISOString().slice(0, 10),
+        status:       "Pending",
+      };
+
+      // Prepend to history table
+      setReorders((prev) => [newOrder, ...prev]);
+
+      // Mark sent & show toast
       setSending(false);
+      setIsSubmitting(false);
       setSent(true);
-      setToast(`Purchase Order sent to ${selectedSupplier?.email ?? "supplier"} successfully!`);
+      setToast(`Purchase Order sent to ${selectedSupplier.email} successfully!`);
       setTimeout(() => setToast(null), 4500);
-    }, 2000);
+
+      // Reset form fields
+      setEmailBody("");
+    }, 1500);
   }
+
+  // Keep legacy alias so existing JSX call-sites still work
+  const handleSend = handleCreateReorder;
 
   function handleReset() {
     setProduct(null);
