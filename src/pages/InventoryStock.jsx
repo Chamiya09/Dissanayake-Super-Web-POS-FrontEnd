@@ -55,8 +55,8 @@ const getCategoryMeta = (category = "") => {
 
 // ─── Derive status from stock level ──────────────────────────────────────────
 const deriveStatus = (qty, reorder) => {
-  if (qty === 0)     return "Out of Stock";
-  if (qty < reorder) return "Low Stock";
+  if (qty === 0)      return "Out of Stock";
+  if (qty <= reorder) return "Low Stock";
   return "In Stock";
 };
 
@@ -678,7 +678,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
               </label>
               <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                  {currentQty < (item.reorderLevel ?? 10) && (
+                  {currentQty <= (item.reorderLevel ?? 10) && (
                     <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />
                   )}
                   {currentQty}
