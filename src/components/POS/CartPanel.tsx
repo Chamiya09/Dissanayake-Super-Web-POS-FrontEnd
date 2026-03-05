@@ -11,6 +11,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import Swal from "sweetalert2";
+import { PaymentMethodModal } from "./PaymentMethodModal";
+import type { PaymentMethodOption } from "./PaymentMethodModal";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -183,6 +185,7 @@ function SwipeableItem({
 export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -229,27 +232,9 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   const finalTotal        = parseFloat(Math.max(0, total - loyaltyDiscount).toFixed(2));
   const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
 
-  /*  Payment handler  */
-  const handlePayment = useCallback(async () => {
-    // ── Validation: payment method required ──────────────────────────────────
-    if (!paymentMethod) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Payment Method Required",
-        text: "Please select a Payment Method (Cash or Card) before proceeding!",
-        confirmButtonText: "Got it",
-        confirmButtonColor: "#4f46e5",
-        customClass: {
-          popup:          "!rounded-2xl !shadow-2xl",
-          title:          "!text-[17px] !font-bold !text-slate-900",
-          htmlContainer:  "!text-[13.5px] !text-slate-600",
-          confirmButton:  "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
-        },
-      });
-      return;
-    }
-
-    // ── Confirmation popup ───────────────────────────────────────────────────
+  /*  Core checkout executor — called after payment method is confirmed  */
+  const proceedWithCheckout = useCallback(async (method: string) => {
+    // ── Swal confirmation ────────────────────────────────────────────────────
     const result = await Swal.fire({
       icon: "question",
       title: "Confirm Sale",
@@ -261,7 +246,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <span style="color:#4f46e5">${formatCurrency(finalTotal)}</span>
           </div>
           <div style="margin-top:6px;font-size:12px;color:#94a3b8">
-            Payment via&nbsp;<strong style="color:#1e293b">${paymentMethod}</strong>
+            Payment via&nbsp;<strong style="color:#1e293b">${method}</strong>
           </div>
         </div>`,
       showCancelButton: true,
@@ -285,7 +270,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     // ── Execute checkout ─────────────────────────────────────────────────────
     setProcessing(true);
     try {
-      await onCheckout?.(finalTotal, paymentMethod);
+      await onCheckout?.(finalTotal, method);
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
@@ -294,7 +279,23 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     } finally {
       setProcessing(false);
     }
-  }, [finalTotal, paymentMethod, onCheckout]);
+  }, [finalTotal, onCheckout]);
+
+  /*  Payment handler — opens selection modal if no method set, else proceeds  */
+  const handlePayment = useCallback(async () => {
+    if (!paymentMethod) {
+      setPaymentModalOpen(true);
+      return;
+    }
+    await proceedWithCheckout(paymentMethod);
+  }, [paymentMethod, proceedWithCheckout]);
+
+  /*  Called by PaymentMethodModal when the user confirms a method  */
+  const handleModalConfirm = useCallback(async (method: PaymentMethodOption) => {
+    setPaymentMethod(method);
+    setPaymentModalOpen(false);
+    await proceedWithCheckout(method);
+  }, [proceedWithCheckout]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
@@ -744,6 +745,13 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
         </Button>
 
       </div>
+
+      {/* ── Payment Method Selection Modal ── */}
+      <PaymentMethodModal
+        open={paymentModalOpen}
+        onConfirm={handleModalConfirm}
+        onClose={() => setPaymentModalOpen(false)}
+      />
     </div>
   );
 }
