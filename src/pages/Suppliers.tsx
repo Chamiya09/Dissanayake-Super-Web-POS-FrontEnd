@@ -242,6 +242,9 @@ export default function Suppliers() {
         isOpen={isViewOpen}
         onClose={() => setViewTarget(null)}
         supplier={viewTarget}
+        onProductUnassigned={(product) =>
+          setAvailableProducts((prev) => [...prev, product])
+        }
       />
     </div>
   );

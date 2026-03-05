@@ -694,7 +694,7 @@ const COLUMNS = [
   { key: "price", label: "Price", sortable: true },
   { key: "quantity", label: "Quantity", sortable: true },
   { key: "status", label: "Status", sortable: true },
-  { key: "actions", label: "Actions", sortable: false },
+  { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -1198,27 +1198,6 @@ const InventoryStock = () => {
                     {/* Actions */}
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-1.5">
-                        {/* AI Reorder — only for low-stock items */}
-                        {isLow && (
-                          <button
-                            type="button"
-                            title="Suggest AI reorder quantity"
-                            className="
-                              inline-flex items-center gap-1.5
-                              px-3 py-1.5 rounded-lg text-xs font-semibold
-                              bg-violet-50 text-violet-700
-                              ring-1 ring-violet-200
-                              dark:bg-violet-950/40 dark:text-violet-400 dark:ring-violet-800
-                              hover:bg-violet-100 dark:hover:bg-violet-950/60
-                              transition-all duration-200
-                              whitespace-nowrap
-                            "
-                          >
-                            <Sparkles size={12} strokeWidth={2} />
-                            Suggest Reorder
-                          </button>
-                        )}
-
                         <button
                           type="button"
                           title="Edit inventory settings"
@@ -1247,6 +1226,27 @@ const InventoryStock = () => {
                         >
                           <Trash2 size={15} strokeWidth={1.8} />
                         </button>
+
+                        {/* AI Reorder — only for low-stock items, placed last on the right */}
+                        {isLow && (
+                          <button
+                            type="button"
+                            title="Suggest AI reorder quantity"
+                            className="
+                              inline-flex items-center gap-1.5
+                              px-3 py-1.5 rounded-lg text-xs font-semibold
+                              bg-indigo-50 text-indigo-700
+                              ring-1 ring-indigo-200
+                              dark:bg-indigo-950/40 dark:text-indigo-400 dark:ring-indigo-800
+                              hover:bg-indigo-100 dark:hover:bg-indigo-950/60
+                              transition-all duration-200
+                              whitespace-nowrap
+                            "
+                          >
+                            <Sparkles size={12} strokeWidth={2} />
+                            Suggest Order
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
