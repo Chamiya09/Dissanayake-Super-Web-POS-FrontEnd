@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { useInventory } from "@/context/InventoryContext";
+import { useReorder }   from "@/context/ReorderContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   DollarSign,
   ArrowRight,
   X,
+  Check,
   ShoppingCart,
   Mail,
   Send,
@@ -22,10 +24,10 @@ import {
 
 function StatusBadge({ status }) {
   const map = {
-    LOW_STOCK:    { dot: "bg-amber-500", cls: "bg-amber-500/10 text-amber-700 border border-amber-200 dark:text-amber-400 dark:border-amber-800", label: "Low Stock"    },
-    OUT_OF_STOCK: { dot: "bg-red-500",   cls: "bg-red-500/10   text-red-700   border border-red-200   dark:text-red-400   dark:border-red-800",   label: "Out of Stock" },
+    LOW_STOCK:    { dot: "bg-amber-500", cls: "bg-amber-50 text-amber-700 border border-amber-200", label: "Low Stock"    },
+    OUT_OF_STOCK: { dot: "bg-red-500",   cls: "bg-red-50   text-red-700   border border-red-200",   label: "Out of Stock" },
   };
-  const s = map[status] ?? { dot: "bg-gray-500", cls: "bg-gray-800/60 text-gray-300 border border-gray-700", label: status };
+  const s = map[status] ?? { dot: "bg-slate-400", cls: "bg-slate-100 text-slate-600 border border-slate-200", label: status };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${s.cls}`}>
       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.dot}`} />
@@ -36,15 +38,29 @@ function StatusBadge({ status }) {
 
 function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   return (
-    <div className="rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-4">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
       <div className="flex items-start justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
       </div>
-      <p className="mt-2 text-[26px] font-bold tracking-tight text-gray-100 tabular-nums">{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>}
+      <p className="mt-2 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
+      {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
+    </div>
+  );
+}
+
+// ─── Toast notification ─────────────────────────────────────────────────────
+
+function Toast({ message, onDismiss }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-emerald-600 px-5 py-4 text-white shadow-2xl">
+      <Check className="h-5 w-5 shrink-0" />
+      <span className="text-sm font-medium">{message}</span>
+      <button onClick={onDismiss} className="ml-2 opacity-80 hover:opacity-100">
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -406,8 +422,9 @@ const DUMMY_ALERTS = [
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LowStockAlerts() {
-  const navigate = useNavigate();
+  const { addReorder } = useReorder();
   const { inventoryItems, analyticsLoading, refreshInventory } = useInventory();
+  const navigate = useNavigate();
 
   // Fetch directly from the dedicated endpoint
   const [apiAlerts,    setApiAlerts]    = useState([]);
@@ -459,24 +476,38 @@ export default function LowStockAlerts() {
   const isLoading = analyticsLoading || alertLoading;
 
   const [orderModal, setOrderModal] = useState(null); // null | item
+  const [toast,      setToast]      = useState(null);
 
   function handleSubmitOrder({ item, qty, supplier, emailBody }) {
-    const autoOrder = {
-      id:           `PO-${Date.now()}`,
-      productName:  item.productName,
-      supplierName: supplier.companyName,
+    const newOrder = {
+      id:            `PO-${Date.now()}`,
+      productName:   item.productName,
+      supplierName:  supplier.companyName,
       supplierEmail: supplier.email,
-      quantity:     qty,
+      quantity:      qty,
       emailBody,
-      orderDate:    new Date().toISOString().slice(0, 10),
-      status:       "Pending",
+      orderDate:     new Date().toISOString().slice(0, 10),
+      status:        "Pending",
     };
+
+    // 1. Push data to shared context FIRST — visible immediately on redirect
+    addReorder(newOrder);
+
+    // 2. Close modal instantly
     setOrderModal(null);
-    navigate("/reorder", { state: { autoOrder } });
+
+    // 3. Show success toast
+    setToast("Order Placed Successfully! Redirecting...");
+
+    // 4. Navigate to Reorder Management after a short delay so the user
+    //    can read the confirmation message before the view changes
+    setTimeout(() => {
+      navigate("/reorder");
+    }, 900);
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-950">
+    <div className="flex h-screen flex-col bg-white">
       <AppHeader />
 
       <div className="flex-1 overflow-y-auto space-y-6 px-4 sm:px-6 py-6">
@@ -484,14 +515,14 @@ export default function LowStockAlerts() {
         {/* ── Heading ───────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-800 border border-gray-700 shrink-0">
-              <AlertTriangle className="h-5 w-5 text-amber-400" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-100 leading-tight">
+              <h1 className="text-2xl font-bold text-slate-900 leading-tight">
                 Low Stock Alerts
               </h1>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-sm text-slate-500 mt-0.5">
                 Products at or below their reorder threshold — act before stock runs out.
               </p>
             </div>
@@ -499,7 +530,7 @@ export default function LowStockAlerts() {
           <button
             onClick={() => { refreshInventory(); fetchAlerts(); }}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 self-start shrink-0 rounded-xl border border-gray-700 bg-gray-800 px-4 py-2 text-[13px] font-medium text-gray-300 hover:bg-gray-700/60 disabled:opacity-50 transition-colors sm:self-auto"
+            className="inline-flex items-center gap-2 self-start shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors sm:self-auto"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -510,24 +541,24 @@ export default function LowStockAlerts() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <SummaryCard
             icon={AlertTriangle}
-            iconBg="bg-amber-500/10"
-            iconColor="text-amber-400"
+            iconBg="bg-amber-50"
+            iconColor="text-amber-600"
             label="Low Stock Items"
             value={analyticsLoading ? "—" : lowStockCount}
             sub="Products below reorder level"
           />
           <SummaryCard
             icon={PackageSearch}
-            iconBg="bg-red-500/10"
-            iconColor="text-red-400"
+            iconBg="bg-red-50"
+            iconColor="text-red-600"
             label="Out of Stock"
             value={analyticsLoading ? "—" : outOfStockCount}
             sub="Requires immediate reorder"
           />
           <SummaryCard
             icon={DollarSign}
-            iconBg="bg-emerald-500/10"
-            iconColor="text-emerald-400"
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
             label="Est. Reorder Value"
             value={analyticsLoading ? "—" : formatCurrency(totalReorderValue)}
             sub="Cost to restock all alerts"
@@ -536,15 +567,15 @@ export default function LowStockAlerts() {
 
         {/* ── Filter + search ───────────────────────────────────────────── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 rounded-xl border border-gray-700 bg-gray-800/60 p-1">
+          <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
             {[{ k: "all", l: "All" }, { k: "LOW_STOCK", l: "Low Stock" }, { k: "OUT_OF_STOCK", l: "Out of Stock" }].map((t) => (
               <button
                 key={t.k}
                 onClick={() => setStatusFilter(t.k)}
                 className={`rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-150 ${
                   statusFilter === t.k
-                    ? "bg-gray-100 text-gray-900 shadow-sm"
-                    : "text-gray-400 hover:text-gray-200"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {t.l}
@@ -557,30 +588,30 @@ export default function LowStockAlerts() {
               placeholder="Search by product or category…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl shadow-sm px-4 py-2.5 text-sm text-gray-200 placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-gray-600 transition-all duration-200"
+              className="w-full bg-white border border-slate-200 rounded-xl shadow-sm px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-slate-300 transition-all duration-200"
             />
           </div>
         </div>
 
         {/* ── Table ────────────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-gray-700 bg-gray-800/50 shadow-lg overflow-hidden">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           {isLoading ? (
-            <div className="flex flex-col divide-y divide-gray-700">
+            <div className="flex flex-col divide-y divide-slate-100">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 px-6 py-4">
-                  <div className="h-4 w-48 animate-pulse rounded bg-gray-700" />
-                  <div className="h-4 w-24 animate-pulse rounded bg-gray-700" />
-                  <div className="ml-auto h-4 w-28 animate-pulse rounded bg-gray-700" />
+                  <div className="h-4 w-48 animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+                  <div className="ml-auto h-4 w-28 animate-pulse rounded bg-slate-200" />
                 </div>
               ))}
             </div>
           ) : visibleAlerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <PackageSearch className="h-10 w-10 text-gray-600 mb-1" strokeWidth={1.2} />
-              <p className="text-sm font-medium text-gray-400">
+              <PackageSearch className="h-10 w-10 text-slate-300 mb-1" strokeWidth={1.2} />
+              <p className="text-sm font-medium text-slate-500">
                 {alertSource.length === 0 ? "All products are well-stocked!" : "No items match your filters."}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-400">
                 {alertSource.length === 0
                   ? "No low-stock or out-of-stock alerts at the moment."
                   : "Try adjusting the filter or search term."}
@@ -590,7 +621,7 @@ export default function LowStockAlerts() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 bg-gray-900/40">
+                  <tr className="border-b border-slate-200 bg-slate-50">
                     {[
                       { h: "Product Name",  align: "text-left"   },
                       { h: "Category",      align: "text-left"   },
@@ -601,30 +632,30 @@ export default function LowStockAlerts() {
                     ].map(({ h, align }) => (
                       <th
                         key={h}
-                        className={`px-6 py-3.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap ${align}`}
+                        className={`px-6 py-3.5 text-[11px] font-black uppercase tracking-wider text-slate-600 whitespace-nowrap ${align}`}
                       >
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/60">
+                <tbody className="divide-y divide-slate-100">
                   {visibleAlerts.map((item, idx) => (
                     <tr
                       key={item.inventoryId}
-                      className={`transition-colors duration-150 hover:bg-gray-700/30 ${
-                        idx % 2 !== 0 ? "bg-gray-800/30" : "bg-transparent"
+                      className={`transition-colors duration-150 hover:bg-blue-50/50 ${
+                        idx % 2 !== 0 ? "bg-slate-50/50" : "bg-white"
                       }`}
                     >
                       {/* Product Name */}
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-gray-100 leading-tight">{item.productName}</p>
-                        {item.sku && <p className="text-[11px] text-gray-500 mt-0.5 font-mono">{item.sku}</p>}
+                        <p className="font-semibold text-slate-900 leading-tight">{item.productName}</p>
+                        {item.sku && <p className="text-[11px] text-slate-400 mt-0.5 font-mono">{item.sku}</p>}
                       </td>
 
                       {/* Category */}
                       <td className="px-6 py-4">
-                        <span className="rounded-lg border border-gray-700 bg-gray-800/60 px-2 py-0.5 text-[12px] font-medium text-gray-300">
+                        <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-medium text-slate-600">
                           {item.category ?? "—"}
                         </span>
                       </td>
@@ -634,8 +665,8 @@ export default function LowStockAlerts() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
                             item.stockQuantity === 0
-                              ? "bg-red-500/10 text-red-400 border-red-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              ? "bg-red-50 text-red-600 border-red-200"
+                              : "bg-amber-50 text-amber-600 border-amber-200"
                           }`}
                         >
                           {item.stockQuantity}{item.unit ? ` ${item.unit}` : ""}
@@ -644,7 +675,7 @@ export default function LowStockAlerts() {
 
                       {/* Reorder Level */}
                       <td className="px-6 py-4 text-center">
-                        <span className="text-[13px] tabular-nums font-medium text-gray-300">
+                        <span className="text-[13px] tabular-nums font-medium text-slate-700">
                           {item.reorderLevel}{item.unit ? ` ${item.unit}` : ""}
                         </span>
                       </td>
@@ -658,7 +689,7 @@ export default function LowStockAlerts() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                         >
                           Place Order
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -672,13 +703,13 @@ export default function LowStockAlerts() {
           )}
           {/* ── Footer count ── */}
           {!isLoading && visibleAlerts.length > 0 && (
-            <div className="px-6 py-4 border-t border-gray-700 bg-gray-900/30 flex items-center justify-between">
-              <p className="text-xs text-gray-500">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
                 {isDummy ? "Showing sample data — live inventory not yet available." : (
                   <>Showing{" "}
-                    <span className="font-semibold text-gray-300">{visibleAlerts.length}</span>
+                    <span className="font-semibold text-slate-700">{visibleAlerts.length}</span>
                     {" "}of{" "}
-                    <span className="font-semibold text-gray-300">{alertSource.length}</span>
+                    <span className="font-semibold text-slate-700">{alertSource.length}</span>
                     {" "}alert{alertSource.length !== 1 ? "s" : ""}
                   </>
                 )}
@@ -689,7 +720,7 @@ export default function LowStockAlerts() {
 
         {/* Row count / source note — keep as spacing only when no footer shown */}
         {!isLoading && visibleAlerts.length === 0 && (
-          <p className="text-[12px] text-gray-500">
+          <p className="text-[12px] text-slate-400">
             {isDummy ? "Showing sample data — live inventory not yet available." : ""}
           </p>
         )}
@@ -704,6 +735,9 @@ export default function LowStockAlerts() {
           onSubmit={handleSubmitOrder}
         />
       )}
+
+      {/* Success toast */}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
