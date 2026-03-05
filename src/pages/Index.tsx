@@ -250,10 +250,10 @@ const Index = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [cart.length]);
-  const total = useMemo(() => {
-    const sub = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-    return sub * 1.15;
-  }, [cart]);
+  const total = useMemo(
+    () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
+    [cart]
+  );
 
   return (
     <div className="flex h-screen flex-col bg-background">

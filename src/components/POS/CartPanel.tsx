@@ -223,8 +223,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   /*  Totals  */
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const tax = subtotal * 0.15;
-  const total = subtotal + tax;
+  const total = subtotal;
 
   /*  Loyalty computations  */
   const redeemableDollars = loyaltyCustomer ? computeRedeemable(loyaltyCustomer, total) : 0;
@@ -617,10 +616,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Subtotal</span>
             <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
-            <span>Tax (15%)</span>
-            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(tax)}</span>
           </div>
           {loyaltyDiscount > 0 && (
             <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
