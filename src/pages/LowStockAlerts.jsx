@@ -388,9 +388,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     </div>
                   </div>
                   {/* Body */}
-                  <pre className="px-4 py-3 text-[12px] leading-[1.7] text-slate-700 font-mono whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                    {emailBody}
-                  </pre>
+                  <div className="mx-4 mb-3 rounded-md border border-slate-200 bg-slate-50 p-3 max-w-full max-h-[300px] overflow-y-auto overflow-x-hidden">
+                    <pre className="font-mono text-[12px] leading-[1.7] text-slate-600 whitespace-pre-wrap break-words w-full">
+                      {emailBody}
+                    </pre>
+                  </div>
                 </div>
               </div>
             </div>

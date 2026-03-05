@@ -167,9 +167,11 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
           </div>
 
           {/* Body */}
-          <pre className="rounded-xl border border-slate-100 bg-white px-4 py-4 font-mono text-[12px] leading-[1.75] text-slate-700 whitespace-pre-wrap break-words">
-            {body}
-          </pre>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 max-w-full max-h-[300px] overflow-y-auto overflow-x-hidden">
+            <pre className="font-mono text-[12px] leading-[1.75] text-slate-600 whitespace-pre-wrap break-words w-full">
+              {body}
+            </pre>
+          </div>
         </div>
 
         {/* Footer */}
