@@ -60,9 +60,10 @@ export function mapHistoryItem(dto, suppliers = []) {
  * (mirrors the shape of InventoryContext items so the same table renders).
  *
  * Backend fields : productId, productName, sku, category, currentStock,
- *                  reorderLevel, unit
+ *                  reorderLevel, unit, sellingPrice, supplierName, supplierEmail
  * Frontend fields: inventoryId, productId, productName, sku, category,
- *                  stockQuantity, reorderLevel, unit, stockStatus, sellingPrice
+ *                  stockQuantity, reorderLevel, unit, stockStatus, sellingPrice,
+ *                  supplierName, supplierEmail
  */
 export function mapLowStockItem(dto) {
   return {
@@ -76,6 +77,8 @@ export function mapLowStockItem(dto) {
     unit:          dto.unit,
     stockStatus:   dto.currentStock === 0 ? "OUT_OF_STOCK" : "LOW_STOCK",
     sellingPrice:  dto.sellingPrice ?? 0,
+    supplierName:  dto.supplierName  ?? null,
+    supplierEmail: dto.supplierEmail ?? null,
   };
 }
 
