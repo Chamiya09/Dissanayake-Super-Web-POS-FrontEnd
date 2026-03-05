@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { useInventory } from "@/context/InventoryContext";
 import { useReorder }   from "@/context/ReorderContext";
+import { useAuth }      from "@/context/AuthContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -76,6 +77,10 @@ const MODAL_SUPPLIERS = [
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
+  const { user } = useAuth();
+  const managerName  = user?.name ?? "Store Manager";
+  const senderEmail  = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
+
   const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
   const [step, setStep]           = useState(1);
   const [qty,  setQty]            = useState(aiQty);
@@ -101,9 +106,10 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
     ``,
     `Please confirm availability and expected delivery date at your earliest convenience.`,
     ``,
-    `Warm regards,`,
-    `Dissanayake Super — Inventory Management Team`,
-    `procurement@dissanayakesuper.lk`,
+    `Regards,`,
+    `${managerName}`,
+    `Dissanayake Super — Purchasing Department`,
+    `${senderEmail}`,
   ].join("\n");
 
   return (
@@ -350,8 +356,8 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   {/* Address bar */}
                   <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 space-y-1">
                     {[
+                      { l: "From",    v: senderEmail },
                       { l: "To",      v: supplier.email },
-                      { l: "From",    v: "procurement@dissanayakesuper.lk" },
                       { l: "Subject", v: `Purchase Order — ${item.productName}` },
                     ].map(({ l, v }) => (
                       <div key={l} className="flex gap-3">

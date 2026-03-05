@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { useReorder } from "@/context/ReorderContext";
+import { useAuth }    from "@/context/AuthContext";
 import {
   Package,
   ArrowLeft,
@@ -57,6 +58,10 @@ function OrderStatusBadge({ status }) {
 
 // ─── Supplier Email Simulation Modal ───────────────────────────────────────
 function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onClose }) {
+  const { user } = useAuth();
+  const managerName = user?.name ?? "Store Manager";
+  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
+
   if (!order) return null;
 
   const body = emailBody || [
@@ -71,9 +76,10 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
     ``,
     `Please confirm stock availability and expected delivery date.`,
     ``,
-    `Warm regards,`,
-    `Dissanayake Super — Inventory Management Team`,
-    `procurement@dissanayakesuper.lk`,
+    `Regards,`,
+    `${managerName}`,
+    `Dissanayake Super — Purchasing Department`,
+    `${senderEmail}`,
   ].join("\n");
 
   return (
@@ -134,7 +140,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
           {/* Address bar */}
           <div className="rounded-xl border border-slate-100 bg-slate-50 divide-y divide-slate-100 overflow-hidden">
             {[
-              { l: "From",    v: "procurement@dissanayakesuper.lk"                                    },
+              { l: "From",    v: senderEmail },
               { l: "To",      v: order.supplierEmail ?? `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.lk` },
               { l: "Subject", v: `Purchase Order — ${order.productName} (${order.id})`               },
             ].map(({ l, v }) => (
@@ -182,6 +188,10 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
 }
 // ─── Edit Order Modal ──────────────────────────────────────────────────────────
 function EditOrderModal({ order, onUpdate, onClose }) {
+  const { user } = useAuth();
+  const managerName = user?.name ?? "Store Manager";
+  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
+
   const [qty, setQty] = useState(order.quantity ?? 1);
 
   const defaultMessage = [
@@ -195,9 +205,10 @@ function EditOrderModal({ order, onUpdate, onClose }) {
     ``,
     `Please confirm the revised order at your earliest convenience.`,
     ``,
-    `Warm regards,`,
-    `Dissanayake Super — Inventory Management Team`,
-    `procurement@dissanayakesuper.lk`,
+    `Regards,`,
+    `${managerName}`,
+    `Dissanayake Super — Purchasing Department`,
+    `${senderEmail}`,
   ].join("\n");
 
   const [message, setMessage] = useState(order.emailBody || defaultMessage);
@@ -290,7 +301,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={8}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all resize-none"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 caret-black outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all resize-none"
             />
           </div>
         </div>
@@ -305,7 +316,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
           </button>
           <button
             onClick={() => onUpdate({ id: order.id, qty, message })}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
           >
             <Send className="h-3.5 w-3.5" />
             Update Purchase Order
@@ -400,6 +411,10 @@ const DUMMY_SUPPLIERS = [
 export default function ReorderManagement() {
   const navigate  = useNavigate();
   const location  = useLocation();
+  const { user }  = useAuth();
+
+  const managerName = user?.name ?? "Store Manager";
+  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
 
   // Product injected by Low Stock Alerts via navigate state
   const [product, setProduct] = useState(location.state?.product ?? null);
@@ -490,8 +505,10 @@ export default function ReorderManagement() {
       ``,
       `Please confirm stock availability and the expected delivery date at your earliest convenience.`,
       ``,
-      `Warm regards,`,
-      `Dissanayake Super â€” Inventory Management Team`,
+      `Regards,`,
+      `${managerName}`,
+      `Dissanayake Super — Purchasing Department`,
+      `${senderEmail}`,
     ].join("\n"));
     setStep("email");
   }
