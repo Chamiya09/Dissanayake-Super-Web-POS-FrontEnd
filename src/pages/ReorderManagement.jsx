@@ -14,6 +14,8 @@ import {
   Building2,
   ChevronRight,
   X,
+  Eye,
+  Trash2,
   ClipboardList,
   CheckCircle,
   XCircle,
@@ -53,7 +55,7 @@ function OrderStatusBadge({ status }) {
 }
 
 // ─── Supplier Email Simulation Modal ───────────────────────────────────────
-function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
+function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onClose }) {
   if (!order) return null;
 
   const body = emailBody || [
@@ -97,10 +99,12 @@ function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900 leading-tight">
-                Connect Supplier
+                {viewOnly ? "Order Details" : "Connect Supplier"}
               </h2>
               <p className="text-[12px] text-slate-500 mt-0.5">
-                Review the email sent to the supplier, then confirm below.
+                {viewOnly
+                  ? "Read-only preview of the purchase order email."
+                  : "Review the email sent to the supplier, then confirm below."}
               </p>
             </div>
           </div>
@@ -113,13 +117,15 @@ function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
           </button>
         </div>
 
-        {/* Simulation banner */}
-        <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-6 py-2.5 shrink-0">
-          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-          <p className="text-[12px] font-semibold text-amber-700">
-            Simulating supplier's inbox — {order.supplierName}
-          </p>
-        </div>
+        {/* Simulation banner — supplier-confirmation mode only */}
+        {!viewOnly && (
+          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-6 py-2.5 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <p className="text-[12px] font-semibold text-amber-700">
+              Simulating supplier's inbox — {order.supplierName}
+            </p>
+          </div>
+        )}
 
         {/* Email card */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
@@ -145,21 +151,32 @@ function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
-          <p className="text-[12px] text-slate-500 leading-snug">
-            Clicking <strong className="text-slate-700">Confirm Order</strong> simulates the supplier
-            accepting this PO — the status will update to <strong className="text-indigo-600">Confirmed</strong>.
-          </p>
-          <button
-            onClick={onConfirm}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm
-                       hover:bg-indigo-500 active:scale-95 transition-all
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            <CheckCircle className="h-4 w-4" />
-            Confirm Order
-          </button>
-        </div>
+        {viewOnly ? (
+          <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
+            <p className="text-[12px] text-slate-500 leading-snug">
+              Clicking <strong className="text-slate-700">Confirm Order</strong> simulates the supplier
+              accepting this PO — the status will update to <strong className="text-indigo-600">Confirmed</strong>.
+            </p>
+            <button
+              onClick={onConfirm}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm
+                         hover:bg-indigo-500 active:scale-95 transition-all
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Confirm Order
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -478,7 +495,7 @@ export default function ReorderManagement() {
                   {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", "Actions"].map((h) => (
                     <th
                       key={h}
-                      className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider text-slate-600"
+                      className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider text-slate-800"
                     >
                       {h}
                     </th>
@@ -516,62 +533,46 @@ export default function ReorderManagement() {
                       <OrderStatusBadge status={order.status} />
                     </td>
                     <td className="px-5 py-4 whitespace-nowrap">
-                      {/* Pending: Connect Supplier + Cancel (with inline confirmation) */}
-                      {order.status === "Pending" && (
-                        cancelConfirmId === order.id ? (
-                          /* ── Inline cancel confirmation ── */
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Cancel this order?</span>
-                            <button
-                              onClick={() => handleCancelOrder(order.id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-500 active:scale-95 transition-all"
-                            >
-                              Yes, Cancel
-                            </button>
-                            <button
-                              onClick={() => setCancelConfirmId(null)}
-                              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          /* ── Normal Pending actions ── */
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleConfirmOrder(order.id)}
-                              title="Open Supplier Email — only Confirm Order inside can advance status"
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-95"
-                            >
-                              <Mail className="h-3.5 w-3.5" />
-                              Connect Supplier
-                            </button>
+                      {cancelConfirmId === order.id ? (
+                        /* ── Inline cancel confirmation ── */
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Cancel this order?</span>
+                          <button
+                            onClick={() => handleCancelOrder(order.id)}
+                            className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-700 active:scale-95 transition-all"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setCancelConfirmId(null)}
+                            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {/* View — available for every status */}
+                          <button
+                            onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
+                            title="View order email"
+                            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            View
+                          </button>
+                          {/* Cancel — Pending only */}
+                          {order.status === "Pending" && (
                             <button
                               onClick={() => setCancelConfirmId(order.id)}
                               title="Cancel Order"
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-red-500 active:scale-95"
+                              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
                             >
-                              <XCircle className="h-3.5 w-3.5" /> Cancel
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Cancel
                             </button>
-                          </div>
-                        )
-                      )}
-
-                      {/* Confirmed: Mark as Received */}
-                      {order.status === "Confirmed" && (
-                        <button
-                          onClick={() => handleMarkAsReceived(order.id)}
-                          title="Mark as Received"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95"
-                        >
-                          <PackageCheck className="h-3.5 w-3.5" />
-                          Mark Received
-                        </button>
-                      )}
-
-                      {/* Received / Cancelled: finalized — no actions */}
-                      {(order.status === "Received" || order.status === "Cancelled") && (
-                        <span className="text-xs text-slate-400 italic">—</span>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -599,6 +600,7 @@ export default function ReorderManagement() {
       <SupplierEmailModal
         order={supplierEmailModal?.order ?? null}
         emailBody={supplierEmailModal?.emailBody ?? ""}
+        viewOnly={supplierEmailModal?.viewOnly ?? false}
         onConfirm={handleSupplierConfirm}
         onClose={() => setSupplierEmailModal(null)}
       />

@@ -376,13 +376,13 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
             <>
               <button
                 onClick={onClose}
-                className="h-9 px-5 text-[13px] font-semibold rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setStep(2)}
-                className="h-9 inline-flex items-center gap-2 px-5 text-[13px] font-extrabold rounded-lg bg-slate-900 border border-slate-950 text-white shadow-lg shadow-blue-900/20 hover:bg-blue-700 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all"
               >
                 Next: Review Email
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -392,13 +392,13 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
             <>
               <button
                 onClick={() => setStep(1)}
-                className="h-9 px-5 text-[13px] font-semibold rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
               >
                 ← Back
               </button>
               <button
                 onClick={() => onSubmit({ item, qty, supplier, emailBody })}
-                className="h-9 inline-flex items-center gap-2 px-5 text-[13px] font-extrabold rounded-lg bg-slate-900 border border-slate-950 text-white shadow-lg shadow-blue-900/20 hover:bg-blue-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2"
+                className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 <Send className="h-3.5 w-3.5" />
                 Send Purchase Order
@@ -632,7 +632,7 @@ export default function LowStockAlerts() {
                     ].map(({ h, align }) => (
                       <th
                         key={h}
-                        className={`px-6 py-3.5 text-[11px] font-black uppercase tracking-wider text-slate-600 whitespace-nowrap ${align}`}
+                        className={`px-6 py-3.5 text-[11px] font-black uppercase tracking-wider text-slate-800 whitespace-nowrap ${align}`}
                       >
                         {h}
                       </th>
@@ -689,7 +689,7 @@ export default function LowStockAlerts() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-indigo-500 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
                         >
                           Place Order
                           <ArrowRight className="h-3.5 w-3.5" />
