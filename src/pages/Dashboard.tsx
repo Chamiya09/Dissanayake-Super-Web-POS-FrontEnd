@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
+import { AIPredictionsCard } from "@/components/Dashboard/AIPredictionsCard";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -309,6 +310,9 @@ export default function Dashboard() {
           </div>
 
         </div>
+
+        {/* ── AI Predictions ── */}
+        <AIPredictionsCard />
 
         {/*  Recent Sales  */}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
