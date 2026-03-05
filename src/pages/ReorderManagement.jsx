@@ -52,26 +52,21 @@ function OrderStatusBadge({ status }) {
 }
 
 // ─── Supplier Email Simulation Modal ───────────────────────────────────────
-function SupplierEmailModal({ order, onConfirm, onClose }) {
+function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
   if (!order) return null;
-  const emailLines = [
-    `Dear Procurement Team,`,
+
+  // Fallback body if not supplied
+  const body = emailBody || [
+    `Dear ${order.supplierName},`,
     ``,
-    `We have received your Purchase Order and are pleased to confirm the following:`,
+    `Please find our Purchase Order details below:`,
+    `  Order ID   : ${order.id}`,
+    `  Product    : ${order.productName}`,
+    `  Quantity   : ${order.quantity} units`,
+    `  Order Date : ${order.orderDate}`,
     ``,
-    `  Order ID    :  ${order.id}`,
-    `  Product     :  ${order.productName}`,
-    `  Supplier    :  ${order.supplierName}`,
-    `  Quantity    :  ${order.quantity} units`,
-    `  Order Date  :  ${order.orderDate}`,
-    ``,
-    `We confirm the availability of the requested stock and will dispatch the`,
-    `shipment within 3–5 business days.`,
-    ``,
-    `Please click the button below to formally confirm this order.`,
-    ``,
-    `Best regards,`,
-    `${order.supplierName} — Supply Chain Team`,
+    `Warm regards,`,
+    `Dissanayake Super \u2014 Inventory Management Team`,
   ].join("\n");
 
   return (
@@ -92,8 +87,10 @@ function SupplierEmailModal({ order, onConfirm, onClose }) {
               <Mail className="h-5 w-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-100">Supplier Email Simulation</p>
-              <p className="text-xs text-gray-400 mt-0.5">This simulates a confirmation email from the supplier</p>
+              <p className="text-sm font-semibold text-gray-100">Purchase Order Email \u2014 Sent to Supplier</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                The supplier received this email. Click \u201cConfirm Order\u201d below to simulate their reply.
+              </p>
             </div>
           </div>
           <button
@@ -106,10 +103,11 @@ function SupplierEmailModal({ order, onConfirm, onClose }) {
 
         {/* Email meta */}
         <div className="space-y-2 border-b border-gray-700/60 px-6 py-4 shrink-0">
-          {[{l:"From", v:`noreply@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.com`},
-            {l:"To",   v:"procurement@dissanayakesuper.lk"},
-            {l:"Subj", v:`RE: Purchase Order Confirmation — ${order.id}`},
-          ].map(({l, v}) => (
+          {[
+            { l: "From", v: "procurement@dissanayakesuper.lk" },
+            { l: "To",   v: `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.com` },
+            { l: "Subj", v: `Purchase Order \u2014 ${order.productName} (${order.id})` },
+          ].map(({ l, v }) => (
             <div key={l} className="flex items-start gap-3">
               <span className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-widest text-gray-500 pt-0.5">{l}</span>
               <span className="text-xs text-gray-300 break-all">{v}</span>
@@ -117,15 +115,25 @@ function SupplierEmailModal({ order, onConfirm, onClose }) {
           ))}
         </div>
 
+        {/* Simulated "Supplier is viewing" banner */}
+        <div className="flex items-center gap-2 bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 shrink-0">
+          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          <p className="text-xs font-medium text-amber-400">
+            Simulating supplier\u2019s inbox \u2014 {order.supplierName}
+          </p>
+        </div>
+
         {/* Email body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-gray-300">{emailLines}</pre>
+          <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-gray-300">{body}</pre>
         </div>
 
         {/* CTA */}
         <div className="border-t border-gray-700 px-6 py-5 shrink-0">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-xs text-gray-500">Clicking below simulates the supplier clicking "Confirm" in their email client.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-xs text-gray-500">
+              Clicking \u201cConfirm Order\u201d simulates the supplier accepting this purchase order.
+            </p>
             <button
               onClick={onConfirm}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 whitespace-nowrap"
@@ -331,6 +339,9 @@ export default function ReorderManagement() {
     setIsSubmitting(true);
     setSending(true);
 
+    // Capture the email body now before it gets cleared
+    const capturedEmailBody = emailBody;
+
     setTimeout(() => {
       // Build the new history entry
       const newOrder = {
@@ -344,6 +355,9 @@ export default function ReorderManagement() {
 
       // Prepend to history table
       setReorders((prev) => [newOrder, ...prev]);
+
+      // Show the Supplier Email Simulation modal with the actual email body
+      setSupplierEmailModal({ order: newOrder, emailBody: capturedEmailBody });
 
       // Mark sent & show toast
       setSending(false);
@@ -377,8 +391,13 @@ export default function ReorderManagement() {
     setReorders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
     );
-    setToast("Supplier confirmed the order!");
-    setTimeout(() => setToast(null), 3500);
+    // If triggered from the Send flow (sent=true), reset back to config
+    // so the user can see the updated history table
+    setSent(false);
+    setStep("config");
+    setProduct(null);
+    setToast("Supplier confirmed the order! Status updated to Confirmed.");
+    setTimeout(() => setToast(null), 4000);
   }
 
   // Shows confirmation prompt, then displays cancellation overlay for 2 s
@@ -926,6 +945,7 @@ export default function ReorderManagement() {
       {/* Supplier Email Simulation Modal */}
       <SupplierEmailModal
         order={supplierEmailModal?.order ?? null}
+        emailBody={supplierEmailModal?.emailBody ?? ""}
         onConfirm={handleSupplierConfirm}
         onClose={() => setSupplierEmailModal(null)}
       />
