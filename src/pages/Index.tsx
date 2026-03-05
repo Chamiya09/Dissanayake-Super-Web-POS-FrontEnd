@@ -161,6 +161,7 @@ const Index = () => {
       totalAmount,
       status: "Completed",
       items: cart.map((i) => ({
+        productId:   Number(i.product.id),
         productName: i.product.name,
         quantity:    i.quantity,
         unitPrice:   i.product.price,
@@ -182,7 +183,7 @@ const Index = () => {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
     }
-  }, [cart]);
+  }, [cart, refreshInventory]);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
