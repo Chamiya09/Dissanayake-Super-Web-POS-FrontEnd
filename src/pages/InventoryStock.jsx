@@ -581,21 +581,58 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
 // ─── Edit Inventory Modal ─────────────────────────────────────────────────────
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
-  const [reorderLevel, setReorderLevel] = useState(item?.reorderLevel ?? 10);
-  const [unit,         setUnit]         = useState(item?.unit ?? "");
+  const [reorderLevel, setReorderLevel] = useState("");
+  const [unit,         setUnit]         = useState("");
+  const [qtyToAdd,     setQtyToAdd]     = useState("");
   const [saving,       setSaving]       = useState(false);
+  const [errors,       setErrors]       = useState({});
+
+  // Sync fields whenever the item changes (modal opens for a different product)
+  useEffect(() => {
+    if (item) {
+      setReorderLevel(item.reorderLevel ?? 10);
+      setUnit(item.unit ?? "");
+      setQtyToAdd("");
+      setErrors({});
+    }
+  }, [item]);
 
   if (!item) return null;
 
+  const qtyNum     = parseFloat(qtyToAdd);
+  const validQty   = !isNaN(qtyNum) && qtyNum > 0;
+  const currentQty = Number(item.stockQuantity ?? 0);
+  const newTotal   = validQty ? currentQty + qtyNum : null;
+  const selectedUnit = item.unit || "units";
+
+  const inputBase =
+    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 " +
+    "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
+    "text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
+    "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 ";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = {};
+    if (reorderLevel === "" || Number(reorderLevel) < 0)
+      errs.reorderLevel = "Reorder level must be 0 or greater.";
+    if (qtyToAdd !== "" && (!validQty || qtyNum <= 0))
+      errs.qty = "Quantity to add must be a positive number.";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setSaving(true);
     try {
       await api.put(`/api/inventory/edit/${item.inventoryId}`, {
         reorderLevel: Number(reorderLevel),
         unit: unit.trim() || null,
+        quantityToAdd: validQty ? qtyNum : null,
       });
-      showSuccess(`Updated inventory settings for "${item.productName}".`);
+      showSuccess(
+        validQty
+          ? `Added ${qtyNum} ${selectedUnit} and updated settings for "${item.productName}".`
+          : `Updated inventory settings for "${item.productName}".`
+      );
       onSaved();
       onClose();
     } catch (err) {
@@ -606,50 +643,136 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit Inventory Settings</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-600 dark:bg-violet-500 flex-shrink-0">
+              <Pencil size={16} className="text-white" strokeWidth={2} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">Edit Inventory</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+            </div>
           </div>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Reorder Level
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={reorderLevel}
-              onChange={(e) => setReorderLevel(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
-              required
-            />
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this quantity</p>
+
+        {/* ── Form ───────────────────────────────────────────── */}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+            {/* ── Current Stock (read-only) ───────────────────────── */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                Current Stock
+              </label>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  {currentQty < (item.reorderLevel ?? 10) && (
+                    <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />
+                  )}
+                  {currentQty}
+                  <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                </span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
+                  read-only
+                </span>
+              </div>
+            </div>
+
+            {/* ── Quantity to Add ────────────────────────────────── */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                Quantity to Add
+                <span className="ml-1 normal-case tracking-normal text-slate-400 font-normal">(optional)</span>
+              </label>
+              <div className="relative">
+                <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={qtyToAdd}
+                  onChange={(e) => {
+                    setQtyToAdd(e.target.value);
+                    if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
+                  }}
+                  placeholder="e.g. 50"
+                  className={`${inputBase} pl-9 border-slate-200 dark:border-slate-700 ${
+                    errors.qty ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
+                  }`}
+                />
+              </div>
+              {errors.qty ? (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                  {errors.qty}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  New stock will be: <strong className="text-slate-600 dark:text-slate-300">{newTotal ?? currentQty}</strong> {selectedUnit}
+                </p>
+              )}
+            </div>
+
+            {/* ── Reorder Level ───────────────────────────────────── */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={reorderLevel}
+                onChange={(e) => {
+                  setReorderLevel(e.target.value);
+                  if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined }));
+                }}
+                className={`${inputBase} border-slate-200 dark:border-slate-700 ${
+                  errors.reorderLevel ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
+                }`}
+                required
+              />
+              {errors.reorderLevel ? (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                  {errors.reorderLevel}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this threshold</p>
+              )}
+            </div>
+
+            {/* ── Unit ───────────────────────────────────────────── */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                Unit <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                maxLength={20}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="e.g. kg, pcs, L"
+                className={`${inputBase} border-slate-200 dark:border-slate-700`}
+              />
+            </div>
+
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Unit <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={20}
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="e.g. kg, pcs, L"
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
-            />
-          </div>
-          <div className="flex gap-3 pt-1">
+
+          {/* ── Footer ───────────────────────────────────────────── */}
+          <div className="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
             <button
               type="button"
               onClick={onClose}
@@ -660,9 +783,13 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors duration-150"
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? (
+                <><Loader2 size={14} className="animate-spin" /> Saving…</>
+              ) : (
+                <><CheckCircle2 size={14} /> Save Changes</>
+              )}
             </button>
           </div>
         </form>
@@ -702,6 +829,7 @@ const InventoryStock = () => {
   // products   = all products (dropdown list for AddStockModal)
   // inventoryItems = only tracked items from /api/inventory/status (table)
   const [products,       setProducts]       = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]); // products with no inventory record yet
   const [inventoryItems, setInventoryItems] = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [fetchError,     setFetchError]     = useState(null);
@@ -731,6 +859,20 @@ const InventoryStock = () => {
       );
     });
 
+  // ── Fetch products not yet in inventory (for AddStockModal — new entries only)
+  const fetchAvailableProducts = () =>
+    api.get("/api/products/available-for-inventory").then((res) => {
+      setAvailableProducts(
+        res.data.map((p) => ({
+          ...p,
+          sellingPrice:  Number(p.sellingPrice),
+          buyingPrice:   Number(p.buyingPrice),
+          stockQuantity: 0,
+          reorderLevel:  p.reorderLevel != null ? Number(p.reorderLevel) : 10,
+        }))
+      );
+    });
+
   // ── Fetch all stock movement logs
   const fetchLogs = () =>
     api.get("/api/inventory/logs").then((res) => setLogs(res.data));
@@ -752,7 +894,7 @@ const InventoryStock = () => {
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
-    Promise.all([fetchProducts(), fetchInventory(), fetchLogs()])
+    Promise.all([fetchProducts(), fetchAvailableProducts(), fetchInventory(), fetchLogs()])
       .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
@@ -886,7 +1028,7 @@ const InventoryStock = () => {
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        products={products}
+        products={availableProducts}
         inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
