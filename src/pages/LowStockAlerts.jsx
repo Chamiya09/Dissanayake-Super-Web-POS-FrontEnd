@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
 import { useNotification }  from "@/context/NotificationContext";
@@ -626,15 +627,17 @@ export default function LowStockAlerts() {
         {/* ── Table ────────────────────────────────────────────────────── */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           {isLoading ? (
-            <div className="flex flex-col divide-y divide-slate-100">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 px-6 py-4">
-                  <div className="h-4 w-48 animate-pulse rounded bg-slate-200" />
-                  <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
-                  <div className="ml-auto h-4 w-28 animate-pulse rounded bg-slate-200" />
-                </div>
-              ))}
-            </div>
+            <SkeletonTable
+              rows={4}
+              columns={[
+                { width: "w-44", flexible: true },
+                { width: "w-24" },
+                { width: "w-16" },
+                { width: "w-16" },
+                { width: "w-20" },
+                { width: "w-28", align: "right" },
+              ]}
+            />
           ) : visibleAlerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
               <PackageSearch className="h-10 w-10 text-slate-300 mb-1" strokeWidth={1.2} />
@@ -648,7 +651,7 @@ export default function LowStockAlerts() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto transition-opacity duration-300 opacity-100">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
