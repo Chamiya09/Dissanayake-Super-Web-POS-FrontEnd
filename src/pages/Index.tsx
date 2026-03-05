@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
 import { toast } from "@/components/ui/sonner";
-import { ShoppingBag, CheckCircle } from "lucide-react";
+import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
@@ -193,6 +193,46 @@ const Index = () => {
     }
   }, [cart, refreshInventory]);
 
+  /* ── SKU / Barcode quick-add ── */
+  const [skuQuery, setSkuQuery] = useState("");
+  const skuInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSkuSearch = useCallback(
+    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
+      const sku = skuQuery.trim();
+      if (!sku) return;
+
+      try {
+        const { data } = await api.get<MgmtProduct>("/api/products/search", {
+          params: { sku },
+        });
+        const product: Product = {
+          id:       String(data.id),
+          name:     data.productName,
+          price:    data.sellingPrice,
+          category: data.category,
+          unit:     data.unit ?? "pcs",
+          barcode:  data.sku,
+          stock:    50,
+        };
+        // Override stock from live inventory if available
+        const inv = inventoryItems.find((i) => i.productId === data.id);
+        if (inv) product.stock = inv.stockQuantity;
+
+        addToCart(product);
+        toast.success(`Added: ${data.productName}`, { duration: 2000 });
+      } catch {
+        toast.error(`No product found for SKU "${sku}"`, { duration: 3000 });
+      } finally {
+        setSkuQuery("");
+        // Re-focus so the next barcode scan / manual entry is instant
+        skuInputRef.current?.focus();
+      }
+    },
+    [skuQuery, addToCart, inventoryItems],
+  );
+
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
   // [Esc] → clear basket when not focused inside an input
@@ -222,6 +262,34 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
+
+          {/* ── SKU / Barcode Search Bar ── */}
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <input
+              ref={skuInputRef}
+              type="text"
+              value={skuQuery}
+              onChange={(e) => setSkuQuery(e.target.value)}
+              onKeyDown={handleSkuSearch}
+              placeholder="Scan barcode or type SKU and press Enter…"
+              className="flex-1 bg-transparent text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {skuQuery && (
+              <button
+                onClick={() => { setSkuQuery(""); skuInputRef.current?.focus(); }}
+                className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+                aria-label="Clear"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
           <ProductGrid onAddToCart={addToCart} products={posProducts} />
         </div>
 
