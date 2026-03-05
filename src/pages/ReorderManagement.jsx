@@ -96,16 +96,16 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-950"
+        className="absolute inset-0 bg-slate-900/80"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal — matches AddProductModal shell exactly */}
-      <div className="relative z-10 w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 shrink-0">
               <Mail className="h-[18px] w-[18px] text-white" />
@@ -132,7 +132,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
 
         {/* Simulation banner — supplier-confirmation mode only */}
         {!viewOnly && (
-          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-6 py-2.5 shrink-0">
+          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-5 py-2.5 shrink-0">
             <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
             <p className="text-[12px] font-semibold text-amber-700">
               Simulating supplier's inbox — {order.supplierName}
@@ -141,7 +141,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
         )}
 
         {/* Email card */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* Address bar */}
           <div className="rounded-xl border border-slate-100 bg-slate-50 divide-y divide-slate-100 overflow-hidden">
@@ -174,16 +174,16 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
 
         {/* Footer */}
         {viewOnly ? (
-          <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
+          <div className="flex items-center justify-end border-t border-slate-100 bg-white px-5 py-4 shrink-0">
             <button
               onClick={onClose}
-              className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
+              className="inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               Close
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 shrink-0">
+          <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-5 py-4 shrink-0">
             <p className="text-[12px] text-slate-500 leading-snug">
               Clicking <strong className="text-slate-700">Confirm Order</strong> simulates the supplier
               accepting this PO — the status will update to <strong className="text-indigo-600">Confirmed</strong>.

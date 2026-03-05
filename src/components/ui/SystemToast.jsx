@@ -91,7 +91,7 @@ function SystemToast({ notification, onDismiss }) {
       <div
         className={`
           shrink-0 flex items-center justify-center
-          h-8 w-8 rounded-full mt-3.5 ml-3
+          h-8 w-8 rounded-xl mt-3.5 ml-3
           ${cfg.iconBg}
         `}
       >
@@ -115,7 +115,7 @@ function SystemToast({ notification, onDismiss }) {
         onClick={() => onDismiss(id)}
         className="
           shrink-0 mt-3 mr-2.5
-          flex h-6 w-6 items-center justify-center rounded-md
+          flex h-6 w-6 items-center justify-center rounded-lg
           text-slate-400 hover:bg-slate-100 hover:text-slate-600
           transition-colors focus:outline-none
         "

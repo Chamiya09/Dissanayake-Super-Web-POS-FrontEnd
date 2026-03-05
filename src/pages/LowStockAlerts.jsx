@@ -151,7 +151,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
         </div>
 
         {/* ── Step indicator ── */}
-        <div className="flex items-center gap-0 border-b border-slate-200 bg-slate-50 px-5 py-3 shrink-0">
+        <div className="flex items-center justify-center gap-0 border-b border-slate-200 bg-slate-50 px-5 py-3 shrink-0">
           {[
             { n: 1, label: "Reorder Details" },
             { n: 2, label: "Supplier & Email" },
