@@ -2,6 +2,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { createOrder, getHistory, mapHistoryItem } from "@/api/reorderApi";
+import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
@@ -466,6 +468,13 @@ export default function ReorderManagement() {
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
+  // Fetch order history once (after component mounts); re-uses supplier list
+  // for display-name resolution once suppliers have loaded.
+  useEffect(() => {
+    fetchHistory(suppliers);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [emailBody,    setEmailBody]    = useState("");
   const [sending,      setSending]      = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -535,42 +544,66 @@ export default function ReorderManagement() {
     setStep("email");
   }
 
-  function handleCreateReorder(e) {
+  async function handleCreateReorder(e) {
     e?.preventDefault();
     if (!product || !selectedSupplier || isSubmitting) return;
 
     setIsSubmitting(true);
     setSending(true);
 
-    // Capture the email body now before it gets cleared
     const capturedEmailBody = emailBody;
+    const orderRef = `PO-${Date.now()}`;
 
-    setTimeout(() => {
-      // Build the new history entry
-      const newOrder = {
-        id:           `PO-${Date.now()}`,
-        productName:  product.productName,
-        supplierName: selectedSupplier.companyName,
-        quantity:     orderQty,
-        orderDate:    new Date().toISOString().slice(0, 10),
-        status:       "Pending",
-      };
+    // Build ReorderRequestDTO
+    const dto = {
+      orderRef,
+      supplierEmail: selectedSupplier.email,
+      items: [{
+        productName: product.productName,
+        productId:   product.productId ?? product.id ?? null,
+        quantity:    orderQty,
+        unitPrice:   product.sellingPrice ?? product.price ?? 0,
+      }],
+    };
 
-      // Prepend to history table
-      setReorders((prev) => [newOrder, ...prev]);
+    // Optimistic row — visible immediately while the request is in-flight
+    const optimisticOrder = {
+      id:            orderRef,
+      productName:   product.productName,
+      supplierName:  selectedSupplier.companyName,
+      supplierEmail: selectedSupplier.email,
+      quantity:      orderQty,
+      orderDate:     new Date().toISOString().slice(0, 10),
+      status:        "Pending",
+    };
+    setReorders((prev) => [optimisticOrder, ...prev]);
 
-      // Show the Supplier Email Simulation modal with the actual email body
-      setSupplierEmailModal({ order: newOrder, emailBody: capturedEmailBody });
+    try {
+      const savedDTO   = await createOrder(dto);
+      const savedOrder = mapHistoryItem(savedDTO, suppliers);
 
-      // Mark sent & show toast
+      // Swap optimistic entry for the real persisted record
+      setReorders((prev) =>
+        prev.map((o) => (o.id === orderRef ? savedOrder : o))
+      );
+
+      setSupplierEmailModal({ order: savedOrder, emailBody: capturedEmailBody });
+      setSent(true);
+      notify({
+        type: "success",
+        title: "Order Confirmed",
+        message: `Purchase Order ${orderRef} saved — email sent to ${selectedSupplier.email}.`,
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
+      notify({ type: "error", title: "Order Failed", message: msg });
+      // Roll back the optimistic row
+      setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+    } finally {
       setSending(false);
       setIsSubmitting(false);
-      setSent(true);
-      notify({ type: "success", title: "Order Sent", message: `Purchase Order sent to ${selectedSupplier.email} successfully!` });
-
-      // Reset form fields
       setEmailBody("");
-    }, 1500);
+    }
   }
 
   // Keep legacy alias so existing JSX call-sites still work
@@ -722,6 +755,20 @@ export default function ReorderManagement() {
 
           {/* Table */}
           <div className="overflow-x-auto">
+            {historyLoading ? (
+              <SkeletonTable
+                rows={5}
+                columns={[
+                  { width: "w-28" },
+                  { width: "w-44", flexible: true },
+                  { width: "w-36" },
+                  { width: "w-16" },
+                  { width: "w-24" },
+                  { width: "w-20" },
+                  { width: "w-32" },
+                ]}
+              />
+            ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
@@ -832,6 +879,7 @@ export default function ReorderManagement() {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
 
           {/* Empty state */}

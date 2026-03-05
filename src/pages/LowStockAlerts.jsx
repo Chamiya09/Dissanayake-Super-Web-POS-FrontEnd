@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { getLowStockItems, createOrder, mapHistoryItem } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
@@ -453,7 +454,7 @@ const DUMMY_ALERTS = [
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LowStockAlerts() {
-  const { addReorder } = useReorder();
+  const { addReorder, setReorders } = useReorder();
   const { inventoryItems, analyticsLoading, refreshInventory } = useInventory();
   const navigate = useNavigate();
 
@@ -463,8 +464,8 @@ export default function LowStockAlerts() {
 
   const fetchAlerts = useCallback(() => {
     setAlertLoading(true);
-    api.get("/api/inventory/low-stock")
-      .then((r) => setApiAlerts(r.data ?? []))
+    getLowStockItems()
+      .then((items) => setApiAlerts(items))
       .catch(() => setApiAlerts([]))
       .finally(() => setAlertLoading(false));
   }, []);
@@ -510,8 +511,11 @@ export default function LowStockAlerts() {
   const { notify }                  = useNotification();
 
   function handleSubmitOrder({ item, qty, supplier, emailBody }) {
-    const newOrder = {
-      id:            `PO-${Date.now()}`,
+    const orderRef = `PO-${Date.now()}`;
+
+    // Optimistic entry — visible on history table immediately after redirect
+    const optimisticOrder = {
+      id:            orderRef,
       productName:   item.productName,
       supplierName:  supplier.companyName,
       supplierEmail: supplier.email,
@@ -520,21 +524,45 @@ export default function LowStockAlerts() {
       orderDate:     new Date().toISOString().slice(0, 10),
       status:        "Pending",
     };
+    addReorder(optimisticOrder);
 
-    // 1. Push data to shared context FIRST — visible immediately on redirect
-    addReorder(newOrder);
-
-    // 2. Close modal instantly
+    // 1. Close modal instantly
     setOrderModal(null);
 
-    // 3. Show success toast
-    notify({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management..." });
+    // 2. Build ReorderRequestDTO and POST to backend (non-blocking)
+    const dto = {
+      orderRef,
+      supplierEmail: supplier.email,
+      items: [{
+        productName: item.productName,
+        productId:   item.productId ?? null,
+        quantity:    qty,
+        unitPrice:   item.sellingPrice ?? 0,
+      }],
+    };
 
-    // 4. Navigate to Reorder Management after a short delay so the user
-    //    can read the confirmation message before the view changes
-    setTimeout(() => {
-      navigate("/reorder");
-    }, 900);
+    createOrder(dto)
+      .then((savedDTO) => {
+        // Swap optimistic entry for the real persisted record
+        setReorders((prev) =>
+          prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
+        );
+        notify({
+          type: "success",
+          title: "Order Confirmed",
+          message: "Purchase order saved and email sent to supplier.",
+        });
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
+        notify({ type: "error", title: "Order Failed", message: msg });
+        // Roll back the optimistic entry
+        setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+      });
+
+    // 3. Show redirect toast and navigate
+    notify({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
+    setTimeout(() => { navigate("/reorder"); }, 900);
   }
 
   return (
