@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { showSuccess, showError } from "@/utils/toastUtils";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import {
@@ -1152,7 +1153,7 @@ const InventoryStock = () => {
 
                     {/* Price */}
                     <td className="py-6 px-6 font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                      ${item.sellingPrice.toFixed(2)}
+                      {formatCurrency(item.sellingPrice)}
                     </td>
 
                     {/* Quantity (stockQuantity) */}

@@ -555,7 +555,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 ) : (
                   <p className="text-[11px] text-muted-foreground/60 px-0.5 flex items-center gap-1.5">
                     <Star className="h-3 w-3 text-muted-foreground/30" />
-                    Not enough points to redeem (need 100 pts = $1).
+                    Not enough points to redeem (need 100 pts = LKR 1).
                   </p>
                 )}
 

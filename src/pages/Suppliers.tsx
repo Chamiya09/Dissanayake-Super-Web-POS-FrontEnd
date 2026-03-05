@@ -74,7 +74,7 @@ export default function Suppliers() {
   useEffect(() => {
     setProductsLoading(true);
     api
-      .get<MgmtProduct[]>("/api/products")
+      .get<MgmtProduct[]>("/api/products/unassigned")
       .then((r) => setAvailableProducts(r.data))
       .catch(() => {
         // Non-fatal: the assign modal will just show an empty state
@@ -128,6 +128,7 @@ export default function Suppliers() {
       if (!assignTarget) return;
       try {
         await supplierApi.assignProducts(assignTarget.id, productIds);
+        setAvailableProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
         setAssignTarget(null);
         showSuccess("Products assigned successfully!");
       } catch (err) {

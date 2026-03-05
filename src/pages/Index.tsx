@@ -261,7 +261,7 @@ const Index = () => {
             </span>
           </div>
           {totalItems > 0 && (
-            <span className="text-[15px] font-bold tabular-nums">${total.toFixed(2)}</span>
+            <span className="text-[15px] font-bold tabular-nums">{formatCurrency(total)}</span>
           )}
         </button>
       </div>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 /* ── Category icon map ── */
 const categoryIcon: Record<string, React.ElementType> = {
@@ -141,8 +142,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
   const hasActiveFilters = search !== "" || filterCategory !== "All";
 
-  const fmt = (n: number) =>
-    n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  const fmt = (n: number) => formatCurrency(n);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">

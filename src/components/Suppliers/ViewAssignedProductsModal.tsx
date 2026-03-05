@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
 import type { MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { supplierApi } from "@/lib/supplierApi";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface ViewAssignedProductsModalProps {
   isOpen: boolean;
@@ -207,7 +208,7 @@ export function ViewAssignedProductsModal({
                       {product.category}
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      Rs.{product.sellingPrice.toFixed(2)}
+                      {formatCurrency(product.sellingPrice)}
                       {product.unit ? ` / ${product.unit}` : ""}
                     </span>
                     <span className="text-[11px] text-slate-300">·</span>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 /* ── Backend product shape (mirrors ProductManagement / /api/products) ── */
 export interface MgmtProduct {
@@ -137,7 +138,7 @@ function ProductRow({
             {product.category}
           </span>
           <span className="text-[11px] text-slate-400">
-            Rs.{product.sellingPrice.toFixed(2)}{product.unit ? ` / ${product.unit}` : ""}
+            {formatCurrency(product.sellingPrice)}{product.unit ? ` / ${product.unit}` : ""}
           </span>
           <span className="text-[11px] text-slate-300">·</span>
           <span className="text-[11px] text-slate-400 font-mono">{product.sku}</span>
