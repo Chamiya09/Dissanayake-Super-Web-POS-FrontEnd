@@ -2,8 +2,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
-import { useReorder } from "@/context/ReorderContext";
-import { useAuth }    from "@/context/AuthContext";
+import { useReorder }      from "@/context/ReorderContext";
+import { useAuth }         from "@/context/AuthContext";
+import { useNotification } from "@/context/NotificationContext";
 import {
   Package,
   ArrowLeft,
@@ -402,18 +403,6 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
   );
 }
 
-function Toast({ message, onDismiss }) {
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-emerald-600 px-5 py-4 text-white shadow-2xl">
-      <Check className="h-5 w-5 shrink-0" />
-      <span className="text-sm font-medium">{message}</span>
-      <button onClick={onDismiss} className="ml-2 opacity-80 hover:opacity-100">
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
 // â”€â”€â”€ Fallback suppliers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DUMMY_SUPPLIERS = [
@@ -476,7 +465,7 @@ export default function ReorderManagement() {
   const [sending,      setSending]      = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent,         setSent]         = useState(false);
-  const [toast,        setToast]        = useState(null);
+  const { notify }                       = useNotification();
 
   // ── Per-row loading: { [orderId]: 'confirming' | 'cancelling' | false }
   const [rowLoading, setRowLoading] = useState({});
@@ -562,8 +551,7 @@ export default function ReorderManagement() {
       setSending(false);
       setIsSubmitting(false);
       setSent(true);
-      setToast(`Purchase Order sent to ${selectedSupplier.email} successfully!`);
-      setTimeout(() => setToast(null), 4500);
+      notify({ type: "success", title: "Order Sent", message: `Purchase Order sent to ${selectedSupplier.email} successfully!` });
 
       // Reset form fields
       setEmailBody("");
@@ -595,8 +583,7 @@ export default function ReorderManagement() {
     setSent(false);
     setStep("config");
     setProduct(null);
-    setToast("Supplier confirmed the order! Status updated to Confirmed.");
-    setTimeout(() => setToast(null), 4000);
+    notify({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
   }
 
   // Triggers 2-second cancellation overlay, then marks order Cancelled
@@ -609,8 +596,7 @@ export default function ReorderManagement() {
         prev.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o))
       );
       setCancelOverlay(null);
-      setToast("Cancellation notice sent to supplier.");
-      setTimeout(() => setToast(null), 3500);
+      notify({ type: "warning", title: "Order Cancelled", message: "Cancellation notice sent to supplier." });
     }, 2000);
   }
 
@@ -626,8 +612,7 @@ export default function ReorderManagement() {
         )
       );
       setUpdateOverlay(false);
-      setToast("Purchase Order updated and resent to supplier.");
-      setTimeout(() => setToast(null), 3500);
+      notify({ type: "info", title: "Order Updated", message: "Purchase Order updated and resent to supplier." });
     }, 1500);
   }
 
@@ -636,8 +621,7 @@ export default function ReorderManagement() {
     setReorders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: "Received" } : o))
     );
-    setToast("Stock Updated Successfully!");
-    setTimeout(() => setToast(null), 3500);
+    notify({ type: "success", title: "Stock Updated", message: "Stock level updated successfully." });
   }
 
   function handleReset() {
@@ -809,8 +793,7 @@ export default function ReorderManagement() {
         </div>{/* /max-w-6xl */}
       </div>
 
-      {/* Toast */}
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
 
       {/* Supplier Email Simulation Modal */}
       <SupplierEmailModal

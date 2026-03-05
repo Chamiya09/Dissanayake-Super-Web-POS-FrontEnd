@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
-import { useInventory } from "@/context/InventoryContext";
-import { useReorder }   from "@/context/ReorderContext";
+import { useInventory }     from "@/context/InventoryContext";
+import { useReorder }       from "@/context/ReorderContext";
+import { useNotification }  from "@/context/NotificationContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -12,7 +13,6 @@ import {
   DollarSign,
   ArrowRight,
   X,
-  Check,
   ShoppingCart,
   Mail,
   Send,
@@ -47,20 +47,6 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
       </div>
       <p className="mt-2 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
-    </div>
-  );
-}
-
-// ─── Toast notification ─────────────────────────────────────────────────────
-
-function Toast({ message, onDismiss }) {
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-emerald-600 px-5 py-4 text-white shadow-2xl">
-      <Check className="h-5 w-5 shrink-0" />
-      <span className="text-sm font-medium">{message}</span>
-      <button onClick={onDismiss} className="ml-2 opacity-80 hover:opacity-100">
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 }
@@ -488,7 +474,7 @@ export default function LowStockAlerts() {
   const isLoading = analyticsLoading || alertLoading;
 
   const [orderModal, setOrderModal] = useState(null); // null | item
-  const [toast,      setToast]      = useState(null);
+  const { notify }                  = useNotification();
 
   function handleSubmitOrder({ item, qty, supplier, emailBody }) {
     const newOrder = {
@@ -509,7 +495,7 @@ export default function LowStockAlerts() {
     setOrderModal(null);
 
     // 3. Show success toast
-    setToast("Order Placed Successfully! Redirecting...");
+    notify({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management..." });
 
     // 4. Navigate to Reorder Management after a short delay so the user
     //    can read the confirmation message before the view changes
@@ -748,8 +734,7 @@ export default function LowStockAlerts() {
         />
       )}
 
-      {/* Success toast */}
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
     </div>
   );
 }
