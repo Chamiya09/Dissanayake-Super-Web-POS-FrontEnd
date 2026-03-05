@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
@@ -55,93 +55,109 @@ function OrderStatusBadge({ status }) {
 function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
   if (!order) return null;
 
-  // Fallback body if not supplied
   const body = emailBody || [
     `Dear ${order.supplierName},`,
     ``,
     `Please find our Purchase Order details below:`,
+    ``,
     `  Order ID   : ${order.id}`,
     `  Product    : ${order.productName}`,
-    `  Quantity   : ${order.quantity} units`,
+    `  Quantity   : ${order.quantity} ${order.unit ?? "units"}`,
     `  Order Date : ${order.orderDate}`,
     ``,
+    `Please confirm stock availability and expected delivery date.`,
+    ``,
     `Warm regards,`,
-    `Dissanayake Super \u2014 Inventory Management Team`,
+    `Dissanayake Super — Inventory Management Team`,
+    `procurement@dissanayakesuper.lk`,
   ].join("\n");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      aria-modal="true"
+      role="dialog"
+    >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Modal card */}
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl flex flex-col max-h-[90vh]">
+      {/* Modal — matches AddProductModal shell exactly */}
+      <div className="relative z-10 w-full max-w-xl rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-gray-700 px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20">
-              <Mail className="h-5 w-5 text-blue-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
+              <Mail className="h-[18px] w-[18px] text-white dark:text-slate-900" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-100">Purchase Order Email \u2014 Sent to Supplier</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                The supplier received this email. Click \u201cConfirm Order\u201d below to simulate their reply.
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
+                Connect Supplier
+              </h2>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Review the email sent to the supplier, then confirm below.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+            aria-label="Close modal"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Email meta */}
-        <div className="space-y-2 border-b border-gray-700/60 px-6 py-4 shrink-0">
-          {[
-            { l: "From", v: "procurement@dissanayakesuper.lk" },
-            { l: "To",   v: `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.com` },
-            { l: "Subj", v: `Purchase Order \u2014 ${order.productName} (${order.id})` },
-          ].map(({ l, v }) => (
-            <div key={l} className="flex items-start gap-3">
-              <span className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-widest text-gray-500 pt-0.5">{l}</span>
-              <span className="text-xs text-gray-300 break-all">{v}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Simulated "Supplier is viewing" banner */}
-        <div className="flex items-center gap-2 bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 shrink-0">
-          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          <p className="text-xs font-medium text-amber-400">
-            Simulating supplier\u2019s inbox \u2014 {order.supplierName}
+        {/* Simulation banner */}
+        <div className="flex items-center gap-2 border-b border-amber-100 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/20 px-6 py-2.5 shrink-0">
+          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400">
+            Simulating supplier's inbox — {order.supplierName}
           </p>
         </div>
 
-        {/* Email body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-gray-300">{body}</pre>
+        {/* Email card */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+          {/* Address bar */}
+          <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700 overflow-hidden">
+            {[
+              { l: "From",    v: "procurement@dissanayakesuper.lk"                                    },
+              { l: "To",      v: order.supplierEmail ?? `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.lk` },
+              { l: "Subject", v: `Purchase Order — ${order.productName} (${order.id})`               },
+            ].map(({ l, v }) => (
+              <div key={l} className="flex items-start gap-3 px-4 py-2.5">
+                <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 pt-0.5">{l}</span>
+                <span className="text-[13px] text-slate-700 dark:text-slate-200 break-all">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Body */}
+          <pre className="rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4 font-mono text-[12px] leading-[1.75] text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">
+            {body}
+          </pre>
         </div>
 
-        {/* CTA */}
-        <div className="border-t border-gray-700 px-6 py-5 shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <p className="text-xs text-gray-500">
-              Clicking \u201cConfirm Order\u201d simulates the supplier accepting this purchase order.
-            </p>
-            <button
-              onClick={onConfirm}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 whitespace-nowrap"
-            >
-              <CheckCircle className="h-4 w-4" />
-              Confirm Order
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-4 shrink-0">
+          <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
+            Clicking <strong className="text-slate-700 dark:text-slate-200">Confirm Order</strong> simulates the supplier
+            accepting this PO — the status will update to <strong className="text-indigo-600 dark:text-indigo-400">Confirmed</strong>.
+          </p>
+          <button
+            onClick={onConfirm}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm
+                       hover:bg-blue-500 active:scale-95 transition-all
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Confirm Order
+          </button>
         </div>
       </div>
     </div>
@@ -151,12 +167,12 @@ function SupplierEmailModal({ order, emailBody, onConfirm, onClose }) {
 // ─── Cancellation Overlay ────────────────────────────────────────────────────
 function CancelOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/80 backdrop-blur-sm">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-gray-950">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-950 border-2 border-red-700">
         <Loader2 className="h-8 w-8 animate-spin text-red-400" />
       </div>
       <div className="text-center">
-        <p className="text-base font-semibold text-gray-100">Sending Cancellation Notification to Supplier...</p>
+        <p className="text-base font-semibold text-gray-100">Sending Cancellation Email to Supplier...</p>
         <p className="mt-1 text-sm text-gray-400">Please wait while we notify them.</p>
       </div>
     </div>
@@ -286,7 +302,20 @@ export default function ReorderManagement() {
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
-  // â”€â”€ Step B: Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auto-inject order arriving from LowStockAlerts modal ────────────────────
+  const autoOrderDone = useRef(false);
+  useEffect(() => {
+    if (autoOrderDone.current) return;
+    const incoming = location.state?.autoOrder;
+    if (!incoming) return;
+    autoOrderDone.current = true;
+    setReorders((prev) => [incoming, ...prev]);
+    setToast(`Purchase Order ${incoming.id} created — "${incoming.productName}" added as Pending.`);
+    setTimeout(() => setToast(null), 5000);
+    // Clear router state so a hard-refresh doesn't re-add the same order
+    navigate(location.pathname, { replace: true, state: {} });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [emailBody,    setEmailBody]    = useState("");
   const [sending,      setSending]      = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -884,21 +913,21 @@ export default function ReorderManagement() {
                       <OrderStatusBadge status={order.status} />
                     </td>
                     <td className="px-5 py-4 whitespace-nowrap">
-                      {/* Pending: Confirm + Cancel */}
+                      {/* Pending: Connect Supplier + Cancel */}
                       {order.status === "Pending" && (
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleConfirmOrder(order.id)}
-                            title="Open Supplier Email Simulation"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/20 transition-all hover:bg-blue-500/20 hover:text-blue-300"
+                            title="Open Supplier Email & Confirm"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-95"
                           >
                             <Mail className="h-3.5 w-3.5" />
-                            Simulate Email
+                            Connect Supplier
                           </button>
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             title="Cancel Order"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20 hover:text-red-300"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-red-500 active:scale-95"
                           >
                             <XCircle className="h-3.5 w-3.5" /> Cancel
                           </button>
@@ -910,7 +939,7 @@ export default function ReorderManagement() {
                         <button
                           onClick={() => handleMarkAsReceived(order.id)}
                           title="Mark as Received"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20 transition-all hover:bg-emerald-500/20 hover:text-emerald-300"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95"
                         >
                           <PackageCheck className="h-3.5 w-3.5" />
                           Mark Received

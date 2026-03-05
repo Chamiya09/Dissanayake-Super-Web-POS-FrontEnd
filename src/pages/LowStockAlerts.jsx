@@ -10,9 +10,12 @@ import {
   RefreshCw,
   DollarSign,
   ArrowRight,
-  Check,
   X,
   ShoppingCart,
+  Mail,
+  Send,
+  TrendingUp,
+  Building2,
 } from "lucide-react";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -42,6 +45,352 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
       </div>
       <p className="mt-2 text-[26px] font-bold tracking-tight text-gray-100 tabular-nums">{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>}
+    </div>
+  );
+}
+
+// ─── Modal suppliers (mirrors ReorderManagement fallback list) ───────────────
+
+const MODAL_SUPPLIERS = [
+  { id: 1, companyName: "Araliya Rice Mills",        contactPerson: "Nihal Perera",   email: "orders@araliyarice.lk"    },
+  { id: 2, companyName: "Edible Oils Lanka Pvt Ltd", contactPerson: "Chaminda Silva", email: "supply@edibleoils.lk"     },
+  { id: 3, companyName: "Anchor Dairy Distributors", contactPerson: "Priya Fernando", email: "purchaseorders@anchor.lk" },
+];
+
+// ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
+
+function PlaceOrderModal({ item, onClose, onSubmit }) {
+  const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
+  const [step, setStep]           = useState(1);
+  const [qty,  setQty]            = useState(aiQty);
+  const [supplier, setSupplier]   = useState(MODAL_SUPPLIERS[0]);
+
+  const gap      = Math.max(0, (item.reorderLevel ?? 0) - (item.stockQuantity ?? 0));
+  const velocity = Math.max(1, Math.round((item.reorderLevel ?? 10) / 3));
+  const daysLeft = item.stockQuantity > 0 ? Math.floor(item.stockQuantity / velocity) : 0;
+  const stockPct = Math.min(100, ((item.stockQuantity ?? 0) / Math.max(1, item.reorderLevel ?? 1)) * 100);
+
+  const emailBody = [
+    `Dear ${supplier.contactPerson},`,
+    ``,
+    `We are placing a formal purchase order for the following item:`,
+    ``,
+    `  Product   : ${item.productName}`,
+    `  SKU       : ${item.sku ?? "N/A"}`,
+    `  Category  : ${item.category ?? "N/A"}`,
+    `  Quantity  : ${qty} ${item.unit ?? "units"}`,
+    `  Date      : ${new Date().toISOString().slice(0, 10)}`,
+    ``,
+    `Current stock: ${item.stockQuantity ?? 0} ${item.unit ?? "units"} (reorder threshold: ${item.reorderLevel ?? 0}).`,
+    ``,
+    `Please confirm availability and expected delivery date at your earliest convenience.`,
+    ``,
+    `Warm regards,`,
+    `Dissanayake Super — Inventory Management Team`,
+    `procurement@dissanayakesuper.lk`,
+  ].join("\n");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-slate-900/80"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal card */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in-0 zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 shrink-0">
+              <ShoppingCart className="h-[16px] w-[16px] text-white" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-black text-slate-950 leading-tight">
+                Place Purchase Order
+              </h2>
+              <p className="text-[12px] text-slate-500 mt-0.5 truncate max-w-[260px]">
+                {item.productName}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close modal"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* ── Step indicator ── */}
+        <div className="flex items-center gap-0 border-b border-slate-200 bg-slate-50 px-5 py-3 shrink-0">
+          {[
+            { n: 1, label: "Reorder Details" },
+            { n: 2, label: "Supplier & Email" },
+          ].map(({ n, label }, i) => (
+            <div key={n} className="flex items-center gap-0">
+              {i > 0 && (
+                <div className={`h-px w-8 mx-2 transition-colors ${step > 1 ? "bg-blue-600" : "bg-slate-200"}`} />
+              )}
+              <div className="flex items-center gap-2">
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                  step === n
+                    ? "bg-blue-600 text-white"
+                    : step > n
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-200 text-slate-500"
+                }`}>
+                  {step > n ? "✓" : n}
+                </div>
+                <span className={`text-[12px] font-semibold transition-colors ${
+                  step === n ? "text-slate-900" : step > n ? "text-blue-600" : "text-slate-400"
+                }`}>
+                  {label}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Body (scrollable) ── */}
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+
+          {/* ════ STEP 1: Reorder Details & AI Insight ════ */}
+          {step === 1 && (
+            <div className="space-y-5">
+
+              {/* Product summary row */}
+              <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-200 mt-0.5">
+                  <PackageSearch className="h-4 w-4 text-slate-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900 leading-tight">{item.productName}</p>
+                  {item.sku && <p className="text-[11px] font-mono text-slate-400 mt-0.5">{item.sku}</p>}
+                  {item.category && <p className="text-[11px] text-slate-400">{item.category}</p>}
+                </div>
+              </div>
+
+              {/* Stock status row */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    label: "Current Stock",
+                    value: `${item.stockQuantity ?? 0}`,
+                    unit: item.unit ?? "units",
+                    color: item.stockQuantity === 0 ? "text-red-600" : "text-amber-600",
+                    bg: item.stockQuantity === 0 ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100",
+                  },
+                  {
+                    label: "Reorder Level",
+                    value: `${item.reorderLevel ?? 0}`,
+                    unit: item.unit ?? "units",
+                    color: "text-slate-700",
+                    bg: "bg-slate-50 border-slate-100",
+                  },
+                  {
+                    label: "Shortage",
+                    value: `${gap}`,
+                    unit: item.unit ?? "units",
+                    color: "text-orange-600",
+                    bg: "bg-orange-50 border-orange-100",
+                  },
+                ].map(({ label, value, unit, color, bg }) => (
+                  <div key={label} className={`rounded-xl border px-3 py-3 text-center ${bg}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
+                    <p className={`text-xl font-black leading-none ${color}`}>{value}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{unit}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stock level bar */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-slate-500 font-medium">Stock Level</span>
+                  <span className="text-[12px] text-slate-500">{Math.round(stockPct)}% of reorder level</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stockPct}%`,
+                      background: stockPct === 0 ? "#dc2626"
+                                : stockPct < 40  ? "linear-gradient(90deg,#dc2626,#f59e0b)"
+                                                 : "#f59e0b",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* AI recommendation card */}
+              <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-700">
+                    AI Recommended Quantity
+                  </span>
+                </div>
+                <div className="flex items-end gap-2 mb-1.5">
+                  <span className="text-4xl font-black text-slate-900 leading-none">{aiQty}</span>
+                  <span className="text-sm text-slate-500 pb-0.5">{item.unit ?? "units"}</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
+                  {daysLeft > 0
+                    ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
+                    : " Stock is already depleted."}
+                  {" "}This quantity covers ~45 days of demand.
+                </p>
+              </div>
+
+              {/* Quantity input */}
+              <div className="space-y-2">
+                <label className="block text-[13px] font-semibold text-slate-700">
+                  Quantity to Order
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
+                  >−</button>
+                  <input
+                    type="number" min="1" value={qty}
+                    onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
+                  />
+                  <button
+                    onClick={() => setQty((q) => q + 1)}
+                    className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
+                  >+</button>
+                  <button
+                    onClick={() => setQty(aiQty)}
+                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-[12px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                  >
+                    Use AI ({aiQty})
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════ STEP 2: Supplier Contact & Email Preview ════ */}
+          {step === 2 && (
+            <div className="space-y-5">
+
+              {/* Summary chip */}
+              <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
+                <span className="text-[12px] text-slate-500">Ordering</span>
+                <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[12px] font-bold text-white">{qty} {item.unit ?? "units"}</span>
+                <span className="text-[12px] text-slate-500">of <span className="font-semibold text-slate-700">{item.productName}</span></span>
+              </div>
+
+              {/* Supplier selector */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                  Select Supplier
+                </label>
+                <div className="space-y-2">
+                  {MODAL_SUPPLIERS.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setSupplier(s)}
+                      className={`w-full text-left rounded-xl border px-4 py-3 transition-all ${
+                        supplier.id === s.id
+                          ? "border-blue-400 bg-blue-50 ring-1 ring-blue-300"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${supplier.id === s.id ? "bg-blue-600" : "bg-slate-300"}`} />
+                        <div>
+                          <p className={`text-[13px] font-semibold ${supplier.id === s.id ? "text-blue-700" : "text-slate-800"}`}>
+                            {s.companyName}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{s.email}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Email preview */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                  Email Preview
+                </label>
+                <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                  {/* Address bar */}
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 space-y-1">
+                    {[
+                      { l: "To",      v: supplier.email },
+                      { l: "From",    v: "procurement@dissanayakesuper.lk" },
+                      { l: "Subject", v: `Purchase Order — ${item.productName}` },
+                    ].map(({ l, v }) => (
+                      <div key={l} className="flex gap-3">
+                        <span className="text-[11px] font-bold text-slate-400 w-12 shrink-0 pt-px">{l}:</span>
+                        <span className="text-[12px] text-slate-600 break-all leading-relaxed">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Body */}
+                  <pre className="px-4 py-3 text-[12px] leading-[1.7] text-slate-700 font-mono whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+                    {emailBody}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 shrink-0">
+          {step === 1 ? (
+            <>
+              <button
+                onClick={onClose}
+                className="h-9 px-5 text-[13px] font-semibold rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setStep(2)}
+                className="h-9 inline-flex items-center gap-2 px-5 text-[13px] font-extrabold rounded-lg bg-slate-900 border border-slate-950 text-white shadow-lg shadow-blue-900/20 hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                Next: Review Email
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setStep(1)}
+                className="h-9 px-5 text-[13px] font-semibold rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => onSubmit({ item, qty, supplier, emailBody })}
+                className="h-9 inline-flex items-center gap-2 px-5 text-[13px] font-extrabold rounded-lg bg-slate-900 border border-slate-950 text-white shadow-lg shadow-blue-900/20 hover:bg-blue-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send Purchase Order
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -109,14 +458,21 @@ export default function LowStockAlerts() {
 
   const isLoading = analyticsLoading || alertLoading;
 
-  const [navToast, setNavToast] = useState(null);
+  const [orderModal, setOrderModal] = useState(null); // null | item
 
-  function handlePrepareOrder(item) {
-    setNavToast(`Preparing order for "${item.productName}"...`);
-    setTimeout(() => {
-      setNavToast(null);
-      navigate("/reorder", { state: { product: item } });
-    }, 900);
+  function handleSubmitOrder({ item, qty, supplier, emailBody }) {
+    const autoOrder = {
+      id:           `PO-${Date.now()}`,
+      productName:  item.productName,
+      supplierName: supplier.companyName,
+      supplierEmail: supplier.email,
+      quantity:     qty,
+      emailBody,
+      orderDate:    new Date().toISOString().slice(0, 10),
+      status:       "Pending",
+    };
+    setOrderModal(null);
+    navigate("/reorder", { state: { autoOrder } });
   }
 
   return (
@@ -301,7 +657,7 @@ export default function LowStockAlerts() {
                       {/* Action */}
                       <td className="px-6 py-4 text-center">
                         <button
-                          onClick={() => handlePrepareOrder(item)}
+                          onClick={() => setOrderModal(item)}
                           className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                         >
                           Place Order
@@ -340,8 +696,14 @@ export default function LowStockAlerts() {
 
       </div>
 
-      {/* Navigation toast */}
-      {navToast && <NavToast message={navToast} onDismiss={() => setNavToast(null)} />}
+      {/* Place Order Modal */}
+      {orderModal && (
+        <PlaceOrderModal
+          item={orderModal}
+          onClose={() => setOrderModal(null)}
+          onSubmit={handleSubmitOrder}
+        />
+      )}
     </div>
   );
 }
