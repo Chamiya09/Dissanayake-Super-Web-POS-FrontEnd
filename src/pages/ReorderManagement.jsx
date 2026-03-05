@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
@@ -25,6 +25,9 @@ import {
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
 
 function StatusBadge({ status }) {
   const map = {
@@ -60,7 +63,6 @@ function OrderStatusBadge({ status }) {
 function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onClose }) {
   const { user } = useAuth();
   const managerName = user?.name ?? "Store Manager";
-  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
 
   if (!order) return null;
 
@@ -78,8 +80,11 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
     ``,
     `Regards,`,
     `${managerName}`,
-    `Dissanayake Super — Purchasing Department`,
-    `${senderEmail}`,
+    `Purchasing Department`,
+    `Dissanayake Super Inventory System`,
+    ``,
+    `---`,
+    `This is an automated purchase order sent via Dissanayake Super Management System (Gmail Integration).`,
   ].join("\n");
 
   return (
@@ -139,16 +144,25 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
 
           {/* Address bar */}
           <div className="rounded-xl border border-slate-100 bg-slate-50 divide-y divide-slate-100 overflow-hidden">
-            {[
-              { l: "From",    v: senderEmail },
-              { l: "To",      v: order.supplierEmail ?? `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.lk` },
-              { l: "Subject", v: `Purchase Order — ${order.productName} (${order.id})`               },
-            ].map(({ l, v }) => (
-              <div key={l} className="flex items-start gap-3 px-4 py-2.5">
-                <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400 pt-0.5">{l}</span>
-                <span className="text-[13px] text-slate-700 break-all">{v}</span>
-              </div>
-            ))}
+            {/* From — read-only with Official badge */}
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0">From:</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed flex-1">{SYSTEM_SENDER_EMAIL}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700 shrink-0">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                Official
+              </span>
+            </div>
+            {/* To */}
+            <div className="flex gap-3 px-4 py-2.5">
+              <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0 pt-px">To:</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail ?? `orders@${order.supplierName.toLowerCase().replace(/\s+/g, "")}.lk`}</span>
+            </div>
+            {/* Subject */}
+            <div className="flex gap-3 px-4 py-2.5">
+              <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0 pt-px">Subject:</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{`Purchase Order — ${order.productName} (${order.id})`}</span>
+            </div>
           </div>
 
           {/* Body */}
@@ -190,7 +204,6 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
 function EditOrderModal({ order, onUpdate, onClose }) {
   const { user } = useAuth();
   const managerName = user?.name ?? "Store Manager";
-  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
 
   const [qty, setQty] = useState(order.quantity ?? 1);
 
@@ -207,8 +220,11 @@ function EditOrderModal({ order, onUpdate, onClose }) {
     ``,
     `Regards,`,
     `${managerName}`,
-    `Dissanayake Super — Purchasing Department`,
-    `${senderEmail}`,
+    `Purchasing Department`,
+    `Dissanayake Super Inventory System`,
+    ``,
+    `---`,
+    `This is an automated purchase order sent via Dissanayake Super Management System (Gmail Integration).`,
   ].join("\n");
 
   const [message, setMessage] = useState(order.emailBody || defaultMessage);
@@ -414,7 +430,6 @@ export default function ReorderManagement() {
   const { user }  = useAuth();
 
   const managerName = user?.name ?? "Store Manager";
-  const senderEmail = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
 
   // Product injected by Low Stock Alerts via navigate state
   const [product, setProduct] = useState(location.state?.product ?? null);
@@ -507,8 +522,11 @@ export default function ReorderManagement() {
       ``,
       `Regards,`,
       `${managerName}`,
-      `Dissanayake Super — Purchasing Department`,
-      `${senderEmail}`,
+      `Purchasing Department`,
+      `Dissanayake Super Inventory System`,
+      ``,
+      `---`,
+      `This is an automated purchase order sent via Dissanayake Super Management System (Gmail Integration).`,
     ].join("\n"));
     setStep("email");
   }

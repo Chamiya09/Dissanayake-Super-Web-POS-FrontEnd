@@ -4,7 +4,6 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { useInventory } from "@/context/InventoryContext";
 import { useReorder }   from "@/context/ReorderContext";
-import { useAuth }      from "@/context/AuthContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -74,17 +73,21 @@ const MODAL_SUPPLIERS = [
   { id: 3, companyName: "Anchor Dairy Distributors", contactPerson: "Priya Fernando", email: "purchaseorders@anchor.lk" },
 ];
 
+const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
+
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
-  const { user } = useAuth();
-  const managerName  = user?.name ?? "Store Manager";
-  const senderEmail  = `${(user?.username ?? "procurement").toLowerCase().replace(/\s+/g, ".")}@dissanayakesuper.lk`;
-
   const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
-  const [step, setStep]           = useState(1);
-  const [qty,  setQty]            = useState(aiQty);
-  const [supplier, setSupplier]   = useState(MODAL_SUPPLIERS[0]);
+  const [step, setStep] = useState(1);
+  const [qty,  setQty]  = useState(aiQty);
+
+  // Lock supplier to the product's assigned supplier; fall back to first dummy entry
+  const assignedSupplier = {
+    companyName:   item.supplierName    ?? MODAL_SUPPLIERS[0].companyName,
+    contactPerson: item.supplierContact ?? MODAL_SUPPLIERS[0].contactPerson,
+    email:         item.supplierEmail   ?? MODAL_SUPPLIERS[0].email,
+  };
 
   const gap      = Math.max(0, (item.reorderLevel ?? 0) - (item.stockQuantity ?? 0));
   const velocity = Math.max(1, Math.round((item.reorderLevel ?? 10) / 3));
@@ -92,7 +95,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
   const stockPct = Math.min(100, ((item.stockQuantity ?? 0) / Math.max(1, item.reorderLevel ?? 1)) * 100);
 
   const emailBody = [
-    `Dear ${supplier.contactPerson},`,
+    `Dear ${assignedSupplier.contactPerson},`,
     ``,
     `We are placing a formal purchase order for the following item:`,
     ``,
@@ -107,9 +110,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
     `Please confirm availability and expected delivery date at your earliest convenience.`,
     ``,
     `Regards,`,
-    `${managerName}`,
-    `Dissanayake Super — Purchasing Department`,
-    `${senderEmail}`,
+    `Purchasing Department`,
+    `Dissanayake Super Inventory System`,
+    ``,
+    `---`,
+    `This is an automated purchase order sent via Dissanayake Super Management System (Gmail Integration).`,
   ].join("\n");
 
   return (
@@ -315,34 +320,26 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 <span className="text-[12px] text-slate-500">of <span className="font-semibold text-slate-700">{item.productName}</span></span>
               </div>
 
-              {/* Supplier selector */}
+              {/* Assigned Supplier — locked, read-only */}
               <div className="space-y-2">
                 <label className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
                   <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                  Select Supplier
+                  Assigned Supplier
                 </label>
-                <div className="space-y-2">
-                  {MODAL_SUPPLIERS.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSupplier(s)}
-                      className={`w-full text-left rounded-xl border px-4 py-3 transition-all ${
-                        supplier.id === s.id
-                          ? "border-blue-400 bg-blue-50 ring-1 ring-blue-300"
-                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full shrink-0 ${supplier.id === s.id ? "bg-blue-600" : "bg-slate-300"}`} />
-                        <div>
-                          <p className={`text-[13px] font-semibold ${supplier.id === s.id ? "text-blue-700" : "text-slate-800"}`}>
-                            {s.companyName}
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{s.email}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200 mt-0.5">
+                      <Building2 className="h-4 w-4 text-slate-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-bold text-slate-900 leading-tight">{assignedSupplier.companyName}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{assignedSupplier.email}</p>
+                      {assignedSupplier.contactPerson && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">Attn: {assignedSupplier.contactPerson}</p>
+                      )}
+                    </div>
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">Assigned</span>
+                  </div>
                 </div>
               </div>
 
@@ -354,17 +351,26 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 </label>
                 <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                   {/* Address bar */}
-                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 space-y-1">
-                    {[
-                      { l: "From",    v: senderEmail },
-                      { l: "To",      v: supplier.email },
-                      { l: "Subject", v: `Purchase Order — ${item.productName}` },
-                    ].map(({ l, v }) => (
-                      <div key={l} className="flex gap-3">
-                        <span className="text-[11px] font-bold text-slate-400 w-12 shrink-0 pt-px">{l}:</span>
-                        <span className="text-[12px] text-slate-600 break-all leading-relaxed">{v}</span>
-                      </div>
-                    ))}
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 space-y-1.5">
+                    {/* From — read-only with Official badge */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-bold text-slate-900 w-12 shrink-0">From:</span>
+                      <span className="text-[12px] text-slate-900 break-all leading-relaxed flex-1">{SYSTEM_SENDER_EMAIL}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700 shrink-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                        Official
+                      </span>
+                    </div>
+                    {/* To */}
+                    <div className="flex gap-3">
+                      <span className="text-[11px] font-bold text-slate-900 w-12 shrink-0 pt-px">To:</span>
+                      <span className="text-[12px] text-slate-900 break-all leading-relaxed">{assignedSupplier.email}</span>
+                    </div>
+                    {/* Subject */}
+                    <div className="flex gap-3">
+                      <span className="text-[11px] font-bold text-slate-900 w-12 shrink-0 pt-px">Subject:</span>
+                      <span className="text-[12px] text-slate-900 break-all leading-relaxed">Purchase Order — {item.productName}</span>
+                    </div>
                   </div>
                   {/* Body */}
                   <pre className="px-4 py-3 text-[12px] leading-[1.7] text-slate-700 font-mono whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
@@ -403,8 +409,8 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 ← Back
               </button>
               <button
-                onClick={() => onSubmit({ item, qty, supplier, emailBody })}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
+                onClick={() => onSubmit({ item, qty, supplier: assignedSupplier, emailBody })}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 <Send className="h-3.5 w-3.5" />
                 Send Purchase Order

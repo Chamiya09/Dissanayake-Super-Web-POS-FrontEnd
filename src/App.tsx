@@ -9,6 +9,8 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
 import { ReorderProvider }   from "./context/ReorderContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { ToastStack } from "./components/ui/SystemToast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -57,7 +59,10 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <NotificationProvider>
+      <TooltipProvider>
+        {/* System-wide notification stack — renders toasts above everything */}
+        <ToastStack />
       <Toaster />
       <Sonner />
       {/* react-toastify — globally available to all CRUD modules */}
@@ -106,7 +111,8 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </NotificationProvider>
+</QueryClientProvider>
 );
 
 export default App;
