@@ -14,7 +14,9 @@ import {
   ChevronRight,
   X,
   ClipboardList,
-  MoreHorizontal,
+  CheckCircle,
+  XCircle,
+  PackageCheck,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -179,6 +181,9 @@ export default function ReorderManagement() {
   const [sent,         setSent]         = useState(false);
   const [toast,        setToast]        = useState(null);
 
+  // ── Per-row loading: { [orderId]: 'confirming' | 'cancelling' | false }
+  const [rowLoading, setRowLoading] = useState({});
+
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
   const scaleMax      = Math.max(expectedStock, (product?.reorderLevel ?? 10)) * 1.5 || 100;
@@ -244,6 +249,43 @@ export default function ReorderManagement() {
 
   // Keep legacy alias so existing JSX call-sites still work
   const handleSend = handleCreateReorder;
+
+  // ── Row-level action handlers ──────────────────────────────────────────
+  function handleConfirmOrder(id) {
+    if (rowLoading[id]) return;
+    setRowLoading((prev) => ({ ...prev, [id]: "confirming" }));
+    setTimeout(() => {
+      setReorders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
+      );
+      setRowLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      setToast("Order confirmed with supplier!");
+      setTimeout(() => setToast(null), 3500);
+    }, 2000);
+  }
+
+  function handleCancelOrder(id) {
+    if (rowLoading[id]) return;
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setRowLoading((prev) => ({ ...prev, [id]: "cancelling" }));
+    setTimeout(() => {
+      setReorders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o))
+      );
+      setRowLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      setToast("Order has been cancelled.");
+      setTimeout(() => setToast(null), 3500);
+    }, 2000);
+  }
+
+  function handleMarkAsReceived(id) {
+    if (rowLoading[id]) return;
+    setReorders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status: "Received" } : o))
+    );
+    setToast("Stock Updated Successfully!");
+    setTimeout(() => setToast(null), 3500);
+  }
 
   function handleReset() {
     setProduct(null);
@@ -704,13 +746,53 @@ export default function ReorderManagement() {
                     <td className="px-5 py-4 whitespace-nowrap">
                       <OrderStatusBadge status={order.status} />
                     </td>
-                    <td className="px-5 py-4">
-                      <button
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-100"
-                        title="Actions"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      {/* Pending: Confirm + Cancel */}
+                      {order.status === "Pending" && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleConfirmOrder(order.id)}
+                            disabled={!!rowLoading[order.id]}
+                            title="Confirm with Supplier"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/20 transition-all hover:bg-blue-500/20 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {rowLoading[order.id] === "confirming" ? (
+                              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Confirming...</>
+                            ) : (
+                              <><CheckCircle className="h-3.5 w-3.5" /> Confirm</>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleCancelOrder(order.id)}
+                            disabled={!!rowLoading[order.id]}
+                            title="Cancel Order"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {rowLoading[order.id] === "cancelling" ? (
+                              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Cancelling...</>
+                            ) : (
+                              <><XCircle className="h-3.5 w-3.5" /> Cancel</>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Confirmed: Mark as Received */}
+                      {order.status === "Confirmed" && (
+                        <button
+                          onClick={() => handleMarkAsReceived(order.id)}
+                          title="Mark as Received"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20 transition-all hover:bg-emerald-500/20 hover:text-emerald-300"
+                        >
+                          <PackageCheck className="h-3.5 w-3.5" />
+                          Mark Received
+                        </button>
+                      )}
+
+                      {/* Received / Cancelled: finalized — no actions */}
+                      {(order.status === "Received" || order.status === "Cancelled") && (
+                        <span className="text-xs text-gray-600 italic">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
