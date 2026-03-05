@@ -114,6 +114,20 @@ export async function createOrder({ orderRef, supplierEmail, items }) {
 }
 
 /**
+ * Updates an existing purchase order's supplierEmail and/or items.
+ *
+ * @param {number} dbId             - Numeric database PK of the order
+ * @param {Object} payload
+ * @param {string} payload.supplierEmail - Updated supplier email (null = no change)
+ * @param {Array}  payload.items         - Replacement item list (null = no change)
+ * @returns {Promise<Object>} ReorderResponseDTO (raw, not yet mapped)
+ */
+export async function updateOrder(dbId, { supplierEmail, items }) {
+  const { data } = await api.put(`${BASE}/${dbId}`, { supplierEmail, items });
+  return data;
+}
+
+/**
  * Fetches all purchase orders sorted newest-first.
  *
  * @param {Array} suppliers - Optional suppliers list for name look-up
