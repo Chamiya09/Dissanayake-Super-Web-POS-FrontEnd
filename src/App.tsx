@@ -8,6 +8,9 @@ import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
+import { ReorderProvider }   from "./context/ReorderContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { ToastStack } from "./components/ui/SystemToast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -22,20 +25,24 @@ import StaffDashboard from "./pages/StaffDashboard";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 import InventoryStock from "./pages/InventoryStock";
+import ReorderManagement from "./pages/ReorderManagement";
+import LowStockAlerts   from "./pages/LowStockAlerts";
 
 const queryClient = new QueryClient();
 
 /** Sidebar + main layout — used for all authenticated pages */
 const AppLayout = () => (
   <InventoryProvider>
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1 overflow-hidden">
-          <Outlet />
-        </main>
-      </div>
-    </SidebarProvider>
+    <ReorderProvider>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <main className="flex-1 overflow-hidden">
+            <Outlet />
+          </main>
+        </div>
+      </SidebarProvider>
+    </ReorderProvider>
   </InventoryProvider>
 );
 
@@ -52,7 +59,10 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <NotificationProvider>
+      <TooltipProvider>
+        {/* System-wide notification stack — renders toasts above everything */}
+        <ToastStack />
       <Toaster />
       <Sonner />
       {/* react-toastify — globally available to all CRUD modules */}
@@ -87,6 +97,8 @@ const App = () => (
                   <Route path="/inventory"  element={<InventoryStock />} />
                   <Route path="/sales"      element={<SalesManagement />} />
                   <Route path="/ai-reorder" element={<PlaceholderPage title="AI Reorder" />} />
+                  <Route path="/low-stock"  element={<LowStockAlerts />} />
+                  <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                   <Route path="/users"      element={<UserManagement />} />
@@ -99,7 +111,8 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </NotificationProvider>
+</QueryClientProvider>
 );
 
 export default App;

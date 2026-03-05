@@ -5,6 +5,8 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
+import { AIPredictionsCard } from "@/components/Dashboard/AIPredictionsCard";
+import { SkeletonTable, SkeletonCard } from "@/components/ui/SkeletonTable";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -205,30 +207,40 @@ export default function Dashboard() {
 
         {/*  Metric cards  */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <MetricCard
-            label="Total Sales Revenue"
-            value={isLoading ? "" : formatCurrency(stats.revenue)}
-            sub="From completed transactions"
-            icon={TrendingUp}
-            iconBg="bg-emerald-500/10"
-            iconColor="text-emerald-600 dark:text-emerald-400"
-          />
-          <MetricCard
-            label="Total Products"
-            value={isLoading ? "" : stats.products}
-            sub="Items in inventory"
-            icon={Package}
-            iconBg="bg-indigo-500/10"
-            iconColor="text-indigo-600 dark:text-indigo-400"
-          />
-          <MetricCard
-            label="Registered Suppliers"
-            value={isLoading ? "" : stats.suppliers}
-            sub="Active supplier accounts"
-            icon={Truck}
-            iconBg="bg-orange-500/10"
-            iconColor="text-orange-600 dark:text-orange-400"
-          />
+          {isLoading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                label="Total Sales Revenue"
+                value={formatCurrency(stats.revenue)}
+                sub="From completed transactions"
+                icon={TrendingUp}
+                iconBg="bg-emerald-500/10"
+                iconColor="text-emerald-600 dark:text-emerald-400"
+              />
+              <MetricCard
+                label="Total Products"
+                value={stats.products}
+                sub="Items in inventory"
+                icon={Package}
+                iconBg="bg-indigo-500/10"
+                iconColor="text-indigo-600 dark:text-indigo-400"
+              />
+              <MetricCard
+                label="Registered Suppliers"
+                value={stats.suppliers}
+                sub="Active supplier accounts"
+                icon={Truck}
+                iconBg="bg-orange-500/10"
+                iconColor="text-orange-600 dark:text-orange-400"
+              />
+            </>
+          )}
         </div>
 
         {/* ── Inventory Analytics ── */}
@@ -310,6 +322,9 @@ export default function Dashboard() {
 
         </div>
 
+        {/* ── AI Predictions ── */}
+        <AIPredictionsCard />
+
         {/*  Recent Sales  */}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
 
@@ -321,17 +336,18 @@ export default function Dashboard() {
           </div>
 
           {isLoading && (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-              </svg>
-              Loading recent sales...
-            </div>
+            <SkeletonTable
+              rows={5}
+              columns={[
+                { width: "w-28" },
+                { width: "w-36", flexible: true },
+                { width: "w-28", align: "right" },
+              ]}
+            />
           )}
 
           {!isLoading && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto transition-opacity duration-300 opacity-100">
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-border bg-muted/60">

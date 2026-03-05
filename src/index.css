@@ -143,3 +143,36 @@
     100% { background-color: transparent;      box-shadow: none; }
   }
 }
+
+/* ─── System Toast animations ─────────────────────────────────────────────────
+   Used by src/components/ui/SystemToast.jsx
+   ─────────────────────────────────────────────────────────────────────────── */
+@keyframes toast-slide-in {
+  from { transform: translateX(calc(100% + 24px)); opacity: 0; }
+  to   { transform: translateX(0);                 opacity: 1; }
+}
+
+@keyframes toast-slide-out {
+  from { transform: translateX(0);                 opacity: 1; }
+  to   { transform: translateX(calc(100% + 24px)); opacity: 0; }
+}
+
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+/* Slide in — applied when a toast is added */
+.toast-enter {
+  animation: toast-slide-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+/* Slide out — applied just before removal from DOM */
+.toast-exit {
+  animation: toast-slide-out 0.28s ease-in forwards;
+}
+
+/* Shrinking progress bar — duration is overridden inline to match auto-dismiss delay */
+.toast-progress {
+  animation: toast-progress linear forwards;
+}
