@@ -14,6 +14,7 @@ import { formatCurrency } from "@/utils/formatCurrency";
 interface CartPanelProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, delta: number) => void;
+  onSetQuantity: (productId: string, value: number) => void;
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
   /** Called with the final charged amount after a successful checkout */
@@ -40,6 +41,7 @@ function TierBadge({ tier }: { tier: LoyaltyCustomer["tier"] }) {
 function SwipeableItem({
   item,
   onUpdateQuantity,
+  onSetQuantity,
   onRemoveItem,
   highlight,
   focused,
@@ -47,14 +49,24 @@ function SwipeableItem({
 }: {
   item: CartItem;
   onUpdateQuantity: (id: string, delta: number) => void;
+  onSetQuantity: (id: string, value: number) => void;
   onRemoveItem: (id: string) => void;
   highlight: boolean;
   focused: boolean;
   emoji: string;
 }) {
   const [offsetX, setOffsetX] = useState(0);
+  const [localQty, setLocalQty] = useState(() => item.quantity.toFixed(3));
+  const inputFocusedRef = useRef(false);
   const startX = useRef<number | null>(null);
   const dragging = useRef(false);
+
+  // Sync external quantity changes (from +/- buttons) into the input when not editing
+  useEffect(() => {
+    if (!inputFocusedRef.current) {
+      setLocalQty(item.quantity.toFixed(3));
+    }
+  }, [item.quantity]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
@@ -122,9 +134,25 @@ function SwipeableItem({
           >
             <Minus className="h-3 w-3 stroke-[2.5]" />
           </button>
-          <span className="w-7 border-x border-border/50 text-center text-[12px] font-bold tabular-nums text-foreground">
-            {item.quantity}
-          </span>
+          <input
+            type="number"
+            step="0.001"
+            min="0.001"
+            value={localQty}
+            onFocus={() => { inputFocusedRef.current = true; }}
+            onChange={(e) => setLocalQty(e.target.value)}
+            onBlur={() => {
+              inputFocusedRef.current = false;
+              const v = parseFloat(localQty);
+              if (!isNaN(v) && v > 0) {
+                onSetQuantity(item.product.id, v);
+                setLocalQty(v.toFixed(3));
+              } else {
+                setLocalQty(item.quantity.toFixed(3));
+              }
+            }}
+            className="h-7 w-16 border-x border-border/50 text-center text-[11px] font-bold tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
           <button
             onClick={() => onUpdateQuantity(item.product.id, 1)}
             className="flex h-7 w-7 items-center justify-center text-primary transition-colors hover:bg-primary/10"
@@ -151,7 +179,7 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
@@ -359,6 +387,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
               <SwipeableItem
                 item={item}
                 onUpdateQuantity={onUpdateQuantity}
+                onSetQuantity={onSetQuantity}
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
                 focused={cartFocusedIdx === idx}

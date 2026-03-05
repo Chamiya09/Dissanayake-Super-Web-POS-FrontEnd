@@ -153,6 +153,14 @@ const Index = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
+  const setQuantity = useCallback((productId: string, value: number) => {
+    setCart((prev) =>
+      prev
+        .map((i) => i.product.id === productId ? { ...i, quantity: value } : i)
+        .filter((i) => i.quantity > 0)
+    );
+  }, []);
+
   const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
     const receiptNo = `RCP-${Date.now()}`;
     const payload = {
@@ -225,6 +233,7 @@ const Index = () => {
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
+            onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}
@@ -264,6 +273,7 @@ const Index = () => {
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
+            onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}
