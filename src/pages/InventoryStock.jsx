@@ -30,6 +30,7 @@ import {
   PackagePlus,
   Hash,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ─── Category → icon mapping ──────────────────────────────────────────────────
@@ -825,6 +826,218 @@ const COLUMNS = [
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
+// ─── Adjust Stock Modal ──────────────────────────────────────────────────────
+const AdjustStockModal = ({ open, item, onClose, onSaved }) => {
+  const [amount, setAmount]   = useState("");
+  const [notes, setNotes]     = useState("");
+  const [saving, setSaving]   = useState(false);
+  const [errors, setErrors]   = useState({});
+
+  // Reset form whenever the modal opens with a new item
+  useEffect(() => {
+    if (open) {
+      setAmount("");
+      setNotes("");
+      setErrors({});
+      setSaving(false);
+    }
+  }, [open, item?.inventoryId]);
+
+  if (!open || !item) return null;
+
+  const currentQty   = Number(item.stockQuantity ?? 0);
+  const parsedAmount = parseFloat(amount);
+  const validAmount  = !isNaN(parsedAmount) && parsedAmount !== 0;
+  const resultingQty = validAmount ? currentQty + parsedAmount : null;
+  const isNegativeResult = resultingQty !== null && resultingQty < 0;
+  const selectedUnit = item.unit || "units";
+
+  const inputBase =
+    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 " +
+    "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
+    "text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
+    "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 ";
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!validAmount)          errs.amount = "Enter a non-zero adjustment value.";
+    if (isNegativeResult)      errs.amount = `Cannot reduce by more than current stock (${currentQty}).`;
+    if (!notes.trim())         errs.notes  = "Please provide a reason for this adjustment.";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setSaving(true);
+    try {
+      await api.post(`/api/inventory/adjust/${item.inventoryId}`, {
+        adjustmentAmount: parsedAmount,
+        notes: notes.trim(),
+      });
+      const direction = parsedAmount > 0 ? "increased" : "decreased";
+      showSuccess(
+        `Stock ${direction} by ${Math.abs(parsedAmount)} ${selectedUnit} for "${item.productName}".`
+      );
+      onSaved();
+      onClose();
+    } catch (err) {
+      showError(err.response?.data?.message ?? "Failed to adjust stock.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-600 dark:bg-amber-500 flex-shrink-0">
+              <SlidersHorizontal size={16} className="text-white" strokeWidth={2} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">Adjust Stock</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* ── Form ───────────────────────────────────────────── */}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+            {/* ── Current Stock (read-only) ───────────────────────── */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                Current Stock
+              </label>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  {currentQty <= (item.reorderLevel ?? 10) && (
+                    <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />
+                  )}
+                  {currentQty}
+                  <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                </span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
+                  read-only
+                </span>
+              </div>
+            </div>
+
+            {/* ── Adjustment Amount ──────────────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Adjustment Amount <span className="text-red-500 normal-case tracking-normal">*</span>
+              </label>
+              <p className="text-xs text-slate-400 dark:text-slate-500 -mt-0.5">
+                Use positive to add stock, negative to remove.
+              </p>
+              <div className="relative">
+                <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="number"
+                  step="any"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="e.g. +10 or -5"
+                  className={inputBase + " pl-10 border-slate-200 dark:border-slate-700"}
+                />
+              </div>
+              {errors.amount && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                  {errors.amount}
+                </p>
+              )}
+            </div>
+
+            {/* ── Resulting Stock Preview ─────────────────────────── */}
+            {validAmount && (
+              <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                isNegativeResult
+                  ? "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30"
+                  : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30"
+              }`}>
+                <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Resulting Stock
+                </span>
+                <span className={`text-sm font-bold tabular-nums ${
+                  isNegativeResult
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+                }`}>
+                  {resultingQty} <span className="font-normal text-xs text-slate-400">{selectedUnit}</span>
+                </span>
+              </div>
+            )}
+            {isNegativeResult && (
+              <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                <AlertTriangle size={12} strokeWidth={2.2} />
+                Resulting stock cannot be negative.
+              </p>
+            )}
+
+            {/* ── Notes / Reason ────────────────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Damaged goods removed, Stock correction after audit…"
+                rows={3}
+                maxLength={500}
+                className={inputBase + " border-slate-200 dark:border-slate-700 resize-none"}
+              />
+              <div className="flex items-center justify-between">
+                {errors.notes ? (
+                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                    {errors.notes}
+                  </p>
+                ) : <span />}
+                <span className="text-[10px] text-slate-400 tabular-nums">{notes.length}/500</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Footer ──────────────────────────────────────── */}
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !validAmount || isNegativeResult || !notes.trim()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+            >
+              {saving
+                ? <><Loader2 size={14} className="animate-spin" />Saving…</>
+                : <><SlidersHorizontal size={14} />Apply Adjustment</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const InventoryStock = () => {
   // products   = all products (dropdown list for AddStockModal)
@@ -842,6 +1055,7 @@ const InventoryStock = () => {
   const [editTarget,     setEditTarget]     = useState(null);   // inventory item to edit
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
+  const [adjustTarget,   setAdjustTarget]   = useState(null);   // inventory item to adjust
   const [logs,           setLogs]           = useState([]);
 
   const { refreshInventory } = useInventory();
@@ -1037,6 +1251,12 @@ const InventoryStock = () => {
         open={!!editTarget}
         item={editTarget}
         onClose={() => setEditTarget(null)}
+        onSaved={refreshAll}
+      />
+      <AdjustStockModal
+        open={!!adjustTarget}
+        item={adjustTarget}
+        onClose={() => setAdjustTarget(null)}
         onSaved={refreshAll}
       />
       {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
@@ -1354,6 +1574,20 @@ const InventoryStock = () => {
                           "
                         >
                           <Pencil size={15} strokeWidth={1.8} />
+                        </button>
+                        <button
+                          type="button"
+                          title="Adjust stock (+/−)"
+                          onClick={() => setAdjustTarget(item)}
+                          className="
+                            p-2 rounded-lg
+                            text-slate-400
+                            hover:text-amber-600 hover:bg-amber-50
+                            dark:hover:text-amber-400 dark:hover:bg-amber-950/40
+                            transition-all duration-150
+                          "
+                        >
+                          <SlidersHorizontal size={15} strokeWidth={1.8} />
                         </button>
                         <button
                           type="button"
