@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   Search,
   Plus,
@@ -210,7 +211,7 @@ const InventoryPage = () => {
 
                   {/* Price */}
                   <td className="py-6 px-6 font-medium text-slate-700 dark:text-slate-300">
-                    ${item.price.toFixed(2)}
+                    {formatCurrency(item.price)}
                   </td>
 
                   {/* Stock Level */}

@@ -22,7 +22,25 @@ import type { Product } from "@/data/product-management";
    ───────────────────────────────────────────────────────────────────────── */
 
 export const CATEGORIES = [
-  "Fruits", "Dairy", "Beverages", "Bakery", "Snacks", "Meat", "Vegetables",
+  "Fruits",
+  "Vegetables",
+  "Rice & Grains",
+  "Dhal & Pulses",
+  "Flour & Baking",
+  "Cooking Oil",
+  "Spices & Condiments",
+  "Dairy Products",
+  "Eggs & Meat",
+  "Instant Food",
+  "Snacks",
+  "Beverages",
+  "Tea & Coffee",
+  "Frozen Foods",
+  "Canned Foods",
+  "Baby Products",
+  "Personal Care",
+  "Cleaning Products",
+  "Household Items",
 ] as const;
 
 export const UNITS = [

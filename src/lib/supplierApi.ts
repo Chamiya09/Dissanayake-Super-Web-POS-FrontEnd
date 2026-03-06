@@ -32,4 +32,18 @@ export const supplierApi = {
       .post(`${BASE}/${supplierId}/products`, { productIds })
       .then(() => undefined);
   },
+
+  /** GET /api/products/by-supplier/:supplierId — fetch products assigned to a supplier */
+  getAssignedProducts(supplierId: number): Promise<import("@/components/Suppliers/AssignProductsModal").MgmtProduct[]> {
+    return api
+      .get(`/api/products/by-supplier/${supplierId}`)
+      .then((r) => r.data);
+  },
+
+  /** PATCH /api/products/:productId/unassign — remove supplier from a product */
+  unassignProduct(productId: number): Promise<void> {
+    return api
+      .patch(`/api/products/${productId}/unassign`)
+      .then(() => undefined);
+  },
 };

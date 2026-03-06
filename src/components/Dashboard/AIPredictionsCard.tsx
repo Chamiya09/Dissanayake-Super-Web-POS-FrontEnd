@@ -1,7 +1,7 @@
 /**
  * AIPredictionsCard.tsx
  * ─────────────────────────────────────────────────────────────────────────────
- * "Top AI Predictions (Next 7 Days)" dashboard widget.
+ * "Top AI Predictions (Next 7 Days)" dashboard widget — read-only analytics.
  *
  * Data source:  InventoryContext inventory items (no extra API call needed).
  * Prediction logic:
@@ -14,9 +14,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Sparkles, TrendingUp, ShoppingCart, Clock, RefreshCw } from "lucide-react";
+import { useMemo } from "react";
+import { Sparkles, TrendingUp, Clock, BarChart2 } from "lucide-react";
 import { useInventory, type InventoryItem } from "@/context/InventoryContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,7 +70,7 @@ function ConfidenceBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Confidence</span>
-      <div className="h-1.5 w-16 rounded-full bg-slate-100 overflow-hidden">
+      <div className="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${color}`}
           style={{ width: `${value}%` }}
@@ -82,24 +81,49 @@ function ConfidenceBar({ value }: { value: number }) {
   );
 }
 
+// ── Demand bar ───────────────────────────────────────────────────────────────
+function DemandBar({ value, max }: { value: number; max: number }) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  const color =
+    pct >= 75 ? "bg-red-400"   :
+    pct >= 45 ? "bg-amber-400" :
+                "bg-indigo-400";
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[11px] font-semibold tabular-nums text-slate-500 w-7 shrink-0 text-right">
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
 // ── Dummy data (used when inventory context has no items) ─────────────────────
 const DUMMY_ITEMS: InventoryItem[] = [
-  { inventoryId: -1, productId: 1, productName: "Basmati Rice (5 kg)",         sku: "RCE-001", category: "Dry Goods",  sellingPrice: 1250, stockQuantity: 4,  reorderLevel: 20, unit: "bags",    stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
-  { inventoryId: -2, productId: 2, productName: "Sunflower Cooking Oil (1 L)", sku: "OIL-002", category: "Oils & Fats", sellingPrice: 480,  stockQuantity: 0,  reorderLevel: 15, unit: "bottles", stockStatus: "OUT_OF_STOCK", lastUpdated: new Date().toISOString() },
-  { inventoryId: -3, productId: 3, productName: "Full Cream Milk Powder",      sku: "MLK-003", category: "Dairy",       sellingPrice: 890,  stockQuantity: 7,  reorderLevel: 25, unit: "tins",    stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
-  { inventoryId: -4, productId: 4, productName: "Ceylon Black Tea (200 g)",    sku: "TEA-004", category: "Beverages",   sellingPrice: 320,  stockQuantity: 3,  reorderLevel: 12, unit: "boxes",   stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
+  { inventoryId: -1, productId: 1, productName: "Basmati Rice (5 kg)",         sku: "RCE-001", category: "Dry Goods",   sellingPrice: 1250, stockQuantity: 4, reorderLevel: 20, unit: "bags",    stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
+  { inventoryId: -2, productId: 2, productName: "Sunflower Cooking Oil (1 L)", sku: "OIL-002", category: "Oils & Fats", sellingPrice: 480,  stockQuantity: 0, reorderLevel: 15, unit: "bottles", stockStatus: "OUT_OF_STOCK", lastUpdated: new Date().toISOString() },
+  { inventoryId: -3, productId: 3, productName: "Full Cream Milk Powder",      sku: "MLK-003", category: "Dairy",        sellingPrice: 890,  stockQuantity: 7, reorderLevel: 25, unit: "tins",    stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
+  { inventoryId: -4, productId: 4, productName: "Ceylon Black Tea (200 g)",    sku: "TEA-004", category: "Beverages",    sellingPrice: 320,  stockQuantity: 3, reorderLevel: 12, unit: "boxes",   stockStatus: "LOW_STOCK",    lastUpdated: new Date().toISOString() },
 ];
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AIPredictionsCard() {
-  const { inventoryItems, analyticsLoading, refreshInventory } = useInventory();
-  const navigate = useNavigate();
-  const [refreshing, setRefreshing] = useState(false);
+  const { inventoryItems } = useInventory();
 
   const source = inventoryItems.length > 0 ? inventoryItems : DUMMY_ITEMS;
 
   const predictions = useMemo(() => buildPredictions(source), [source]);
+
+  const maxPredicted = useMemo(
+    () => Math.max(1, ...predictions.map((p) => p.predictedSales)),
+    [predictions],
+  );
 
   const lastUpdated = useMemo(() => {
     const dates = source
@@ -112,16 +136,6 @@ export function AIPredictionsCard() {
       hour: "2-digit", minute: "2-digit",
     });
   }, [source]);
-
-  function handleRefresh() {
-    setRefreshing(true);
-    refreshInventory();
-    setTimeout(() => setRefreshing(false), 1200);
-  }
-
-  function handleQuickReorder(item: InventoryItem) {
-    navigate("/reorder", { state: { product: item } });
-  }
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -142,21 +156,17 @@ export function AIPredictionsCard() {
           </div>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={analyticsLoading || refreshing}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 transition-colors"
-          title="Refresh predictions"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-        </button>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-600">
+          <BarChart2 className="h-3 w-3" />
+          Analytics
+        </span>
       </div>
 
       {/* ── Subtitle banner ── */}
       <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-6 py-2.5">
         <TrendingUp className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
         <p className="text-[11px] font-semibold text-indigo-700">
-          Based on current stock levels, reorder velocity, and historical demand patterns.
+          Predicted stock need based on current inventory levels and demand velocity.
         </p>
       </div>
 
@@ -173,75 +183,57 @@ export function AIPredictionsCard() {
         {predictions.map(({ item, predictedSales, confidence, growthPct }, idx) => (
           <div
             key={item.inventoryId}
-            className="group flex items-center gap-4 bg-white px-6 py-4 hover:bg-indigo-50/40 transition-colors duration-150"
+            className="px-6 py-4"
           >
-            {/* Rank badge */}
-            <div className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
-              idx === 0 ? "bg-indigo-600 text-white" :
-              idx === 1 ? "bg-indigo-100 text-indigo-700" :
-                          "bg-slate-100 text-slate-500"
-            }`}>
-              {idx + 1}
+            {/* Top row: rank + name + status badge + est. units */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${
+                idx === 0 ? "bg-indigo-600 text-white"      :
+                idx === 1 ? "bg-indigo-100 text-indigo-700" :
+                            "bg-slate-100 text-slate-500"
+              }`}>
+                {idx + 1}
+              </div>
+
+              <p className="flex-1 min-w-0 text-[13px] font-black text-slate-900 leading-tight truncate">
+                {item.productName}
+              </p>
+
+              <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${
+                item.stockStatus === "OUT_OF_STOCK"
+                  ? "bg-red-50 border-red-200 text-red-600"
+                  : "bg-amber-50 border-amber-200 text-amber-700"
+              }`}>
+                <span className={`h-1 w-1 rounded-full ${
+                  item.stockStatus === "OUT_OF_STOCK" ? "bg-red-500" : "bg-amber-500"
+                }`} />
+                {item.stockStatus === "OUT_OF_STOCK" ? "Out of Stock" : "Low Stock"}
+              </span>
+
+              <span className="shrink-0 text-[12px] font-black tabular-nums text-slate-800">
+                {predictedSales}
+                <span className="ml-1 text-[10px] font-normal text-slate-400">{item.unit ?? "units"}</span>
+              </span>
             </div>
 
-            {/* Product info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <p className="text-[13px] font-black text-slate-950 leading-tight truncate">
-                  {item.productName}
-                </p>
-
-                {/* Predicted sales badge */}
-                <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 whitespace-nowrap">
-                  Est. {predictedSales} {item.unit ?? "units"}
+            {/* Demand bar */}
+            <div className="mb-2 pl-9">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Predicted Stock Need
                 </span>
               </div>
-
-              {/* Category + SKU + stock status row */}
-              <div className="flex items-center gap-2 mb-2">
-                {item.sku && (
-                  <span className="font-mono text-[10px] text-slate-400">{item.sku}</span>
-                )}
-                {item.category && (
-                  <span className="text-[10px] text-slate-400">· {item.category}</span>
-                )}
-                <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  item.stockStatus === "OUT_OF_STOCK"
-                    ? "bg-red-50 border border-red-200 text-red-600"
-                    : "bg-amber-50 border border-amber-200 text-amber-700"
-                }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${
-                    item.stockStatus === "OUT_OF_STOCK" ? "bg-red-500" : "bg-amber-500"
-                  }`} />
-                  {item.stockStatus === "OUT_OF_STOCK" ? "Out of Stock" : "Low Stock"}
-                </span>
-              </div>
-
-              {/* Confidence bar + growth indicator */}
-              <div className="flex items-center gap-4">
-                <ConfidenceBar value={confidence} />
-
-                {/* Growth trend */}
-                <div className="flex items-center gap-1">
-                  <div className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100">
-                    <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-emerald-600">
-                    +{growthPct}%
-                  </span>
-                </div>
-              </div>
+              <DemandBar value={predictedSales} max={maxPredicted} />
             </div>
 
-            {/* Quick Reorder button — always visible, indigo solid */}
-            <button
-              onClick={() => handleQuickReorder(item)}
-              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200 active:scale-95 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              title={`Quick reorder — ${item.productName}`}
-            >
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Reorder
-            </button>
+            {/* Bottom row: confidence + growth */}
+            <div className="flex items-center gap-4 pl-9">
+              <ConfidenceBar value={confidence} />
+              <div className="flex items-center gap-1 ml-auto">
+                <TrendingUp className="h-3 w-3 text-emerald-500" />
+                <span className="text-[11px] font-semibold text-emerald-600">+{growthPct}%</span>
+              </div>
+            </div>
           </div>
         ))}
       </div>

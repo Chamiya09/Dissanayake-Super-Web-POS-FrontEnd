@@ -10,10 +10,14 @@ import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } fro
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
+import Swal from "sweetalert2";
+import { PaymentMethodModal } from "./PaymentMethodModal";
+import type { PaymentMethodOption } from "./PaymentMethodModal";
 
 interface CartPanelProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, delta: number) => void;
+  onSetQuantity: (productId: string, value: number) => void;
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
   /** Called with the final charged amount after a successful checkout */
@@ -40,6 +44,7 @@ function TierBadge({ tier }: { tier: LoyaltyCustomer["tier"] }) {
 function SwipeableItem({
   item,
   onUpdateQuantity,
+  onSetQuantity,
   onRemoveItem,
   highlight,
   focused,
@@ -47,14 +52,24 @@ function SwipeableItem({
 }: {
   item: CartItem;
   onUpdateQuantity: (id: string, delta: number) => void;
+  onSetQuantity: (id: string, value: number) => void;
   onRemoveItem: (id: string) => void;
   highlight: boolean;
   focused: boolean;
   emoji: string;
 }) {
   const [offsetX, setOffsetX] = useState(0);
+  const [localQty, setLocalQty] = useState(() => item.quantity.toFixed(3));
+  const inputFocusedRef = useRef(false);
   const startX = useRef<number | null>(null);
   const dragging = useRef(false);
+
+  // Sync external quantity changes (from +/- buttons) into the input when not editing
+  useEffect(() => {
+    if (!inputFocusedRef.current) {
+      setLocalQty(item.quantity.toFixed(3));
+    }
+  }, [item.quantity]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
@@ -122,9 +137,25 @@ function SwipeableItem({
           >
             <Minus className="h-3 w-3 stroke-[2.5]" />
           </button>
-          <span className="w-7 border-x border-border/50 text-center text-[12px] font-bold tabular-nums text-foreground">
-            {item.quantity}
-          </span>
+          <input
+            type="number"
+            step="0.001"
+            min="0.001"
+            value={localQty}
+            onFocus={() => { inputFocusedRef.current = true; }}
+            onChange={(e) => setLocalQty(e.target.value)}
+            onBlur={() => {
+              inputFocusedRef.current = false;
+              const v = parseFloat(localQty);
+              if (!isNaN(v) && v > 0) {
+                onSetQuantity(item.product.id, v);
+                setLocalQty(v.toFixed(3));
+              } else {
+                setLocalQty(item.quantity.toFixed(3));
+              }
+            }}
+            className="h-7 w-16 border-x border-border/50 text-center text-[11px] font-bold tabular-nums text-foreground bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
           <button
             onClick={() => onUpdateQuantity(item.product.id, 1)}
             className="flex h-7 w-7 items-center justify-center text-primary transition-colors hover:bg-primary/10"
@@ -151,9 +182,10 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -191,8 +223,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
 
   /*  Totals  */
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const tax = subtotal * 0.15;
-  const total = subtotal + tax;
+  const total = subtotal;
 
   /*  Loyalty computations  */
   const redeemableDollars = loyaltyCustomer ? computeRedeemable(loyaltyCustomer, total) : 0;
@@ -200,17 +231,45 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
   const finalTotal        = parseFloat(Math.max(0, total - loyaltyDiscount).toFixed(2));
   const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
 
-  /*  Payment handler  */
-  const handlePayment = useCallback(async () => {
-    if (!paymentMethod) {
-      alert("Please select a payment method!");
-      return;
-    }
+  /*  Core checkout executor — called after payment method is confirmed  */
+  const proceedWithCheckout = useCallback(async (method: string) => {
+    // ── Swal confirmation ────────────────────────────────────────────────────
+    const result = await Swal.fire({
+      icon: "question",
+      title: "Confirm Sale",
+      html: `
+        <div style="font-size:13.5px;color:#475569;line-height:1.6">
+          Are you sure you want to complete this sale?<br/>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;background:#f1f5f9;border-radius:10px;padding:10px 14px;font-weight:600;color:#1e293b">
+            <span>Total</span>
+            <span style="color:#4f46e5">${formatCurrency(finalTotal)}</span>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:#94a3b8">
+            Payment via&nbsp;<strong style="color:#1e293b">${method}</strong>
+          </div>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: "Confirm Sale",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#059669",
+      cancelButtonColor:  "#64748b",
+      reverseButtons: true,
+      focusConfirm: false,
+      customClass: {
+        popup:          "!rounded-2xl !shadow-2xl",
+        title:          "!text-[17px] !font-bold !text-slate-900",
+        confirmButton:  "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
+        cancelButton:   "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
+        actions:        "!gap-2",
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    // ── Execute checkout ─────────────────────────────────────────────────────
     setProcessing(true);
     try {
-      /* Await backend — button stays disabled until API responds */
-      await onCheckout?.(finalTotal, paymentMethod);
-      /* Reset loyalty after successful payment */
+      await onCheckout?.(finalTotal, method);
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
@@ -219,7 +278,23 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
     } finally {
       setProcessing(false);
     }
-  }, [finalTotal, paymentMethod, onCheckout]);
+  }, [finalTotal, onCheckout]);
+
+  /*  Payment handler — opens selection modal if no method set, else proceeds  */
+  const handlePayment = useCallback(async () => {
+    if (!paymentMethod) {
+      setPaymentModalOpen(true);
+      return;
+    }
+    await proceedWithCheckout(paymentMethod);
+  }, [paymentMethod, proceedWithCheckout]);
+
+  /*  Called by PaymentMethodModal when the user confirms a method  */
+  const handleModalConfirm = useCallback(async (method: PaymentMethodOption) => {
+    setPaymentMethod(method);
+    setPaymentModalOpen(false);
+    await proceedWithCheckout(method);
+  }, [proceedWithCheckout]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
@@ -280,8 +355,25 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
   }, [onUpdateQuantity, onRemoveItem]);
 
   const categoryEmoji: Record<string, string> = {
-    Fruits: "", Dairy: "", Beverages: "",
-    Bakery: "", Snacks: "", Meat: "", Vegetables: "",
+    "Fruits": "🍎",
+    "Vegetables": "🥦",
+    "Rice & Grains": "🌾",
+    "Dhal & Pulses": "🫘",
+    "Flour & Baking": "🌾",
+    "Cooking Oil": "🫙",
+    "Spices & Condiments": "🌶️",
+    "Dairy Products": "🥛",
+    "Eggs & Meat": "🥩",
+    "Instant Food": "🍜",
+    "Snacks": "🍿",
+    "Beverages": "🧃",
+    "Tea & Coffee": "☕",
+    "Frozen Foods": "🧊",
+    "Canned Foods": "🥫",
+    "Baby Products": "👶",
+    "Personal Care": "🧴",
+    "Cleaning Products": "🧹",
+    "Household Items": "🏠",
   };
 
   return (
@@ -342,6 +434,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
               <SwipeableItem
                 item={item}
                 onUpdateQuantity={onUpdateQuantity}
+                onSetQuantity={onSetQuantity}
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
                 focused={cartFocusedIdx === idx}
@@ -509,7 +602,7 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
                 ) : (
                   <p className="text-[11px] text-muted-foreground/60 px-0.5 flex items-center gap-1.5">
                     <Star className="h-3 w-3 text-muted-foreground/30" />
-                    Not enough points to redeem (need 100 pts = $1).
+                    Not enough points to redeem (need 100 pts = LKR 1).
                   </p>
                 )}
 
@@ -523,10 +616,6 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
             <span>Subtotal</span>
             <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
-            <span>Tax (15%)</span>
-            <span className="tabular-nums font-semibold text-foreground">{formatCurrency(tax)}</span>
           </div>
           {loyaltyDiscount > 0 && (
             <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
@@ -651,6 +740,13 @@ export function CartPanel({ items, onUpdateQuantity, onRemoveItem, highlightId, 
         </Button>
 
       </div>
+
+      {/* ── Payment Method Selection Modal ── */}
+      <PaymentMethodModal
+        open={paymentModalOpen}
+        onConfirm={handleModalConfirm}
+        onClose={() => setPaymentModalOpen(false)}
+      />
     </div>
   );
 }

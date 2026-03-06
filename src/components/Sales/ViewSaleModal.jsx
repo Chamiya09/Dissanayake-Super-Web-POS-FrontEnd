@@ -22,10 +22,9 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
   const isCard  = saleData.paymentMethod === "Card";
   const isVoid  = saleData.status === "Void";
 
-  /* Derive subtotal/tax from actual items when available */
+  /* Derive subtotal from actual items when available */
   const lineItems = Array.isArray(saleData.items) && saleData.items.length > 0 ? saleData.items : null;
   const subtotal  = lineItems ? lineItems.reduce((sum, i) => sum + (i.quantity ?? i.qty ?? 0) * (i.price ?? i.unitPrice ?? 0), 0) : null;
-  const tax       = subtotal !== null ? saleData.totalAmount - subtotal : null;
 
   return (
     <div
@@ -129,9 +128,6 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
             {subtotal !== null && (
               <div className="space-y-0.5 text-[12px] text-neutral-500">
                 <MetaRow label="Subtotal" value={formatCurrency(subtotal)} />
-                {tax !== null && tax > 0 && (
-                  <MetaRow label="Tax / Discount" value={formatCurrency(tax)} />
-                )}
               </div>
             )}
 

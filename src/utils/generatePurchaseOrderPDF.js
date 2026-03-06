@@ -95,11 +95,12 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
 
   // ── Items table ───────────────────────────────────────────────────────────
   var qtyLabel = String(order.quantity) + " " + (order.unit ?? "units");
+  var lkrFmt = new Intl.NumberFormat("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   var unitPriceVal =
-    order.unitPrice != null ? order.unitPrice.toFixed(2) : "___________";
+    order.unitPrice != null ? lkrFmt.format(order.unitPrice) : "___________";
   var totalVal =
     order.unitPrice != null
-      ? (order.unitPrice * order.quantity).toFixed(2)
+      ? lkrFmt.format(order.unitPrice * order.quantity)
       : "___________";
 
   autoTable(doc, {

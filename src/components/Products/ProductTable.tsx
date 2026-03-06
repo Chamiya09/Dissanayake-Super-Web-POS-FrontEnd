@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 /* ── Category icon map ── */
 const categoryIcon: Record<string, React.ElementType> = {
@@ -97,7 +98,26 @@ interface ProductTableProps {
 }
 
 export const CATEGORIES = [
-  "All", "Fruits", "Dairy", "Beverages", "Bakery", "Snacks", "Meat", "Vegetables",
+  "All",
+  "Fruits",
+  "Vegetables",
+  "Rice & Grains",
+  "Dhal & Pulses",
+  "Flour & Baking",
+  "Cooking Oil",
+  "Spices & Condiments",
+  "Dairy Products",
+  "Eggs & Meat",
+  "Instant Food",
+  "Snacks",
+  "Beverages",
+  "Tea & Coffee",
+  "Frozen Foods",
+  "Canned Foods",
+  "Baby Products",
+  "Personal Care",
+  "Cleaning Products",
+  "Household Items",
 ] as const;
 
 export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
@@ -122,8 +142,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
   const hasActiveFilters = search !== "" || filterCategory !== "All";
 
-  const fmt = (n: number) =>
-    n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  const fmt = (n: number) => formatCurrency(n);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">

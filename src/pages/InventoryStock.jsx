@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { showSuccess, showError } from "@/utils/toastUtils";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import {
@@ -29,6 +30,7 @@ import {
   PackagePlus,
   Hash,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ─── Category → icon mapping ──────────────────────────────────────────────────
@@ -54,8 +56,8 @@ const getCategoryMeta = (category = "") => {
 
 // ─── Derive status from stock level ──────────────────────────────────────────
 const deriveStatus = (qty, reorder) => {
-  if (qty === 0)     return "Out of Stock";
-  if (qty < reorder) return "Low Stock";
+  if (qty === 0)      return "Out of Stock";
+  if (qty <= reorder) return "Low Stock";
   return "In Stock";
 };
 
@@ -580,91 +582,234 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
 // ─── Edit Inventory Modal ─────────────────────────────────────────────────────
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
-  const [reorderLevel, setReorderLevel] = useState(item?.reorderLevel ?? 10);
-  const [unit,         setUnit]         = useState(item?.unit ?? "");
-  const [saving,       setSaving]       = useState(false);
+  const [reorderLevel, setReorderLevel] = useState("");
+  const [unit, setUnit] = useState("");
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (item) {
+      setReorderLevel(item.reorderLevel ?? 10);
+      setUnit(item.unit ?? "");
+      setAdjustAmount("");
+      setAdjustNotes("");
+      setErrors({});
+    }
+  }, [item]);
 
   if (!item) return null;
 
+  const currentQty = Number(item.stockQuantity ?? 0);
+  const selectedUnit = item.unit || "units";
+  const parsedAdjust = parseFloat(adjustAmount);
+  const hasAdjustment = !isNaN(parsedAdjust) && parsedAdjust !== 0;
+  const adjustResultQty = hasAdjustment ? currentQty + parsedAdjust : null;
+  const isNegativeResult = adjustResultQty !== null && adjustResultQty < 0;
+  const rlChanged = Number(reorderLevel) !== Number(item.reorderLevel ?? 10);
+  const unitChanged = (unit.trim() || null) !== (item.unit || null);
+  const settingsChanged = rlChanged || unitChanged;
+
+  const inputCls =
+    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 border-slate-200 dark:border-slate-700";
+  const errorCls = "border-red-400 dark:border-red-600 ring-1 ring-red-400/30";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = {};
+    if (hasAdjustment && isNegativeResult)
+      errs.amount = `Cannot reduce by more than current stock (${currentQty}).`;
+    if (hasAdjustment && !adjustNotes.trim())
+      errs.notes = "Please provide a reason for this adjustment.";
+    if (reorderLevel === "" || Number(reorderLevel) < 0)
+      errs.reorderLevel = "Reorder level must be 0 or greater.";
+    if (!hasAdjustment && !settingsChanged)
+      errs.general = "Make a stock adjustment or change settings to update.";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setSaving(true);
     try {
-      await api.put(`/api/inventory/edit/${item.inventoryId}`, {
-        reorderLevel: Number(reorderLevel),
-        unit: unit.trim() || null,
-      });
-      showSuccess(`Updated inventory settings for "${item.productName}".`);
+      if (hasAdjustment) {
+        await api.post(`/api/inventory/adjust/${item.inventoryId}`, {
+          adjustmentAmount: parsedAdjust,
+          notes: adjustNotes.trim(),
+        });
+      }
+      if (settingsChanged) {
+        await api.put(`/api/inventory/edit/${item.inventoryId}`, {
+          reorderLevel: Number(reorderLevel),
+          unit: unit.trim() || null,
+        });
+      }
+      const parts = [];
+      if (hasAdjustment) {
+        const dir = parsedAdjust > 0 ? "increased" : "decreased";
+        parts.push(`Stock ${dir} by ${Math.abs(parsedAdjust)} ${selectedUnit}`);
+      }
+      if (settingsChanged) parts.push("settings updated");
+      showSuccess(`${parts.join(" and ")} for "${item.productName}".`);
       onSaved();
       onClose();
     } catch (err) {
-      showError(err.response?.data?.message ?? "Failed to update inventory settings.");
+      showError(err.response?.data?.message ?? "Failed to update inventory.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit Inventory Settings</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 flex flex-col" style={{ maxHeight: "90vh" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-600 dark:bg-violet-500 shrink-0">
+              <Pencil size={16} className="text-white" strokeWidth={2} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">Edit Inventory</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Reorder Level
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={reorderLevel}
-              onChange={(e) => setReorderLevel(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
-              required
-            />
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this quantity</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Unit <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={20}
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="e.g. kg, pcs, L"
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-600 transition-all duration-150"
-            />
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-150"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </form>
+
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto flex-1 min-h-0">
+          <form id="editInventoryForm" onSubmit={handleSubmit} noValidate>
+            <div className="px-6 py-5 space-y-5">
+
+              {/* Current Stock (read-only) */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">Current Stock</label>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    {currentQty <= (item.reorderLevel ?? 10) && <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />}
+                    {currentQty}
+                    <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                  </span>
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">read-only</span>
+                </div>
+              </div>
+
+              {/* Adjustment Amount */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Adjustment Amount <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-slate-400 dark:text-slate-500 -mt-0.5">Use positive to add stock, negative to remove.</p>
+                <div className="relative">
+                  <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input type="number" step="any" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} placeholder="e.g. +10 or -5" className={`${inputCls} pl-10 ${errors.amount ? errorCls : ""}`} />
+                </div>
+                {errors.amount && (
+                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.amount}</p>
+                )}
+              </div>
+
+              {/* Resulting Stock Preview */}
+              {hasAdjustment && (
+                <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isNegativeResult ? "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30" : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30"}`}>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Resulting Stock</span>
+                  <span className={`text-sm font-bold tabular-nums ${isNegativeResult ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                    {adjustResultQty} <span className="font-normal text-xs text-slate-400">{selectedUnit}</span>
+                  </span>
+                </div>
+              )}
+              {isNegativeResult && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} strokeWidth={2.2} />Resulting stock cannot be negative.</p>
+              )}
+
+              {/* Notes / Reason */}
+              {hasAdjustment && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
+                  </label>
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit…" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <div className="flex items-center justify-between">
+                    {errors.notes ? (
+                      <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
+                    ) : <span />}
+                    <span className="text-[10px] text-slate-400 tabular-nums">{adjustNotes.length}/500</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-700" /></div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white dark:bg-slate-900 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Settings</span>
+                </div>
+              </div>
+
+              {/* Reorder Level */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <input type="number" min="0" step="0.01" value={reorderLevel} onChange={(e) => { setReorderLevel(e.target.value); if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined })); }} className={`${inputCls} ${errors.reorderLevel ? errorCls : ""}`} required />
+                {errors.reorderLevel ? (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.reorderLevel}</p>
+                ) : (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this threshold</p>
+                )}
+              </div>
+
+              {/* Unit */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Unit <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <input type="text" maxLength={20} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. kg, pcs, L" className={inputCls} />
+              </div>
+
+              {/* General error */}
+              {errors.general && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.general}</p>
+              )}
+
+            </div>
+          </form>
+        </div>
+
+        {/* Footer — always visible */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 shrink-0 rounded-b-2xl">
+          <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors duration-150">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="editInventoryForm"
+            disabled={saving}
+            className="
+              inline-flex items-center gap-2
+              px-6 py-2.5 rounded-xl text-sm font-semibold
+              bg-slate-900 dark:bg-slate-50
+              text-white dark:text-slate-900
+              hover:bg-slate-700 dark:hover:bg-slate-200
+              active:scale-95
+              disabled:opacity-60 disabled:cursor-not-allowed
+              transition-all duration-150 shadow-sm
+            "
+          >
+            {saving ? (
+              <><Loader2 size={15} className="animate-spin" /> Saving…</>
+            ) : (
+              <><CheckCircle2 size={15} /> Update Inventory</>
+            )}
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -693,7 +838,7 @@ const COLUMNS = [
   { key: "price", label: "Price", sortable: true },
   { key: "quantity", label: "Quantity", sortable: true },
   { key: "status", label: "Status", sortable: true },
-  { key: "actions", label: "Actions", sortable: false },
+  { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -701,6 +846,7 @@ const InventoryStock = () => {
   // products   = all products (dropdown list for AddStockModal)
   // inventoryItems = only tracked items from /api/inventory/status (table)
   const [products,       setProducts]       = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]); // products with no inventory record yet
   const [inventoryItems, setInventoryItems] = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [fetchError,     setFetchError]     = useState(null);
@@ -730,6 +876,20 @@ const InventoryStock = () => {
       );
     });
 
+  // ── Fetch products not yet in inventory (for AddStockModal — new entries only)
+  const fetchAvailableProducts = () =>
+    api.get("/api/products/available-for-inventory").then((res) => {
+      setAvailableProducts(
+        res.data.map((p) => ({
+          ...p,
+          sellingPrice:  Number(p.sellingPrice),
+          buyingPrice:   Number(p.buyingPrice),
+          stockQuantity: 0,
+          reorderLevel:  p.reorderLevel != null ? Number(p.reorderLevel) : 10,
+        }))
+      );
+    });
+
   // ── Fetch all stock movement logs
   const fetchLogs = () =>
     api.get("/api/inventory/logs").then((res) => setLogs(res.data));
@@ -751,7 +911,7 @@ const InventoryStock = () => {
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
-    Promise.all([fetchProducts(), fetchInventory(), fetchLogs()])
+    Promise.all([fetchProducts(), fetchAvailableProducts(), fetchInventory(), fetchLogs()])
       .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
@@ -885,12 +1045,11 @@ const InventoryStock = () => {
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        products={products}
+        products={availableProducts}
         inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
       <EditInventoryModal
-        open={!!editTarget}
         item={editTarget}
         onClose={() => setEditTarget(null)}
         onSaved={refreshAll}
@@ -1152,7 +1311,7 @@ const InventoryStock = () => {
 
                     {/* Price */}
                     <td className="py-6 px-6 font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                      ${item.sellingPrice.toFixed(2)}
+                      {formatCurrency(item.sellingPrice)}
                     </td>
 
                     {/* Quantity (stockQuantity) */}
@@ -1197,27 +1356,6 @@ const InventoryStock = () => {
                     {/* Actions */}
                     <td className="py-6 px-6">
                       <div className="flex items-center gap-1.5">
-                        {/* AI Reorder — only for low-stock items */}
-                        {isLow && (
-                          <button
-                            type="button"
-                            title="Suggest AI reorder quantity"
-                            className="
-                              inline-flex items-center gap-1.5
-                              px-3 py-1.5 rounded-lg text-xs font-semibold
-                              bg-violet-50 text-violet-700
-                              ring-1 ring-violet-200
-                              dark:bg-violet-950/40 dark:text-violet-400 dark:ring-violet-800
-                              hover:bg-violet-100 dark:hover:bg-violet-950/60
-                              transition-all duration-200
-                              whitespace-nowrap
-                            "
-                          >
-                            <Sparkles size={12} strokeWidth={2} />
-                            Suggest Reorder
-                          </button>
-                        )}
-
                         <button
                           type="button"
                           title="Edit inventory settings"
@@ -1246,6 +1384,27 @@ const InventoryStock = () => {
                         >
                           <Trash2 size={15} strokeWidth={1.8} />
                         </button>
+
+                        {/* AI Reorder — only for low-stock items, placed last on the right */}
+                        {isLow && (
+                          <button
+                            type="button"
+                            title="Suggest AI reorder quantity"
+                            className="
+                              inline-flex items-center gap-1.5
+                              px-3 py-1.5 rounded-lg text-xs font-semibold
+                              bg-indigo-50 text-indigo-700
+                              ring-1 ring-indigo-200
+                              dark:bg-indigo-950/40 dark:text-indigo-400 dark:ring-indigo-800
+                              hover:bg-indigo-100 dark:hover:bg-indigo-950/60
+                              transition-all duration-200
+                              whitespace-nowrap
+                            "
+                          >
+                            <Sparkles size={12} strokeWidth={2} />
+                            Suggest Order
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

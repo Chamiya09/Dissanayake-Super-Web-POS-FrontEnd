@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
 import { toast } from "@/components/ui/sonner";
-import { ShoppingBag, CheckCircle } from "lucide-react";
+import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
@@ -153,6 +153,14 @@ const Index = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
+  const setQuantity = useCallback((productId: string, value: number) => {
+    setCart((prev) =>
+      prev
+        .map((i) => i.product.id === productId ? { ...i, quantity: value } : i)
+        .filter((i) => i.quantity > 0)
+    );
+  }, []);
+
   const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
     const receiptNo = `RCP-${Date.now()}`;
     const payload = {
@@ -161,6 +169,7 @@ const Index = () => {
       totalAmount,
       status: "Completed",
       items: cart.map((i) => ({
+        productId:   Number(i.product.id),
         productName: i.product.name,
         quantity:    i.quantity,
         unitPrice:   i.product.price,
@@ -182,7 +191,47 @@ const Index = () => {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
     }
-  }, [cart]);
+  }, [cart, refreshInventory]);
+
+  /* ── SKU / Barcode quick-add ── */
+  const [skuQuery, setSkuQuery] = useState("");
+  const skuInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSkuSearch = useCallback(
+    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
+      const sku = skuQuery.trim();
+      if (!sku) return;
+
+      try {
+        const { data } = await api.get<MgmtProduct>("/api/products/search", {
+          params: { sku },
+        });
+        const product: Product = {
+          id:       String(data.id),
+          name:     data.productName,
+          price:    data.sellingPrice,
+          category: data.category,
+          unit:     data.unit ?? "pcs",
+          barcode:  data.sku,
+          stock:    50,
+        };
+        // Override stock from live inventory if available
+        const inv = inventoryItems.find((i) => i.productId === data.id);
+        if (inv) product.stock = inv.stockQuantity;
+
+        addToCart(product);
+        toast.success(`Added: ${data.productName}`, { duration: 2000 });
+      } catch {
+        toast.error(`No product found for SKU "${sku}"`, { duration: 3000 });
+      } finally {
+        setSkuQuery("");
+        // Re-focus so the next barcode scan / manual entry is instant
+        skuInputRef.current?.focus();
+      }
+    },
+    [skuQuery, addToCart, inventoryItems],
+  );
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
@@ -201,10 +250,10 @@ const Index = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [cart.length]);
-  const total = useMemo(() => {
-    const sub = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-    return sub * 1.15;
-  }, [cart]);
+  const total = useMemo(
+    () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
+    [cart]
+  );
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -213,6 +262,34 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
+
+          {/* ── SKU / Barcode Search Bar ── */}
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <input
+              ref={skuInputRef}
+              type="text"
+              value={skuQuery}
+              onChange={(e) => setSkuQuery(e.target.value)}
+              onKeyDown={handleSkuSearch}
+              placeholder="Scan barcode or type SKU and press Enter…"
+              className="flex-1 bg-transparent text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {skuQuery && (
+              <button
+                onClick={() => { setSkuQuery(""); skuInputRef.current?.focus(); }}
+                className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+                aria-label="Clear"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
           <ProductGrid onAddToCart={addToCart} products={posProducts} />
         </div>
 
@@ -224,6 +301,7 @@ const Index = () => {
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
+            onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}
@@ -251,7 +329,7 @@ const Index = () => {
             </span>
           </div>
           {totalItems > 0 && (
-            <span className="text-[15px] font-bold tabular-nums">${total.toFixed(2)}</span>
+            <span className="text-[15px] font-bold tabular-nums">{formatCurrency(total)}</span>
           )}
         </button>
       </div>
@@ -263,6 +341,7 @@ const Index = () => {
           <CartPanel
             items={cart}
             onUpdateQuantity={updateQuantity}
+            onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}

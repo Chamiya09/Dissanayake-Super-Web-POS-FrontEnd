@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
-import { createOrder, getHistory, mapHistoryItem } from "@/api/reorderApi";
+import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
@@ -214,6 +214,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
   const managerName = user?.name ?? "Store Manager";
 
   const [qty, setQty] = useState(order.quantity ?? 1);
+  const [email, setEmail] = useState(order.supplierEmail ?? "");
 
   const defaultMessage = [
     `Dear ${order.supplierName},`,
@@ -316,6 +317,20 @@ function EditOrderModal({ order, onUpdate, onClose }) {
             </div>
           </div>
 
+          {/* Supplier Email */}
+          <div className="space-y-2">
+            <label className="block text-[13px] font-semibold text-slate-700">
+              Supplier Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="supplier@example.com"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+            />
+          </div>
+
           {/* Supplier message */}
           <div className="space-y-2">
             <label className="block text-[13px] font-semibold text-slate-700">
@@ -339,7 +354,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
             Cancel
           </button>
           <button
-            onClick={() => onUpdate({ id: order.id, qty, message })}
+          onClick={() => onUpdate({ id: order.id, dbId: order.dbId, qty, email, message, items: order.items })}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
           >
             <Send className="h-3.5 w-3.5" />
@@ -639,13 +654,23 @@ export default function ReorderManagement() {
   }
 
   // Called when user clicks "Confirm Order" inside the email modal
-  function handleSupplierConfirm() {
-    const id = supplierEmailModal?.order?.id;
+  async function handleSupplierConfirm() {
+    const order = supplierEmailModal?.order;
+    const id = order?.id;
+    const dbId = order?.dbId;
     setSupplierEmailModal(null);
-    if (!id) return;
-    setReorders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
-    );
+    if (!id || !dbId) return;
+    try {
+      const dto = await updateOrderStatus(dbId, "CONFIRMED");
+      const updated = mapHistoryItem(dto, suppliers);
+      setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    } catch (err) {
+      // Fallback: update local state so the UI isn't left stale
+      setReorders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
+      );
+      console.error("Confirm status sync failed:", err);
+    }
     // If triggered from the Send flow (sent=true), reset back to config
     // so the user can see the updated history table
     setSent(false);
@@ -654,34 +679,60 @@ export default function ReorderManagement() {
     notify({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
   }
 
-  // Triggers 2-second cancellation overlay, then marks order Cancelled
-  function handleCancelOrder(id) {
+  // Triggers 2-second cancellation overlay, calls API, then marks order Cancelled
+  async function handleCancelOrder(id) {
     if (rowLoading[id]) return;
+    const order = reorders.find((o) => o.id === id);
+    if (!order) return;
     setCancelConfirmId(null);          // close the inline confirm row
     setCancelOverlay({ orderId: id });
-    setTimeout(() => {
-      setReorders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o))
-      );
+    try {
+      const dto = await updateOrderStatus(order.dbId, "CANCELLED");
+      const updated = mapHistoryItem(dto, suppliers);
+      setTimeout(() => {
+        setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+        setCancelOverlay(null);
+        notify({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
+      }, 2000);
+    } catch (err) {
       setCancelOverlay(null);
-      notify({ type: "warning", title: "Order Cancelled", message: "Cancellation notice sent to supplier." });
-    }, 2000);
+      notify({
+        type: "error",
+        title: "Cancel Failed",
+        message: err.response?.data?.message ?? "Failed to cancel order. Please try again.",
+      });
+    }
   }
 
-  function handleUpdateOrder({ id, qty, message }) {
+  async function handleUpdateOrder({ id, dbId, qty, email, message, items }) {
     setEditOrderModal(null);
     setUpdateOverlay(true);
-    setTimeout(() => {
-      setReorders((prev) =>
-        prev.map((o) =>
-          o.id === id
-            ? { ...o, quantity: qty, emailBody: message, status: "Pending" }
-            : o
-        )
-      );
+    try {
+      // Map existing items with the new quantity applied (update first item;
+      // orders typically have one item per PO from the low-stock flow).
+      const updatedItems = (items ?? []).map((item, i) => ({
+        productName: item.productName,
+        productId:   item.productId ?? null,
+        quantity:    i === 0 ? qty : Number(item.quantity),
+        unitPrice:   item.unitPrice,
+      }));
+
+      const dto = await updateOrder(dbId, {
+        supplierEmail: email || null,
+        items: updatedItems.length > 0 ? updatedItems : null,
+      });
+      const updatedOrder = mapHistoryItem(dto, suppliers);
+      setReorders((prev) => prev.map((o) => (o.id === id ? updatedOrder : o)));
+      notify({ type: "info", title: "Order Updated", message: "Purchase Order updated successfully." });
+    } catch (err) {
+      notify({
+        type: "error",
+        title: "Update Failed",
+        message: err.response?.data?.message ?? "Failed to update order.",
+      });
+    } finally {
       setUpdateOverlay(false);
-      notify({ type: "info", title: "Order Updated", message: "Purchase Order updated and resent to supplier." });
-    }, 1500);
+    }
   }
 
   function handleMarkAsReceived(id) {

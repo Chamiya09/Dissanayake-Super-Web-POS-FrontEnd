@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Search, SlidersHorizontal } from "lucide-react";
+import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Package, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -88,9 +88,10 @@ interface SupplierTableProps {
   onEdit: (supplier: Supplier) => void;
   onDelete: (supplier: Supplier) => void;
   onAssign: (supplier: Supplier) => void;
+  onViewProducts: (supplier: Supplier) => void;
 }
 
-export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: SupplierTableProps) {
+export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewProducts }: SupplierTableProps) {
   const [search, setSearch]           = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -253,6 +254,15 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => onViewProducts(supplier)}
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg px-3"
+                    >
+                      <Package className="h-3.5 w-3.5" />
+                      View
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => onAssign(supplier)}
                       className="h-9 gap-1.5 text-xs text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg px-3"
                     >
@@ -317,6 +327,15 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign }: Supplie
             </div>
 
             <div className="flex gap-2 pt-1 flex-wrap">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewProducts(supplier)}
+                className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200"
+              >
+                <Package className="h-3.5 w-3.5" />
+                View Products
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
