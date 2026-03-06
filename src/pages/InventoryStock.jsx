@@ -583,76 +583,93 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 // ─── Edit Inventory Modal ─────────────────────────────────────────────────────
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
   const [reorderLevel, setReorderLevel] = useState("");
-  const [unit,         setUnit]         = useState("");
-  const [qtyToAdd,     setQtyToAdd]     = useState("");
-  const [saving,       setSaving]       = useState(false);
-  const [errors,       setErrors]       = useState({});
+  const [unit, setUnit] = useState("");
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  // Sync fields whenever the item changes (modal opens for a different product)
   useEffect(() => {
     if (item) {
       setReorderLevel(item.reorderLevel ?? 10);
       setUnit(item.unit ?? "");
-      setQtyToAdd("");
+      setAdjustAmount("");
+      setAdjustNotes("");
       setErrors({});
     }
   }, [item]);
 
   if (!item) return null;
 
-  const qtyNum     = parseFloat(qtyToAdd);
-  const validQty   = !isNaN(qtyNum) && qtyNum > 0;
   const currentQty = Number(item.stockQuantity ?? 0);
-  const newTotal   = validQty ? currentQty + qtyNum : null;
   const selectedUnit = item.unit || "units";
+  const parsedAdjust = parseFloat(adjustAmount);
+  const hasAdjustment = !isNaN(parsedAdjust) && parsedAdjust !== 0;
+  const adjustResultQty = hasAdjustment ? currentQty + parsedAdjust : null;
+  const isNegativeResult = adjustResultQty !== null && adjustResultQty < 0;
+  const rlChanged = Number(reorderLevel) !== Number(item.reorderLevel ?? 10);
+  const unitChanged = (unit.trim() || null) !== (item.unit || null);
+  const settingsChanged = rlChanged || unitChanged;
 
-  const inputBase =
-    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 " +
-    "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
-    "text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
-    "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 ";
+  const inputCls =
+    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 border-slate-200 dark:border-slate-700";
+  const errorCls = "border-red-400 dark:border-red-600 ring-1 ring-red-400/30";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = {};
+    if (hasAdjustment && isNegativeResult)
+      errs.amount = `Cannot reduce by more than current stock (${currentQty}).`;
+    if (hasAdjustment && !adjustNotes.trim())
+      errs.notes = "Please provide a reason for this adjustment.";
     if (reorderLevel === "" || Number(reorderLevel) < 0)
       errs.reorderLevel = "Reorder level must be 0 or greater.";
-    if (qtyToAdd !== "" && (!validQty || qtyNum <= 0))
-      errs.qty = "Quantity to add must be a positive number.";
+    if (!hasAdjustment && !settingsChanged)
+      errs.general = "Make a stock adjustment or change settings to update.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
     try {
-      await api.put(`/api/inventory/edit/${item.inventoryId}`, {
-        reorderLevel: Number(reorderLevel),
-        unit: unit.trim() || null,
-        quantityToAdd: validQty ? qtyNum : null,
-      });
-      showSuccess(
-        validQty
-          ? `Added ${qtyNum} ${selectedUnit} and updated settings for "${item.productName}".`
-          : `Updated inventory settings for "${item.productName}".`
-      );
+      if (hasAdjustment) {
+        await api.post(`/api/inventory/adjust/${item.inventoryId}`, {
+          adjustmentAmount: parsedAdjust,
+          notes: adjustNotes.trim(),
+        });
+      }
+      if (settingsChanged) {
+        await api.put(`/api/inventory/edit/${item.inventoryId}`, {
+          reorderLevel: Number(reorderLevel),
+          unit: unit.trim() || null,
+        });
+      }
+      const parts = [];
+      if (hasAdjustment) {
+        const dir = parsedAdjust > 0 ? "increased" : "decreased";
+        parts.push(`Stock ${dir} by ${Math.abs(parsedAdjust)} ${selectedUnit}`);
+      }
+      if (settingsChanged) parts.push("settings updated");
+      showSuccess(`${parts.join(" and ")} for "${item.productName}".`);
       onSaved();
       onClose();
     } catch (err) {
-      showError(err.response?.data?.message ?? "Failed to update inventory settings.");
+      showError(err.response?.data?.message ?? "Failed to update inventory.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 flex flex-col" style={{ maxHeight: "90vh" }}>
 
-        {/* ── Header ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-600 dark:bg-violet-500 flex-shrink-0">
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-600 dark:bg-violet-500 shrink-0">
               <Pencil size={16} className="text-white" strokeWidth={2} />
             </span>
             <div>
@@ -660,141 +677,139 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* ── Form ───────────────────────────────────────────── */}
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto flex-1 min-h-0">
+          <form id="editInventoryForm" onSubmit={handleSubmit} noValidate>
+            <div className="px-6 py-5 space-y-5">
 
-            {/* ── Current Stock (read-only) ───────────────────────── */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                Current Stock
-              </label>
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                  {currentQty <= (item.reorderLevel ?? 10) && (
-                    <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />
-                  )}
-                  {currentQty}
-                  <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
-                </span>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
-                  read-only
-                </span>
+              {/* Current Stock (read-only) */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">Current Stock</label>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    {currentQty <= (item.reorderLevel ?? 10) && <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />}
+                    {currentQty}
+                    <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                  </span>
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">read-only</span>
+                </div>
               </div>
-            </div>
 
-            {/* ── Quantity to Add ────────────────────────────────── */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                Quantity to Add
-                <span className="ml-1 normal-case tracking-normal text-slate-400 font-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={qtyToAdd}
-                  onChange={(e) => {
-                    setQtyToAdd(e.target.value);
-                    if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
-                  }}
-                  placeholder="e.g. 50"
-                  className={`${inputBase} pl-9 border-slate-200 dark:border-slate-700 ${
-                    errors.qty ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
-                  }`}
-                />
+              {/* Adjustment Amount */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Adjustment Amount <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-slate-400 dark:text-slate-500 -mt-0.5">Use positive to add stock, negative to remove.</p>
+                <div className="relative">
+                  <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input type="number" step="any" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} placeholder="e.g. +10 or -5" className={`${inputCls} pl-10 ${errors.amount ? errorCls : ""}`} />
+                </div>
+                {errors.amount && (
+                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.amount}</p>
+                )}
               </div>
-              {errors.qty ? (
-                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
-                  {errors.qty}
-                </p>
-              ) : (
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                  New stock will be: <strong className="text-slate-600 dark:text-slate-300">{newTotal ?? currentQty}</strong> {selectedUnit}
-                </p>
+
+              {/* Resulting Stock Preview */}
+              {hasAdjustment && (
+                <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isNegativeResult ? "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30" : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30"}`}>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Resulting Stock</span>
+                  <span className={`text-sm font-bold tabular-nums ${isNegativeResult ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                    {adjustResultQty} <span className="font-normal text-xs text-slate-400">{selectedUnit}</span>
+                  </span>
+                </div>
               )}
-            </div>
-
-            {/* ── Reorder Level ───────────────────────────────────── */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={reorderLevel}
-                onChange={(e) => {
-                  setReorderLevel(e.target.value);
-                  if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined }));
-                }}
-                className={`${inputBase} border-slate-200 dark:border-slate-700 ${
-                  errors.reorderLevel ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
-                }`}
-                required
-              />
-              {errors.reorderLevel ? (
-                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
-                  {errors.reorderLevel}
-                </p>
-              ) : (
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this threshold</p>
+              {isNegativeResult && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} strokeWidth={2.2} />Resulting stock cannot be negative.</p>
               )}
-            </div>
 
-            {/* ── Unit ───────────────────────────────────────────── */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                Unit <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                maxLength={20}
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="e.g. kg, pcs, L"
-                className={`${inputBase} border-slate-200 dark:border-slate-700`}
-              />
-            </div>
-
-          </div>
-
-          {/* ── Footer ───────────────────────────────────────────── */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm"
-            >
-              {saving ? (
-                <><Loader2 size={14} className="animate-spin" /> Updating…</>
-              ) : (
-                <><CheckCircle2 size={14} /> Update Inventory</>
+              {/* Notes / Reason */}
+              {hasAdjustment && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
+                  </label>
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit…" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <div className="flex items-center justify-between">
+                    {errors.notes ? (
+                      <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
+                    ) : <span />}
+                    <span className="text-[10px] text-slate-400 tabular-nums">{adjustNotes.length}/500</span>
+                  </div>
+                </div>
               )}
-            </button>
-          </div>
-        </form>
+
+              {/* Divider */}
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-700" /></div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white dark:bg-slate-900 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Settings</span>
+                </div>
+              </div>
+
+              {/* Reorder Level */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <input type="number" min="0" step="0.01" value={reorderLevel} onChange={(e) => { setReorderLevel(e.target.value); if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined })); }} className={`${inputCls} ${errors.reorderLevel ? errorCls : ""}`} required />
+                {errors.reorderLevel ? (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.reorderLevel}</p>
+                ) : (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this threshold</p>
+                )}
+              </div>
+
+              {/* Unit */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Unit <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <input type="text" maxLength={20} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. kg, pcs, L" className={inputCls} />
+              </div>
+
+              {/* General error */}
+              {errors.general && (
+                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.general}</p>
+              )}
+
+            </div>
+          </form>
+        </div>
+
+        {/* Footer — always visible */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 shrink-0 rounded-b-2xl">
+          <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors duration-150">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="editInventoryForm"
+            disabled={saving}
+            className="
+              inline-flex items-center gap-2
+              px-6 py-2.5 rounded-xl text-sm font-semibold
+              bg-slate-900 dark:bg-slate-50
+              text-white dark:text-slate-900
+              hover:bg-slate-700 dark:hover:bg-slate-200
+              active:scale-95
+              disabled:opacity-60 disabled:cursor-not-allowed
+              transition-all duration-150 shadow-sm
+            "
+          >
+            {saving ? (
+              <><Loader2 size={15} className="animate-spin" /> Saving…</>
+            ) : (
+              <><CheckCircle2 size={15} /> Update Inventory</>
+            )}
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -826,218 +841,6 @@ const COLUMNS = [
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
-// ─── Adjust Stock Modal ──────────────────────────────────────────────────────
-const AdjustStockModal = ({ open, item, onClose, onSaved }) => {
-  const [amount, setAmount]   = useState("");
-  const [notes, setNotes]     = useState("");
-  const [saving, setSaving]   = useState(false);
-  const [errors, setErrors]   = useState({});
-
-  // Reset form whenever the modal opens with a new item
-  useEffect(() => {
-    if (open) {
-      setAmount("");
-      setNotes("");
-      setErrors({});
-      setSaving(false);
-    }
-  }, [open, item?.inventoryId]);
-
-  if (!open || !item) return null;
-
-  const currentQty   = Number(item.stockQuantity ?? 0);
-  const parsedAmount = parseFloat(amount);
-  const validAmount  = !isNaN(parsedAmount) && parsedAmount !== 0;
-  const resultingQty = validAmount ? currentQty + parsedAmount : null;
-  const isNegativeResult = resultingQty !== null && resultingQty < 0;
-  const selectedUnit = item.unit || "units";
-
-  const inputBase =
-    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 " +
-    "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
-    "text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
-    "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 ";
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const errs = {};
-    if (!validAmount)          errs.amount = "Enter a non-zero adjustment value.";
-    if (isNegativeResult)      errs.amount = `Cannot reduce by more than current stock (${currentQty}).`;
-    if (!notes.trim())         errs.notes  = "Please provide a reason for this adjustment.";
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-
-    setSaving(true);
-    try {
-      await api.post(`/api/inventory/adjust/${item.inventoryId}`, {
-        adjustmentAmount: parsedAmount,
-        notes: notes.trim(),
-      });
-      const direction = parsedAmount > 0 ? "increased" : "decreased";
-      showSuccess(
-        `Stock ${direction} by ${Math.abs(parsedAmount)} ${selectedUnit} for "${item.productName}".`
-      );
-      onSaved();
-      onClose();
-    } catch (err) {
-      showError(err.response?.data?.message ?? "Failed to adjust stock.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
-
-        {/* ── Header ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-600 dark:bg-amber-500 flex-shrink-0">
-              <SlidersHorizontal size={16} className="text-white" strokeWidth={2} />
-            </span>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">Adjust Stock</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* ── Form ───────────────────────────────────────────── */}
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-
-            {/* ── Current Stock (read-only) ───────────────────────── */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                Current Stock
-              </label>
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                  {currentQty <= (item.reorderLevel ?? 10) && (
-                    <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />
-                  )}
-                  {currentQty}
-                  <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
-                </span>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
-                  read-only
-                </span>
-              </div>
-            </div>
-
-            {/* ── Adjustment Amount ──────────────────────────────── */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Adjustment Amount <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
-              <p className="text-xs text-slate-400 dark:text-slate-500 -mt-0.5">
-                Use positive to add stock, negative to remove.
-              </p>
-              <div className="relative">
-                <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input
-                  type="number"
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="e.g. +10 or -5"
-                  className={inputBase + " pl-10 border-slate-200 dark:border-slate-700"}
-                />
-              </div>
-              {errors.amount && (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
-                  {errors.amount}
-                </p>
-              )}
-            </div>
-
-            {/* ── Resulting Stock Preview ─────────────────────────── */}
-            {validAmount && (
-              <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                isNegativeResult
-                  ? "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30"
-                  : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30"
-              }`}>
-                <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Resulting Stock
-                </span>
-                <span className={`text-sm font-bold tabular-nums ${
-                  isNegativeResult
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-emerald-600 dark:text-emerald-400"
-                }`}>
-                  {resultingQty} <span className="font-normal text-xs text-slate-400">{selectedUnit}</span>
-                </span>
-              </div>
-            )}
-            {isNegativeResult && (
-              <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
-                <AlertTriangle size={12} strokeWidth={2.2} />
-                Resulting stock cannot be negative.
-              </p>
-            )}
-
-            {/* ── Notes / Reason ────────────────────────────────── */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Damaged goods removed, Stock correction after audit…"
-                rows={3}
-                maxLength={500}
-                className={inputBase + " border-slate-200 dark:border-slate-700 resize-none"}
-              />
-              <div className="flex items-center justify-between">
-                {errors.notes ? (
-                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
-                    {errors.notes}
-                  </p>
-                ) : <span />}
-                <span className="text-[10px] text-slate-400 tabular-nums">{notes.length}/500</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Footer ──────────────────────────────────────── */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !validAmount || isNegativeResult || !notes.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-            >
-              {saving
-                ? <><Loader2 size={14} className="animate-spin" />Saving…</>
-                : <><SlidersHorizontal size={14} />Apply Adjustment</>}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 // ─── Component ────────────────────────────────────────────────────────────────
 const InventoryStock = () => {
   // products   = all products (dropdown list for AddStockModal)
@@ -1055,7 +858,6 @@ const InventoryStock = () => {
   const [editTarget,     setEditTarget]     = useState(null);   // inventory item to edit
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
-  const [adjustTarget,   setAdjustTarget]   = useState(null);   // inventory item to adjust
   const [logs,           setLogs]           = useState([]);
 
   const { refreshInventory } = useInventory();
@@ -1248,15 +1050,8 @@ const InventoryStock = () => {
         onStockUpdated={refreshAll}
       />
       <EditInventoryModal
-        open={!!editTarget}
         item={editTarget}
         onClose={() => setEditTarget(null)}
-        onSaved={refreshAll}
-      />
-      <AdjustStockModal
-        open={!!adjustTarget}
-        item={adjustTarget}
-        onClose={() => setAdjustTarget(null)}
         onSaved={refreshAll}
       />
       {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
@@ -1574,20 +1369,6 @@ const InventoryStock = () => {
                           "
                         >
                           <Pencil size={15} strokeWidth={1.8} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Adjust stock (+/−)"
-                          onClick={() => setAdjustTarget(item)}
-                          className="
-                            p-2 rounded-lg
-                            text-slate-400
-                            hover:text-amber-600 hover:bg-amber-50
-                            dark:hover:text-amber-400 dark:hover:bg-amber-950/40
-                            transition-all duration-150
-                          "
-                        >
-                          <SlidersHorizontal size={15} strokeWidth={1.8} />
                         </button>
                         <button
                           type="button"
