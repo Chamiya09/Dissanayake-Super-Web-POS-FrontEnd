@@ -2,10 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Apply saved dark mode before React mounts to prevent flash -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('pos_dark_mode') === 'true') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <link rel="icon" type="image/jpeg" href="/Logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web-pos-system</title>
+    <title>Dissanayaka Super</title>
+    <meta name="description" content="Dissanayaka Super — Web Point of Sale System" />
+    <meta name="author" content="Dissanayaka Super" />
+
+    <meta property="og:title" content="Dissanayaka Super" />
+    <meta property="og:description" content="Dissanayaka Super — Web Point of Sale System" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/Logo.jpg" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@DissanayakaSuper" />
+    <meta name="twitter:image" content="/Logo.jpg" />
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
