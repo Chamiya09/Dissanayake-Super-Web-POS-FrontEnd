@@ -137,3 +137,16 @@ export async function getHistory(suppliers = []) {
   const { data } = await api.get(`${BASE}/history`);
   return (data ?? []).map((dto) => mapHistoryItem(dto, suppliers));
 }
+
+/**
+ * Transitions the status of an existing order.
+ * Valid statuses: "CANCELLED" | "CONFIRMED" | "RECEIVED"
+ *
+ * @param {number} dbId   - Numeric database PK of the order
+ * @param {string} status - New status (uppercase)
+ * @returns {Promise<Object>} Updated ReorderResponseDTO (raw, not yet mapped)
+ */
+export async function updateOrderStatus(dbId, status) {
+  const { data } = await api.patch(`${BASE}/${dbId}/status`, { status });
+  return data;
+}

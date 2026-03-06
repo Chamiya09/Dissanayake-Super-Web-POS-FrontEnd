@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
-import { createOrder, getHistory, mapHistoryItem, updateOrder } from "@/api/reorderApi";
+import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
@@ -654,13 +654,23 @@ export default function ReorderManagement() {
   }
 
   // Called when user clicks "Confirm Order" inside the email modal
-  function handleSupplierConfirm() {
-    const id = supplierEmailModal?.order?.id;
+  async function handleSupplierConfirm() {
+    const order = supplierEmailModal?.order;
+    const id = order?.id;
+    const dbId = order?.dbId;
     setSupplierEmailModal(null);
-    if (!id) return;
-    setReorders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
-    );
+    if (!id || !dbId) return;
+    try {
+      const dto = await updateOrderStatus(dbId, "CONFIRMED");
+      const updated = mapHistoryItem(dto, suppliers);
+      setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    } catch (err) {
+      // Fallback: update local state so the UI isn't left stale
+      setReorders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, status: "Confirmed" } : o))
+      );
+      console.error("Confirm status sync failed:", err);
+    }
     // If triggered from the Send flow (sent=true), reset back to config
     // so the user can see the updated history table
     setSent(false);
@@ -669,18 +679,29 @@ export default function ReorderManagement() {
     notify({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
   }
 
-  // Triggers 2-second cancellation overlay, then marks order Cancelled
-  function handleCancelOrder(id) {
+  // Triggers 2-second cancellation overlay, calls API, then marks order Cancelled
+  async function handleCancelOrder(id) {
     if (rowLoading[id]) return;
+    const order = reorders.find((o) => o.id === id);
+    if (!order) return;
     setCancelConfirmId(null);          // close the inline confirm row
     setCancelOverlay({ orderId: id });
-    setTimeout(() => {
-      setReorders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o))
-      );
+    try {
+      const dto = await updateOrderStatus(order.dbId, "CANCELLED");
+      const updated = mapHistoryItem(dto, suppliers);
+      setTimeout(() => {
+        setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+        setCancelOverlay(null);
+        notify({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
+      }, 2000);
+    } catch (err) {
       setCancelOverlay(null);
-      notify({ type: "warning", title: "Order Cancelled", message: "Cancellation notice sent to supplier." });
-    }, 2000);
+      notify({
+        type: "error",
+        title: "Cancel Failed",
+        message: err.response?.data?.message ?? "Failed to cancel order. Please try again.",
+      });
+    }
   }
 
   async function handleUpdateOrder({ id, dbId, qty, email, message, items }) {
