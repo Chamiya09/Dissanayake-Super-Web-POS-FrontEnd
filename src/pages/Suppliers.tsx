@@ -158,15 +158,18 @@ export default function Suppliers() {
       <AppHeader />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto max-w-7xl px-8 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                Supplier Management
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-8 w-8 text-indigo-600" />
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Supplier Management
+                </h1>
+              </div>
+              <p className="text-sm text-slate-500 mt-1 ml-11">
                 {loading
                   ? "Loading supplier network..."
                   : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
