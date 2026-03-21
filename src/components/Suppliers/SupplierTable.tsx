@@ -255,7 +255,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                       variant="ghost"
                       size="sm"
                       onClick={() => onViewProducts(supplier)}
-                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg px-3"
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg px-3"
                     >
                       <Package className="h-3.5 w-3.5" />
                       View
@@ -264,7 +264,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                       variant="ghost"
                       size="sm"
                       onClick={() => onAssign(supplier)}
-                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg px-3"
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg px-3"
                     >
                       <PackageCheck className="h-3.5 w-3.5" />
                       Assign

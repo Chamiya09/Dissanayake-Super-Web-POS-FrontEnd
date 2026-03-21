@@ -164,12 +164,14 @@ export default function Suppliers() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <Building2 className="h-8 w-8 text-indigo-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
+                  <Building2 className="h-6 w-6" />
+                </div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                   Supplier Management
                 </h1>
               </div>
-              <p className="text-sm text-slate-500 mt-1 ml-11">
+              <p className="text-sm text-slate-500 mt-1 ml-16">
                 {loading
                   ? "Loading supplier network..."
                   : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
