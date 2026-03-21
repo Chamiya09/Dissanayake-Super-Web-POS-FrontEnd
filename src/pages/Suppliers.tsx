@@ -7,12 +7,26 @@ import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
 import api from "@/lib/axiosInstance";
 import { showSuccess, showError } from "@/utils/toastUtils";
+
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }: { icon: any, iconBg: string, iconColor: string, label: string, value: number }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+      </div>
+      <p className="mt-3 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
+    </div>
+  );
+}
 
 /** Converts an AxiosError or plain Error into a user-readable string. */
 function extractApiError(err: unknown): string {
@@ -140,76 +154,94 @@ export default function Suppliers() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50/50">
+    <div className="flex h-screen flex-col bg-slate-50">
       <AppHeader />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="w-full px-8 py-8 space-y-7">
+        <div className="container mx-auto max-w-7xl px-8 py-8 space-y-8">
 
           {/* ── Page header ── */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-[22px] font-bold text-slate-900 leading-tight tracking-tight">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 Supplier Management
               </h1>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-slate-500 mt-1">
                 {loading
-                  ? "Loading…"
-                  : `Manage your supplier network · ${suppliers.length} supplier${suppliers.length !== 1 ? "s" : ""} registered`}
+                  ? "Loading supplier network..."
+                  : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3">
               <button
                 onClick={fetchSuppliers}
                 disabled={loading}
-                title="Refresh"
-                className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                title="Refresh List"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-indigo-600 hover:border-indigo-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
+              
               <Button
                 onClick={() => setIsAddOpen(true)}
-                className="gap-2 h-10 px-5 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-sm"
+                className="h-10 px-5 gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 font-medium transition-all"
               >
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Supplier</span>
-                <span className="sm:hidden">Add</span>
+                <span>Add Supplier</span>
               </Button>
             </div>
           </div>
 
           {/* ── Error banner ── */}
           {error && (
-            <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-600 flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" />
-              {error}
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-2">
+              <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
             </div>
           )}
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Total Suppliers",  value: suppliers.length },
-              { label: "AI Auto-Reorder",  value: suppliers.filter((s) => s.isAutoReorderEnabled).length },
-              { label: "Slow (> 5 days)",  value: suppliers.filter((s) => s.leadTime > 5).length },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-slate-100 bg-white px-6 py-5 shadow-sm">
-                <p className="text-3xl font-bold text-slate-900 tabular-nums">{stat.value}</p>
-                <p className="text-[11px] text-slate-400 mt-1.5 font-semibold uppercase tracking-widest">{stat.label}</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <SummaryCard 
+              icon={Truck}
+              iconBg="bg-indigo-50"
+              iconColor="text-indigo-600"
+              label="Total Suppliers"
+              value={suppliers.length}
+            />
+            <SummaryCard 
+              icon={Zap}
+              iconBg="bg-emerald-50"
+              iconColor="text-emerald-600"
+              label="AI Auto-Reorder"
+              value={suppliers.filter((s) => s.isAutoReorderEnabled).length}
+            />
+            <SummaryCard 
+              icon={Clock}
+              iconBg="bg-amber-50"
+              iconColor="text-amber-600"
+              label="Slow Delivery (> 5 Days)"
+              value={suppliers.filter((s) => s.leadTime > 5).length}
+            />
           </div>
 
-          {/* ── Table ── */}
-          <SupplierTable
+          {/* ── Main content ── */}
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+             {/* 
+                We assume SupplierTable internally handles the table structure.
+                Ideally, it should render distinct <thead> and <tbody> consistent with the theme.
+                If SupplierTable is rigid, the container above at least ensures it fits the card style.
+             */}
+            <div className="p-0">
+              <SupplierTable
             suppliers={suppliers}
             onEdit={(s) => setEditTarget(s)}
             onDelete={(s) => setDeleteTarget(s)}
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
-          />
-        </div>
+          />            </div>
+          </div>        </div>
       </div>
 
       {/* ── Modals ── */}
