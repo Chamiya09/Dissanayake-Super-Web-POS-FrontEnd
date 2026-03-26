@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 
 const API = "/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, Pencil } from "lucide-react";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw } from "lucide-react";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
-import EditSaleModal from "@/components/Sales/EditSaleModal";
 
 
 const formatDateTime = (iso) => {
@@ -22,16 +23,19 @@ const formatDateTime = (iso) => {
 
 function StatusBadge({ status }) {
   const completed = status === "Completed";
+  const returned  = status === "Returned";
+
+  const colorCls = completed
+    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
+    : returned
+    ? "bg-amber-500/10 text-amber-700 border-amber-200 dark:text-amber-400 dark:border-amber-800"
+    : "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800";
+
+  const dotCls = completed ? "bg-emerald-500" : returned ? "bg-amber-500" : "bg-red-500";
+
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
-        completed
-          ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
-          : "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800"
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", completed ? "bg-emerald-500" : "bg-red-500")} />
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap", colorCls)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotCls)} />
       {status}
     </span>
   );
@@ -60,6 +64,7 @@ export default function SalesManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [returningId, setReturningId] = useState(null); // tracks in-flight return request
 
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
@@ -80,8 +85,6 @@ export default function SalesManagement() {
   useEffect(() => { fetchSales(); }, [fetchSales]);
   const [viewSale, setViewSale] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [editSale, setEditSale] = useState(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
 
   /* ── Filtering ── */
   const filtered = (sales ?? []).filter((s) => {
@@ -102,7 +105,6 @@ export default function SalesManagement() {
 
     try {
       await api.put(`${API}/${id}/status`, { status: "Voided" });
-      // Optimistic UI update — no need to wait for a full re-fetch
       setSales((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: "Voided" } : s))
       );
@@ -112,9 +114,38 @@ export default function SalesManagement() {
     }
   };
 
-  /* -- Edit save handler -- */
-  const handleEditSave = (updated) => {
-    setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  /* ── Return handler ── */
+  const handleReturn = async (id) => {
+    const sale = sales.find((s) => s.id === id);
+    const label = sale?.receiptNo ?? `#${id}`;
+
+    const result = await Swal.fire({
+      title: "Return this sale?",
+      html: `<p class="text-sm text-gray-500">Sale <strong>${label}</strong> will be marked as <strong>Returned</strong> and all items will be restocked to inventory.</p>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#e11d48",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, return it",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    setReturningId(id);
+    try {
+      await api.post(`${API}/${id}/return`);
+      setSales((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: "Returned" } : s))
+      );
+      toast.success(`Sale ${label} has been returned and inventory restocked.`);
+    } catch (err) {
+      const msg = err.response?.data?.message ?? "Failed to process return. Please try again.";
+      toast.error(msg);
+      console.error("Failed to return sale:", err);
+    } finally {
+      setReturningId(null);
+    }
   };
 
   /* ── Stats ── */
@@ -171,7 +202,7 @@ export default function SalesManagement() {
             />
           </div>
           <div className="flex gap-2">
-            {["All", "Completed", "Voided"].map((s) => (
+            {["All", "Completed", "Voided", "Returned"].map((s) => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
@@ -246,13 +277,16 @@ export default function SalesManagement() {
                 ) : (
                   filtered.map((sale) => {
                     const { date, time } = formatDateTime(sale?.saleDate || new Date().toISOString());
-                    const isVoid = (sale?.status ?? "") === "Voided";
+                    const isVoid     = (sale?.status ?? "") === "Voided";
+                    const isReturned = (sale?.status ?? "") === "Returned";
+                    const isInactive = isVoid || isReturned;
+                    const isCompleted = (sale?.status ?? "") === "Completed";
                     return (
                       <tr
                         key={sale.id}
                         className={cn(
                           "group transition-colors hover:bg-muted/40",
-                          isVoid && "opacity-55"
+                          isInactive && "opacity-55"
                         )}
                       >
                         {/* Receipt No. */}
@@ -282,14 +316,14 @@ export default function SalesManagement() {
                           </div>
                         </td>
 
-                        {/* Status � centered */}
+                         {/* Status – centered */}
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center">
                             <StatusBadge status={sale?.status || 'N/A'} />
                           </div>
                         </td>
 
-                        {/* Actions � right-aligned */}
+                        {/* Actions – right-aligned */}
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-3">
                             {/* View */}
@@ -303,38 +337,38 @@ export default function SalesManagement() {
                               View
                             </Button>
 
-                            {/* Edit */}
+                            {/* Void — only for Completed */}
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={isVoid}
-                              onClick={() => { setEditSale(sale); setIsEditOpen(true); }}
-                              className={cn(
-                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
-                                !isVoid
-                                  ? "border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                                  : "opacity-40"
-                              )}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Edit
-                            </Button>
-
-                            {/* Void */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isVoid}
+                              disabled={isInactive}
                               onClick={() => handleVoid(sale.id)}
                               className={cn(
                                 "h-8 gap-1.5 px-3 text-[12px] font-medium",
-                                !isVoid
+                                !isInactive
                                   ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
                                   : "opacity-40"
                               )}
                             >
                               <Ban className="h-3.5 w-3.5" />
                               {isVoid ? "Voided" : "Void"}
+                            </Button>
+
+                            {/* Return Sale — only active for Completed */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!isCompleted || returningId === sale.id}
+                              onClick={() => handleReturn(sale.id)}
+                              className={cn(
+                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
+                                isCompleted && returningId !== sale.id
+                                  ? "border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
+                                  : "opacity-40"
+                              )}
+                            >
+                              <RotateCcw className={cn("h-3.5 w-3.5", returningId === sale.id && "animate-spin")} />
+                              {isReturned ? "Returned" : returningId === sale.id ? "Returning…" : "Return"}
                             </Button>
                           </div>
                         </td>
@@ -368,13 +402,6 @@ export default function SalesManagement() {
         isOpen={isViewOpen}
         onClose={() => { setIsViewOpen(false); setViewSale(null); }}
         saleData={viewSale}
-      />
-      {/* -- Edit Sale Modal -- */}
-      <EditSaleModal
-        isOpen={isEditOpen}
-        onClose={() => { setIsEditOpen(false); setEditSale(null); }}
-        saleData={editSale}
-        onSave={handleEditSave}
       />
     </div>
   );
