@@ -255,7 +255,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                       variant="ghost"
                       size="sm"
                       onClick={() => onViewProducts(supplier)}
-                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg px-3"
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3"
                     >
                       <Package className="h-3.5 w-3.5" />
                       View
@@ -264,24 +264,24 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                       variant="ghost"
                       size="sm"
                       onClick={() => onAssign(supplier)}
-                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg px-3"
+                      className="h-9 gap-1.5 text-xs text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-3"
                     >
                       <PackageCheck className="h-3.5 w-3.5" />
                       Assign
                     </Button>
                     <button
                       onClick={() => onEdit(supplier)}
-                      className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors duration-150"
+                      className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-all duration-150"
                       title="Edit"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onDelete(supplier)}
-                      className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-150"
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-all duration-150"
                       title="Delete"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </td>
