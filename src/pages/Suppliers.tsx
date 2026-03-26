@@ -154,14 +154,14 @@ export default function Suppliers() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <AppHeader />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="w-full max-w-none py-8 space-y-8">
 
           {/* ── Page header ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
@@ -188,26 +188,29 @@ export default function Suppliers() {
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
               
-              <Button
+              <button
                 onClick={() => setIsAddOpen(true)}
-                className="h-10 px-5 gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 font-medium transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
               >
                 <Plus className="h-4 w-4" />
-                <span>Add Supplier</span>
-              </Button>
+                <span className="hidden sm:inline">Add Supplier</span>
+                <span className="sm:hidden">Add</span>
+              </button>
             </div>
           </div>
 
           {/* ── Error banner ── */}
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-2">
-              <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
-              <p className="text-sm font-medium">{error}</p>
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-2">
+                <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
             </div>
           )}
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
             <SummaryCard 
               icon={Truck}
               iconBg="bg-indigo-50"
@@ -232,21 +235,13 @@ export default function Suppliers() {
           </div>
 
           {/* ── Main content ── */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-             {/* 
-                We assume SupplierTable internally handles the table structure.
-                Ideally, it should render distinct <thead> and <tbody> consistent with the theme.
-                If SupplierTable is rigid, the container above at least ensures it fits the card style.
-             */}
-            <div className="p-0">
-              <SupplierTable
+          <SupplierTable
             suppliers={suppliers}
             onEdit={(s) => setEditTarget(s)}
             onDelete={(s) => setDeleteTarget(s)}
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
-          />            </div>
-          </div>        </div>
+          />        </div>
       </div>
 
       {/* ── Modals ── */}
