@@ -414,8 +414,8 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
       </div>
       <div className="min-w-0">
         <p className={`truncate text-sm font-semibold
-          ${isActive    ? "text-blue-700 dark:text-blue-300"
-          : isCompleted ? "text-emerald-700 dark:text-emerald-400"
+          ${isActive    ? "text-blue-700"
+          : isCompleted ? "text-emerald-700"
           :               "text-foreground"}`}>
           {label}
         </p>

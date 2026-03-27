@@ -26,10 +26,10 @@ function StatusBadge({ status }) {
   const returned  = status === "Returned";
 
   const colorCls = completed
-    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
+    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200"
     : returned
-    ? "bg-amber-500/10 text-amber-700 border-amber-200 dark:text-amber-400 dark:border-amber-800"
-    : "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800";
+    ? "bg-amber-500/10 text-amber-700 border-amber-200"
+    : "bg-red-500/10 text-red-700 border-red-200";
 
   const dotCls = completed ? "bg-emerald-500" : returned ? "bg-amber-500" : "bg-red-500";
 
@@ -48,8 +48,8 @@ function PaymentBadge({ method }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
         isCash
-          ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-          : "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+          ? "bg-amber-50 text-amber-700"
+          : "bg-blue-50 text-blue-700"
       )}
     >
       {isCash ? <Banknote className="h-3 w-3 shrink-0" /> : <CreditCard className="h-3 w-3 shrink-0" />}

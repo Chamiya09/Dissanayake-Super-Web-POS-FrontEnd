@@ -201,7 +201,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
                 "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
                 activeCategory === cat
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-white dark:bg-zinc-800 border border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  : "bg-white border border-border text-muted-foreground hover:border-teal-600 hover:text-teal-600"
               )}
             >
               {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
@@ -273,7 +273,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
               {/* Out-of-stock overlay */}
               {outOfStock && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 dark:bg-black/60 backdrop-blur-[2px]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
                   <PackageX className="h-5 w-5 text-gray-400" />
                   <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Out of Stock</span>
                 </div>
@@ -361,7 +361,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
         {/* Empty state */}
         {filtered.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white dark:bg-card py-20 shadow-sm">
+          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Search className="h-6 w-6" />
             </div>
