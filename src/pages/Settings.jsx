@@ -488,11 +488,11 @@ export default function Settings() {
 
   /* ─── Render ───────────────────────────────────────────────────────────── */
   return (
-    <div className="flex h-screen flex-col bg-background overflow-hidden">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         <div className="mx-auto max-w-6xl px-6 py-10">
 
           {/* Page heading */}

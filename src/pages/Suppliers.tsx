@@ -155,10 +155,10 @@ export default function Suppliers() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         <div className="w-full max-w-none py-8 space-y-8">
 
           {/* ── Page header ── */}
@@ -191,7 +191,7 @@ export default function Suppliers() {
               
               <button
                 onClick={() => setIsAddOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Add Supplier</span>
@@ -243,9 +243,9 @@ export default function Suppliers() {
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
           />        </div>
-      </div>
+        </main>
 
-      {/* ── Modals ── */}
+        {/* ── Modals ── */}
       <AddSupplierModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}

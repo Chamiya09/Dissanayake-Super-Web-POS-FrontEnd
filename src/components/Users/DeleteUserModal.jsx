@@ -111,7 +111,7 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
           <Button
             onClick={handleConfirm}
             disabled={deleting}
-            className={cn("h-9 px-5 text-[13px] gap-2 shadow-sm", "bg-red-600 hover:bg-red-700 active:bg-red-800 text-white")}
+            className={cn("h-9 px-5 text-[13px] gap-2 shadow-sm", "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
           >
             {deleting ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" />Deleting</>

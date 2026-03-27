@@ -577,10 +577,10 @@ export default function LowStockAlerts() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto space-y-6 px-4 sm:px-6 py-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
 
         {/* ── Heading ───────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -797,7 +797,7 @@ export default function LowStockAlerts() {
           </p>
         )}
 
-      </div>
+      </main>
 
       {/* Place Order Modal */}
       {orderModal && (

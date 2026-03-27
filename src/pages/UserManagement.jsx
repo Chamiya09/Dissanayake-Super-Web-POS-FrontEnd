@@ -207,10 +207,10 @@ export default function UserManagement() {
   const staffCount   = users.filter((u) => u.role === "Staff").length;
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
 
         {/* â”€â”€ Page header â”€â”€ */}
         <div className="flex items-start justify-between gap-4">
@@ -402,7 +402,7 @@ export default function UserManagement() {
           </div>
         )}
 
-      </div>{/* end scrollable area */}
+      </main>{/* end scrollable area */}
 
       {/* â”€â”€ Modals â”€â”€ */}
       {isAddOpen && (

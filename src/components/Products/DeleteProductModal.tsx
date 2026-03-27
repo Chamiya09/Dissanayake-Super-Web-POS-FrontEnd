@@ -76,7 +76,7 @@ export function DeleteProductModal({
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-md rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
+          "relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
@@ -85,7 +85,7 @@ export function DeleteProductModal({
           onClick={onClose}
           disabled={deleting}
           aria-label="Close modal"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors disabled:pointer-events-none disabled:opacity-50"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-muted hover:text-accent-foreground transition-colors disabled:pointer-events-none disabled:opacity-50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -102,33 +102,33 @@ export function DeleteProductModal({
           <div className="space-y-1.5">
             <h2
               id="delete-product-title"
-              className="text-[18px] font-bold text-slate-900 dark:text-slate-50"
+              className="text-[18px] font-bold text-foreground"
             >
               Delete Product?
             </h2>
-            <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs mx-auto">
+            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-slate-900 dark:text-slate-50">{product.productName}</span>?
+              <span className="font-semibold text-foreground">{product.productName}</span>?
               This action cannot be undone.
             </p>
           </div>
 
           {/* Product detail chip */}
-          <div className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-4 py-3 text-left space-y-1">
+          <div className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-left space-y-1">
             <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">{product.productName}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            <p className="text-[11px] text-muted-foreground">
               {product.id}&nbsp;&middot;&nbsp;SKU:&nbsp;{product.sku}&nbsp;&middot;&nbsp;{product.category}
             </p>
           </div>
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-border bg-muted/50 px-6 py-4">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={deleting}
-            className="h-9 px-5 text-[13px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="h-9 px-5 text-[13px] border-border bg-white dark:bg-slate-800 text-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             Cancel
           </Button>
@@ -139,7 +139,7 @@ export function DeleteProductModal({
             disabled={deleting}
             className={cn(
               "h-9 px-5 text-[13px] gap-2 shadow-sm",
-              "bg-red-600 hover:bg-red-700 active:bg-red-800 text-white"
+              "bg-destructive text-destructive-foreground hover:bg-destructive/90"
             )}
           >
             {deleting ? (

@@ -255,7 +255,7 @@ const Index = () => {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">

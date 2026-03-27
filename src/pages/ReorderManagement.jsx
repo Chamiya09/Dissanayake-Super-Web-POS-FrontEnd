@@ -416,10 +416,10 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
         <p className={`truncate text-sm font-semibold
           ${isActive    ? "text-blue-700 dark:text-blue-300"
           : isCompleted ? "text-emerald-700 dark:text-emerald-400"
-          :               "text-slate-700 dark:text-slate-200"}`}>
+          :               "text-foreground"}`}>
           {label}
         </p>
-        <p className="truncate text-xs text-slate-400 dark:text-slate-500">{desc}</p>
+        <p className="truncate text-xs text-muted-foreground">{desc}</p>
       </div>
     </button>
   );
@@ -751,10 +751,10 @@ export default function ReorderManagement() {
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         <div className="mx-auto max-w-6xl space-y-6">
 
         {/* Heading */}
@@ -973,7 +973,7 @@ export default function ReorderManagement() {
         </div>
 
         </div>{/* /max-w-6xl */}
-      </div>
+      </main>
 
 
 

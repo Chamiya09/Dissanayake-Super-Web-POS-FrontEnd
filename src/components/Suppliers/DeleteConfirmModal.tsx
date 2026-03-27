@@ -128,7 +128,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
             disabled={deleting}
             className={cn(
               "h-9 px-5 text-[13px] gap-2 shadow-sm",
-              "bg-red-600 hover:bg-red-700 active:bg-red-800 text-white",
+              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
               "focus-visible:ring-red-500 dark:bg-red-600 dark:hover:bg-red-700"
             )}
           >

@@ -234,10 +234,10 @@ export default function UserProfile() {
   const displayName = profileFullName || user?.name || "";
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto py-8">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 pb-12 space-y-6">
 
           {/* Page heading */}
@@ -468,7 +468,7 @@ export default function UserProfile() {
           </div>
 
         </div>
-      </div>
+      </main>
 
       
     </div>

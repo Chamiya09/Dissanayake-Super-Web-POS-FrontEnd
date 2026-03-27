@@ -56,7 +56,7 @@ const MOCK_INVENTORY = [
     status: "Out of Stock",
     icon: Monitor,
     iconColor: "text-slate-500",
-    iconBg: "bg-slate-100 dark:bg-slate-800",
+    iconBg: "bg-muted",
   },
   {
     id: 5,
@@ -96,10 +96,10 @@ const InventoryPage = () => {
     <div className="w-full min-h-screen bg-slate-50/50 dark:bg-slate-950 p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">
           Inventory Management
         </h1>
-        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Track and manage your product stock levels
         </p>
       </div>
@@ -109,7 +109,7 @@ const InventoryPage = () => {
         {/* Search Input */}
         <div className="relative w-1/2">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             size={18}
           />
           <input
@@ -118,14 +118,12 @@ const InventoryPage = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products by name, SKU or category..."
             className="
-              w-full bg-white dark:bg-slate-900
-              rounded-xl border border-slate-100 dark:border-slate-800
-              shadow-sm
+              w-full rounded-xl border border-border bg-card text-card-foreground shadow-sm
               pl-10 pr-4 py-3
-              text-sm text-slate-700 dark:text-slate-200
+              text-sm text-foreground
               placeholder:text-slate-400 dark:placeholder:text-slate-500
               outline-none
-              focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10
+              focus:ring-2 focus:ring-ring/20
               focus:border-slate-300 dark:focus:border-slate-600
               transition-all duration-200
             "
@@ -137,12 +135,12 @@ const InventoryPage = () => {
           type="button"
           className="
             ml-auto flex items-center gap-2
-            bg-slate-900 dark:bg-slate-50
-            text-white dark:text-slate-900
+            bg-primary text-primary-foreground
+            text-primary-foreground
             px-6 py-3
             rounded-xl font-medium text-sm
             shadow-sm
-            hover:bg-slate-700 dark:hover:bg-slate-200
+            hover:bg-primary/90
             active:scale-95
             transition-all duration-200
             whitespace-nowrap
@@ -154,16 +152,16 @@ const InventoryPage = () => {
       </div>
 
       {/* Inventory Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
+      <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden mt-8">
         <table className="w-full text-sm">
           {/* Table Head */}
           <thead>
-            <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+            <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-border">
               {["Product Name", "Category", "Price", "Stock Level", "Status", "Actions"].map(
                 (col) => (
                   <th
                     key={col}
-                    className="py-5 px-6 text-left text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap"
+                    className="py-5 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap"
                   >
                     {col}
                   </th>
@@ -185,7 +183,7 @@ const InventoryPage = () => {
                 <tr
                   key={item.id}
                   className={`
-                    border-b border-slate-100 dark:border-slate-800
+                    border-b border-border
                     last:border-0
                     hover:bg-slate-50/70 dark:hover:bg-slate-800/40
                     transition-colors duration-150
@@ -205,7 +203,7 @@ const InventoryPage = () => {
                   </td>
 
                   {/* Category */}
-                  <td className="py-6 px-6 text-slate-500 dark:text-slate-400">
+                  <td className="py-6 px-6 text-muted-foreground">
                     {item.category}
                   </td>
 
@@ -235,7 +233,7 @@ const InventoryPage = () => {
                       >
                         {item.stock}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500 text-xs">units</span>
+                      <span className="text-muted-foreground text-xs">units</span>
                     </div>
                   </td>
 
@@ -274,14 +272,14 @@ const InventoryPage = () => {
         </table>
 
         {/* Footer row — item count */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+        <div className="px-6 py-4 border-t border-border bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
             Showing{" "}
-            <span className="font-semibold text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-foreground">
               {filteredInventory.length}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-foreground">
               {MOCK_INVENTORY.length}
             </span>{" "}
             products
