@@ -109,7 +109,7 @@ export default function ProductManagement() {
         {/* ── Page header ── */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 text-pink-600 shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
               <Package size={24} />
             </div>
             <div>
@@ -128,9 +128,9 @@ export default function ProductManagement() {
           <button
             onClick={() => setIsAddOpen(true)}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
           >
-            <Plus size={18} />
+            <Plus size={16} strokeWidth={2.5} />
             Add New Product
           </button>
         </div>

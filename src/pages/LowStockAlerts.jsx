@@ -585,25 +585,25 @@ export default function LowStockAlerts() {
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 text-orange-600 shrink-0">
-                  <AlertTriangle className="h-6 w-6" />
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                   Low Stock Alerts
                 </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  Products at or below their reorder threshold — act before stock runs out.
+                </p>
               </div>
-              <p className="text-sm text-slate-500 mt-1 ml-16">
-                Products at or below their reorder threshold — act before stock runs out.
-              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => { refreshInventory(); fetchAlerts(); }}
                 disabled={isLoading}
                 title="Refresh Alerts"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-orange-600 hover:border-orange-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-teal-600 hover:border-teal-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </button>

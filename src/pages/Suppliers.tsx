@@ -163,20 +163,20 @@ export default function Suppliers() {
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
-                  <Building2 className="h-6 w-6" />
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                <Building2 size={24} />
+              </div>
+              <div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                   Supplier Management
                 </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {loading
+                    ? "Loading supplier network..."
+                    : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
+                </p>
               </div>
-              <p className="text-sm text-slate-500 mt-1 ml-16">
-                {loading
-                  ? "Loading supplier network..."
-                  : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
-              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -184,17 +184,16 @@ export default function Suppliers() {
                 onClick={fetchSuppliers}
                 disabled={loading}
                 title="Refresh List"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-indigo-600 hover:border-indigo-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-teal-600 hover:border-teal-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
-              
+
               <button
                 onClick={() => setIsAddOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 shrink-0"
               >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Supplier</span>
+                <Plus size={16} strokeWidth={2.5} />
                 <span className="sm:hidden">Add</span>
               </button>
             </div>

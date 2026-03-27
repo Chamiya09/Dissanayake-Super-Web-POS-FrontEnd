@@ -496,13 +496,13 @@ export default function Settings() {
         <div className="mx-auto max-w-6xl px-6 py-10">
 
           {/* Page heading */}
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50">
-              <Settings2 className="h-5 w-5 text-teal-600" />
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Settings2 size={24} />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
-              <p className="text-[13px] text-slate-500 mt-1">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Settings</h1>
+              <p className="text-[14px] text-slate-500 mt-1">
                 Manage your security, preferences, and account.
               </p>
             </div>

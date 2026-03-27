@@ -164,17 +164,16 @@ export default function SalesManagement() {
 
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
-                <ReceiptText className="h-6 w-6" />
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                <ReceiptText size={24} />
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Ledger</h1>
-            </div>
-            <p className="text-sm text-slate-500 mt-1 ml-16">
-              {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
-            </p>
-          </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Ledger</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
+                </p>
+              </div>
         </div>
 
         {/* ── Stats strip ── */}

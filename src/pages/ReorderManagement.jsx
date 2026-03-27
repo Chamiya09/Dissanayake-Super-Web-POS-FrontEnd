@@ -775,19 +775,18 @@ export default function ReorderManagement() {
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
-                  <Package className="h-6 w-6" />
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                  <Package size={24} />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  Reorder Management
-                </h1>
-              </div>
-              <p className="text-sm text-slate-500 mt-1 ml-16">
-                Track and manage all purchase orders placed through the system.
-              </p>
-            </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    Reorder Management
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Track and manage all purchase orders placed through the system.
+                  </p>
+                </div>
           </div>
 
           {/* ── Summary Cards ── */}

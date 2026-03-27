@@ -115,35 +115,31 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
-          <Button
-            variant="outline"
+          <button
+            type="button"
             onClick={onClose}
             disabled={deleting}
-            className="h-9 px-5 text-[13px]"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleConfirmDelete}
             disabled={deleting}
-            className={cn(
-              "h-9 px-5 text-[13px] gap-2 shadow-sm",
-              "bg-red-600 text-white hover:bg-red-700",
-              "focus-visible:ring-red-500"
-            )}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-all focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
             {deleting ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Deleting…
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Deleting...
               </>
             ) : (
               <>
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
                 Confirm Delete
               </>
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

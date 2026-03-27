@@ -201,21 +201,20 @@ export default function UserManagement() {
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 border border-teal-100 text-teal-600 shrink-0">
-                  <Users className="h-6 w-6" />
+                  <Users size={24} />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  System Users
-                </h1>
-              </div>
-              <p className="text-sm text-slate-500 mt-1 ml-16">
-                {loading
-                  ? "Loading users..."
-                  : `Manage system access, roles, and staff accounts · ${users.length} active user${users.length !== 1 ? "s" : ""}`}
-              </p>
-            </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    System Users
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {loading
+                      ? "Loading users..."
+                      : `Manage system access, roles, and staff accounts · ${users.length} active user${users.length !== 1 ? "s" : ""}`}
+                  </p>
+                </div>
 
             <div className="flex items-center gap-3">
               <button

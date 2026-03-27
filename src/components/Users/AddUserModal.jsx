@@ -142,13 +142,13 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-              <UserPlus className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <UserPlus size={20} />
             </div>
             <div>
               <h2
                 id="add-user-title"
-                className="text-[16px] font-bold text-slate-900 leading-tight"
+                className="text-[16px] font-bold text-slate-800 leading-tight"
               >
                 Add New User
               </h2>
@@ -299,33 +299,32 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
           </div>
 
           {/* ── Footer ── */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
-            <Button
+          <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
+            <button
               type="button"
-              variant="outline"
               onClick={onClose}
               disabled={saving}
-              className="h-10 px-5 text-[13px] border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={saving}
-              className="h-10 px-5 text-[13px] gap-2 shadow-sm bg-teal-600 text-white hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Adding…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Adding...
                 </>
               ) : (
                 <>
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <UserPlus className="h-4 w-4" />
                   Add User
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </form>
       </div>
