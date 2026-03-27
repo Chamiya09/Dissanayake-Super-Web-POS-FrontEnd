@@ -4,15 +4,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const ROLE_PILL_STYLES = {
-  Owner:   "bg-red-100   text-red-700   border border-red-200",
-  Manager: "bg-blue-100  text-blue-700  border border-blue-200",
-  Staff:   "bg-green-100 text-green-700 border border-green-200",
+  Owner:   "bg-red-50 text-red-600 border border-red-200",
+  Manager: "bg-blue-50 text-blue-600 border border-blue-200",
+  Staff:   "bg-emerald-50 text-emerald-600 border border-emerald-200",
 };
-const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
+const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
 function RolePill({ role }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", ROLE_PILL_STYLES[role])}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold", ROLE_PILL_STYLES[role])}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[role])} />
       {role}
     </span>
@@ -22,7 +22,7 @@ function RolePill({ role }) {
 function UserAvatar({ name }) {
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-red-600 text-sm font-bold text-white shadow-md shrink-0">
+    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600 shadow-sm shrink-0">
       {initials}
     </div>
   );
@@ -58,15 +58,15 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="delete-user-title">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={!deleting ? onClose : undefined} aria-hidden="true" />
-      <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={!deleting ? onClose : undefined} aria-hidden="true" />
+      <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
 
         {/* Close button */}
         <button
           onClick={onClose}
           disabled={deleting}
           aria-label="Close"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:pointer-events-none disabled:opacity-50"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors disabled:pointer-events-none disabled:opacity-50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -75,27 +75,27 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
         <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center gap-4">
 
           {/* Warning icon */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-8 ring-red-500/5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600 ring-8 ring-red-50/50">
             <AlertTriangle className="h-8 w-8" />
           </div>
 
           {/* Heading */}
           <div className="space-y-1.5">
-            <h2 id="delete-user-title" className="text-[18px] font-bold text-foreground">Delete User?</h2>
-            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
+            <h2 id="delete-user-title" className="text-[18px] font-bold text-slate-900">Delete User?</h2>
+            <p className="text-[13px] text-slate-500 leading-relaxed max-w-xs mx-auto">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">{user.fullName}</span>?
+              <span className="font-semibold text-slate-900">{user.fullName}</span>?
               This action cannot be undone.
             </p>
           </div>
 
           {/* User detail card */}
-          <div className="w-full rounded-xl border border-border bg-muted/40 px-4 py-3 flex items-center gap-3 text-left">
+          <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center gap-3 text-left">
             <UserAvatar name={user.fullName} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">{user.fullName}</p>
-              <p className="truncate text-xs text-muted-foreground font-mono">@{user.username}</p>
-              <div className="mt-1">
+              <p className="truncate text-sm font-semibold text-slate-900">{user.fullName}</p>
+              <p className="truncate text-xs text-slate-500 font-mono mt-0.5">@{user.username}</p>
+              <div className="mt-1.5">
                 <RolePill role={user.role} />
               </div>
             </div>
@@ -104,14 +104,14 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          <Button variant="outline" onClick={onClose} disabled={deleting} className="h-9 px-5 text-[13px]">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
+          <Button variant="outline" onClick={onClose} disabled={deleting} className="h-10 px-5 text-[13px] border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={deleting}
-            className={cn("h-9 px-5 text-[13px] gap-2 shadow-sm", "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+            className={cn("h-10 px-5 text-[13px] gap-2 shadow-sm bg-red-600 text-white hover:bg-red-700")}
           >
             {deleting ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" />Deleting</>

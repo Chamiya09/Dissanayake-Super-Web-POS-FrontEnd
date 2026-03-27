@@ -62,26 +62,26 @@ const ToastItem = ({ toast, onDismiss }) => {
       case 'success':
         return {
           icon: <CircleCheck className="h-5 w-5 mt-px shrink-0 text-emerald-500" />,
-          titleColor: 'text-emerald-700 dark:text-emerald-400',
+          titleColor: 'text-emerald-700',
           defaultTitle: 'Success',
         };
       case 'error':
         return {
           icon: <XCircle className="h-5 w-5 mt-px shrink-0 text-rose-500" />,
-          titleColor: 'text-rose-700 dark:text-rose-400',
+          titleColor: 'text-rose-700',
           defaultTitle: 'Error',
         };
       case 'warning':
         return {
           icon: <AlertTriangle className="h-5 w-5 mt-px shrink-0 text-amber-500" />,
-          titleColor: 'text-amber-700 dark:text-amber-400',
+          titleColor: 'text-amber-700',
           defaultTitle: 'Warning',
         };
       case 'info':
       default:
         return {
           icon: <Info className="h-5 w-5 mt-px shrink-0 text-indigo-500" />,
-          titleColor: 'text-indigo-700 dark:text-indigo-400',
+          titleColor: 'text-indigo-700',
           defaultTitle: 'Info',
         };
     }
@@ -91,7 +91,7 @@ const ToastItem = ({ toast, onDismiss }) => {
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 px-4 py-3.5 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 ease-in-out ${
+      className={`pointer-events-auto flex items-start gap-3 px-4 py-3.5 bg-white rounded-xl shadow-lg border border-slate-100 transition-all duration-300 ease-in-out ${
         isLeaving ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100 animate-in slide-in-from-top-4'
       }`}
     >
@@ -100,13 +100,13 @@ const ToastItem = ({ toast, onDismiss }) => {
         <p className={`text-[11px] font-bold uppercase tracking-wider ${theme.titleColor}`}>
           {toast.title || theme.defaultTitle}
         </p>
-        <p className="mt-0.5 text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">
+        <p className="mt-0.5 text-sm font-medium text-slate-800 leading-snug">
           {toast.message}
         </p>
       </div>
       <button
         onClick={onDismiss}
-        className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800"
       >
         <X className="h-3.5 w-3.5" />
       </button>

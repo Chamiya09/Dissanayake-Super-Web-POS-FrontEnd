@@ -18,15 +18,15 @@ const ALLOWED_ROLES = {
 };
 
 const ROLE_PILL_STYLES = {
-  Owner:   "bg-red-100   text-red-700   border-red-200",
-  Manager: "bg-blue-100  text-blue-700  border-blue-200",
-  Staff:   "bg-green-100 text-green-700 border-green-200",
+  Owner:   "bg-red-50 text-red-600 border-red-200",
+  Manager: "bg-blue-50 text-blue-600 border-blue-200",
+  Staff:   "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
-const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
+const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
 function RolePill({ role }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold", ROLE_PILL_STYLES[role])}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap", ROLE_PILL_STYLES[role])}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[role])} />
       {role}
     </span>
@@ -36,12 +36,12 @@ function RolePill({ role }) {
 function FormRow({ id, label, icon: Icon, error, children }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <Label htmlFor={id} className="text-[13px] font-medium text-slate-900 flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-slate-400" />
         {label}
       </Label>
       {children}
-      {error && <p className="text-[11px] text-red-500 dark:text-red-400 font-medium">{error}</p>}
+      {error && <p className="text-[11px] text-red-500 font-medium">{error}</p>}
     </div>
   );
 }
@@ -103,31 +103,31 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="edit-user-title">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-      <div className={cn("relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className={cn("relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-              <Pencil className="h-4 w-4 text-amber-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <Pencil className="h-5 w-5" />
             </div>
             <div>
-              <h2 id="edit-user-title" className="text-[16px] font-bold text-foreground leading-tight">Edit User</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
-                Editing <span className="font-semibold text-foreground">{user.fullName}</span>
+              <h2 id="edit-user-title" className="text-[16px] font-bold text-slate-900 leading-tight">Edit User</h2>
+              <p className="text-[12px] text-slate-500 mt-0.5">
+                Editing <span className="font-semibold text-slate-900">{user.fullName}</span>
               </p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Permission notice */}
-        <div className="mx-6 mt-5 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 dark:border-blue-800 dark:bg-blue-900/20">
-          <Info className="mt-px h-3.5 w-3.5 shrink-0 text-blue-500" />
-          <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+        <div className="mx-6 mt-5 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          <p className="text-xs text-blue-700 leading-relaxed font-medium">
             Signed in as <RolePill role={currentUserRole} />. You can only assign{" "}
             {allowedRoles.map((r, i) => (
               <span key={r}><RolePill role={r} />{i < allowedRoles.length - 1 ? " or " : ""}</span>
@@ -142,35 +142,35 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
             <FormRow id="edit-fullName" label="Full Name" icon={User} error={errors.fullName}>
               <Input id="edit-fullName" ref={firstInputRef} value={form.fullName}
                 onChange={(e) => handleChange("fullName", e.target.value)}
-                className={cn("h-9 text-sm", errors.fullName && "border-red-400 focus-visible:ring-red-300")} />
+                className={cn("h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300", errors.fullName && "border-red-400 focus-visible:ring-red-400")} />
             </FormRow>
 
             <FormRow id="edit-username" label="Username" icon={User} error={errors.username}>
               <Input id="edit-username" value={form.username}
                 onChange={(e) => handleChange("username", e.target.value)}
-                className={cn("h-9 text-sm", errors.username && "border-red-400 focus-visible:ring-red-300")} />
+                className={cn("h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300", errors.username && "border-red-400 focus-visible:ring-red-400")} />
             </FormRow>
 
             <FormRow id="edit-email" label="Email" icon={Mail} error={errors.email}>
               <Input id="edit-email" type="email" value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                className={cn("h-9 text-sm", errors.email && "border-red-400 focus-visible:ring-red-300")} />
+                className={cn("h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300", errors.email && "border-red-400 focus-visible:ring-red-400")} />
             </FormRow>
 
             <FormRow id="edit-role" label="Role" icon={ShieldCheck} error={errors.role}>
               {isRoleLocked ? (
-                <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 gap-2">
+                <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 gap-2">
                   <RolePill role={allowedRoles[0]} />
-                  <span className="text-xs text-muted-foreground">Only assignable role for your access level</span>
+                  <span className="text-[12px] text-slate-500">Only assignable role for your access level</span>
                 </div>
               ) : (
                 <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
-                  <SelectTrigger className={cn("h-9 text-sm", errors.role && "border-red-400 focus:ring-red-300")}>
+                  <SelectTrigger className={cn("h-10 text-[13px] bg-white border-slate-200 focus:ring-slate-300", errors.role && "border-red-400 focus:ring-red-400")}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
                     {allowedRoles.map((r) => (
-                      <SelectItem key={r} value={r} className="text-sm">
+                      <SelectItem key={r} value={r} className="text-[13px]">
                         <div className="flex items-center gap-2"><RolePill role={r} /></div>
                       </SelectItem>
                     ))}
@@ -182,9 +182,9 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-            <Button type="button" variant="outline" onClick={onClose} className="h-9 px-5 text-[13px]">Cancel</Button>
-            <Button type="submit" className="h-9 px-5 text-[13px] gap-2 shadow-sm">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
+            <Button type="button" variant="outline" onClick={onClose} className="h-10 px-5 text-[13px] border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Cancel</Button>
+            <Button type="submit" className="h-10 px-5 text-[13px] gap-2 shadow-sm bg-amber-500 text-white hover:bg-amber-600">
               <Pencil className="h-3.5 w-3.5" />
               Save Changes
             </Button>
