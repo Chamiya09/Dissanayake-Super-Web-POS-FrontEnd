@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
-import { toast } from "react-toastify";
+import { useToast } from "@/context/GlobalToastContext";
 import Swal from "sweetalert2";
 
 const API = "/api/sales";
@@ -60,6 +60,7 @@ function PaymentBadge({ method }) {
 
 
 export default function SalesManagement() {
+  const { showToast } = useToast();
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -138,10 +139,10 @@ export default function SalesManagement() {
       setSales((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: "Returned" } : s))
       );
-      toast.success(`Sale ${label} has been returned and inventory restocked.`);
+      showToast(`Sale ${label} has been returned and inventory restocked.`, "success");
     } catch (err) {
       const msg = err.response?.data?.message ?? "Failed to process return. Please try again.";
-      toast.error(msg);
+      showToast(msg, "error");
       console.error("Failed to return sale:", err);
     } finally {
       setReturningId(null);

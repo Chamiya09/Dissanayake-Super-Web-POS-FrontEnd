@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
@@ -171,7 +171,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setApiError(null);
     try {
       await api.put(`/api/inventory/add-stock/${selectedId}`, { quantity: qtyNum });
-      showSuccess("Stock updated successfully!");
+      showToast("Stock updated successfully!");
       setSuccess(true);
       setTimeout(() => {
         onStockUpdated?.();   // Refresh the table

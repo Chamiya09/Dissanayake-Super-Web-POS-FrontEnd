@@ -1,5 +1,3 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
@@ -9,11 +7,8 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
 import { ReorderProvider }   from "./context/ReorderContext";
-import { NotificationProvider } from "./context/NotificationContext";
-import { ToastStack } from "./components/ui/SystemToast";
+import { ToastProvider } from "./context/GlobalToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -59,24 +54,8 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <NotificationProvider>
+    <ToastProvider>
       <TooltipProvider>
-        {/* System-wide notification stack — renders toasts above everything */}
-        <ToastStack />
-      <Toaster />
-      <Sonner />
-      {/* react-toastify — globally available to all CRUD modules */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -110,9 +89,9 @@ const App = () => (
           </Routes>
         </AuthProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </NotificationProvider>
-</QueryClientProvider>
+      </TooltipProvider>
+    </ToastProvider>
+  </QueryClientProvider>
 );
 
 export default App;

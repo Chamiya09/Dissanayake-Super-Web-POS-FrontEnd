@@ -6,7 +6,7 @@ import { getLowStockItems, createOrder, mapHistoryItem } from "@/api/reorderApi"
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
-import { useNotification }  from "@/context/NotificationContext";
+import { useToast }         from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -519,7 +519,7 @@ export default function LowStockAlerts() {
   const isLoading = analyticsLoading || alertLoading;
 
   const [orderModal, setOrderModal] = useState(null); // null | item
-  const { notify }                  = useNotification();
+  const { showToast }               = useToast();
 
   function handleSubmitOrder({ item, qty, supplier, emailBody }) {
     const orderRef = `PO-${Date.now()}`;
@@ -558,7 +558,7 @@ export default function LowStockAlerts() {
         setReorders((prev) =>
           prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
         );
-        notify({
+        showToast({
           type: "success",
           title: "Order Confirmed",
           message: "Purchase order saved and email sent to supplier.",
@@ -566,13 +566,13 @@ export default function LowStockAlerts() {
       })
       .catch((err) => {
         const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
-        notify({ type: "error", title: "Order Failed", message: msg });
+        showToast({ type: "error", title: "Order Failed", message: msg });
         // Roll back the optimistic entry
         setReorders((prev) => prev.filter((o) => o.id !== orderRef));
       });
 
     // 3. Show redirect toast and navigate
-    notify({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
+    showToast({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
     setTimeout(() => { navigate("/reorder"); }, 900);
   }
 

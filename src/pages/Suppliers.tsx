@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
 import api from "@/lib/axiosInstance";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 
 function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }: { icon: any, iconBg: string, iconColor: string, label: string, value: number }) {
   return (
@@ -42,6 +42,7 @@ function extractApiError(err: unknown): string {
 }
 
 export default function Suppliers() {
+  const { showToast } = useToast();
   /* ── Supplier list & async state ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -102,9 +103,9 @@ export default function Suppliers() {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
-      showSuccess("Supplier added successfully!");
+      showToast("Supplier added successfully!");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -115,9 +116,9 @@ export default function Suppliers() {
       const { id, createdAt: _createdAt, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
-      showSuccess("Supplier updated successfully!");
+      showToast("Supplier updated successfully!");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -129,9 +130,9 @@ export default function Suppliers() {
       await supplierApi.remove(deleteTarget.id);
       setDeleteTarget(null);
       await fetchSuppliers();
-      showSuccess("Supplier deleted successfully!");
+      showToast("Supplier deleted successfully!");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error(extractApiError(err));
     }
   }, [deleteTarget, fetchSuppliers]);
@@ -144,9 +145,9 @@ export default function Suppliers() {
         await supplierApi.assignProducts(assignTarget.id, productIds);
         setAvailableProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
         setAssignTarget(null);
-        showSuccess("Products assigned successfully!");
+        showToast("Products assigned successfully!");
       } catch (err) {
-        showError("Something went wrong. Please try again.");
+        showToast("Something went wrong. Please try again.");
         throw new Error(extractApiError(err));
       }
     },

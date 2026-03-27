@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, ROLE_HOME } from "@/context/AuthContext";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 
 export default function Login() {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -16,17 +17,17 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      showError("Please enter both username and password.");
+      showToast("Please enter both username and password.", "error", "Error");
       return;
     }
     setLoading(true);
     const result = await login(username, password);
     setLoading(false);
     if (!result.success) {
-      showError(result.error ?? "Invalid Credentials");
+      showToast(result.error ?? "Invalid Credentials", "error", "Login Failed");
       return;
     }
-    showSuccess("Login Successful");
+    showToast("Login Successful", "success", "Welcome");
     navigate(ROLE_HOME[result.user.role] ?? "/", { replace: true });
   };
 

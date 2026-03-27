@@ -7,7 +7,7 @@ import { SkeletonTable } from "@/components/ui/SkeletonTable";
 import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
-import { useNotification } from "@/context/NotificationContext";
+import { useToast } from "@/context/GlobalToastContext";
 import {
   Package,
   ArrowLeft,
@@ -514,7 +514,7 @@ export default function ReorderManagement() {
   const [sending,      setSending]      = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent,         setSent]         = useState(false);
-  const { notify }                       = useNotification();
+  const { showToast }                    = useToast();
 
   // ── Per-row loading: { [orderId]: 'confirming' | 'cancelling' | false }
   const [rowLoading, setRowLoading] = useState({});
@@ -624,14 +624,14 @@ export default function ReorderManagement() {
 
       setSupplierEmailModal({ order: savedOrder, emailBody: capturedEmailBody });
       setSent(true);
-      notify({
+      showToast({
         type: "success",
         title: "Order Confirmed",
         message: `Purchase Order ${orderRef} saved — email sent to ${selectedSupplier.email}.`,
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
-      notify({ type: "error", title: "Order Failed", message: msg });
+      showToast({ type: "error", title: "Order Failed", message: msg });
       // Roll back the optimistic row
       setReorders((prev) => prev.filter((o) => o.id !== orderRef));
     } finally {
@@ -676,7 +676,7 @@ export default function ReorderManagement() {
     setSent(false);
     setStep("config");
     setProduct(null);
-    notify({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
+    showToast({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
   }
 
   // Triggers 2-second cancellation overlay, calls API, then marks order Cancelled
@@ -692,11 +692,11 @@ export default function ReorderManagement() {
       setTimeout(() => {
         setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
         setCancelOverlay(null);
-        notify({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
+        showToast({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
       }, 2000);
     } catch (err) {
       setCancelOverlay(null);
-      notify({
+      showToast({
         type: "error",
         title: "Cancel Failed",
         message: err.response?.data?.message ?? "Failed to cancel order. Please try again.",
@@ -723,9 +723,9 @@ export default function ReorderManagement() {
       });
       const updatedOrder = mapHistoryItem(dto, suppliers);
       setReorders((prev) => prev.map((o) => (o.id === id ? updatedOrder : o)));
-      notify({ type: "info", title: "Order Updated", message: "Purchase Order updated successfully." });
+      showToast({ type: "info", title: "Order Updated", message: "Purchase Order updated successfully." });
     } catch (err) {
-      notify({
+      showToast({
         type: "error",
         title: "Update Failed",
         message: err.response?.data?.message ?? "Failed to update order.",
@@ -740,7 +740,7 @@ export default function ReorderManagement() {
     setReorders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: "Received" } : o))
     );
-    notify({ type: "success", title: "Stock Updated", message: "Stock level updated successfully." });
+    showToast({ type: "success", title: "Stock Updated", message: "Stock level updated successfully." });
   }
 
   function handleReset() {

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
-import { toast } from "@/components/ui/sonner";
+import { useToast } from "@/context/GlobalToastContext";
 import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
@@ -75,6 +75,7 @@ function FlyingDot({
 }
 
 const Index = () => {
+  const { showToast } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -184,9 +185,7 @@ const Index = () => {
       setLastSale({ receiptNo, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
-      toast.success(`Sale ${receiptNo} recorded successfully!`, {
-        duration: 4000,
-      });
+      showToast(`Sale ${receiptNo} recorded successfully!`, "success", "Success");
     } catch (err) {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
@@ -221,9 +220,9 @@ const Index = () => {
         if (inv) product.stock = inv.stockQuantity;
 
         addToCart(product);
-        toast.success(`Added: ${data.productName}`, { duration: 2000 });
+        showToast(`Added: ${data.productName}`, "success", "Item Added");
       } catch {
-        toast.error(`No product found for SKU "${sku}"`, { duration: 3000 });
+        showToast(`No product found for SKU "${sku}"`, "error", "Invalid SKU");
       } finally {
         setSkuQuery("");
         // Re-focus so the next barcode scan / manual entry is instant

@@ -7,7 +7,7 @@ import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { Package, Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 export type { Product };
 
 
@@ -15,6 +15,7 @@ export type { Product };
    ProductManagement  —  main page
    ───────────────────────────────────────────────────────────────────────── */
 export default function ProductManagement() {
+  const { showToast } = useToast();
   /* ── Server state ── */
   const [products,  setProducts]  = useState<Product[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -56,9 +57,9 @@ export default function ProductManagement() {
     try {
       const created = await productApi.create(data);
       setProducts((prev) => [...prev, created]);
-      showSuccess("Product added successfully!");
+      showToast("Product added successfully!");
     } catch {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error("Failed to create product.");
     }
   }, []);
@@ -68,9 +69,9 @@ export default function ProductManagement() {
       const { id, ...payload } = updated;
       const saved = await productApi.update(id, payload);
       setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
-      showSuccess("Product updated successfully!");
+      showToast("Product updated successfully!");
     } catch {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error("Failed to update product.");
     }
   }, []);
@@ -80,9 +81,9 @@ export default function ProductManagement() {
     try {
       await productApi.remove(deleteTarget.id);
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      showSuccess("Product deleted successfully!");
+      showToast("Product deleted successfully!");
     } catch {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.");
       throw new Error("Failed to delete product.");
     }
   }, [deleteTarget]);
