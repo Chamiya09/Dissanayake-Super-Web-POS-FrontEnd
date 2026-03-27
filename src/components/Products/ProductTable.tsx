@@ -37,10 +37,10 @@ function ProfitBadge({ buying, selling }: { buying: number; selling: number }) {
   const mid    = margin >= 20 && margin < 40;
 
   const colour = high
-    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800"
+    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200"
     : mid
-    ? "bg-amber-500/10  text-amber-700  border-amber-200  dark:text-amber-400  dark:border-amber-800"
-    : "bg-red-500/10    text-red-700    border-red-200    dark:text-red-400    dark:border-red-800";
+    ? "bg-amber-500/10  text-amber-700  border-amber-200"
+    : "bg-red-500/10    text-red-700    border-red-200";
 
   const dot = high ? "bg-emerald-500" : mid ? "bg-amber-500" : "bg-red-500";
 
@@ -84,7 +84,7 @@ function ProductAvatar({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 dark:bg-violet-400/20 text-violet-600 dark:text-violet-400 text-[13px] font-bold select-none">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 text-[13px] font-bold select-none">
       {initials}
     </div>
   );
@@ -307,7 +307,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

@@ -94,7 +94,7 @@ export function DeleteProductModal({
         <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center gap-4">
 
           {/* Warning icon with ring — matches Supplier DeleteConfirmModal */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-8 ring-red-500/5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 ring-8 ring-red-500/5">
             <AlertTriangle className="h-8 w-8" />
           </div>
 
@@ -115,7 +115,7 @@ export function DeleteProductModal({
 
           {/* Product detail chip */}
           <div className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-left space-y-1">
-            <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">{product.productName}</p>
+            <p className="text-[12px] font-semibold text-slate-800">{product.productName}</p>
             <p className="text-[11px] text-muted-foreground">
               {product.id}&nbsp;&middot;&nbsp;SKU:&nbsp;{product.sku}&nbsp;&middot;&nbsp;{product.category}
             </p>
@@ -128,7 +128,7 @@ export function DeleteProductModal({
             variant="outline"
             onClick={onClose}
             disabled={deleting}
-            className="h-9 px-5 text-[13px] border-border bg-white dark:bg-slate-800 text-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="h-9 px-5 text-[13px] border-border bg-white text-foreground hover:bg-slate-100"
           >
             Cancel
           </Button>

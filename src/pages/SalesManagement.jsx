@@ -236,8 +236,9 @@ export default function SalesManagement() {
 
             {/* ── Table ── */}
             {!isLoading && (
-              <div className="overflow-x-auto min-h-[400px]">
-                <table className="w-full text-sm">
+              <>
+                <div className="overflow-x-auto min-h-[400px]">
+                  <table className="w-full text-sm">
 
                   {/* -- Head -- */}
                   <thead>
@@ -396,9 +397,12 @@ export default function SalesManagement() {
               </span>
             )}
           </div>
+              </>
+            )}
+            </div>
+          </div>
         </div>
-        )}
-      </div>
+      </main>
 
       {/* ── View Receipt Modal ── */}
       <ViewSaleModal

@@ -400,16 +400,16 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
       onClick={onClick}
       className={`flex flex-1 items-center gap-3 rounded-xl border-2 p-4 text-left transition-all duration-150
         ${isActive
-          ? "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/30"
+          ? "border-teal-500 bg-teal-50"
           : isCompleted
-            ? "border-emerald-500 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/20"
-            : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+            ? "border-emerald-500 bg-emerald-50"
+            : "border-slate-200 bg-white"
         }`}
     >
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold
-        ${isActive    ? "bg-blue-600 text-white"
+        ${isActive    ? "bg-teal-600 text-white"
         : isCompleted ? "bg-emerald-500 text-white"
-        :               "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>
+        :               "bg-slate-100 text-slate-500"}`}>
         {isCompleted ? <Check className="h-4 w-4" /> : step}
       </div>
       <div className="min-w-0">

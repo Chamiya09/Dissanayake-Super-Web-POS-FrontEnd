@@ -48,6 +48,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   Snacks:     "bg-lime-50",
   Meat:       "bg-red-50",
   Vegetables: "bg-green-50",
+  };
 
   // Category accent border color (top strip)
   const categoryBorder: Record<string, string> = {
@@ -61,10 +62,10 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   };
 
   const stockBadge = (stock: number) => {
-    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700" };
-    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800" };
-    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800" };
-    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" };
+    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200" };
+    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200" };
+    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200" };
+    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200" };
   };
 
   // Switch placeholder based on dark mode (observes <html class="dark">)

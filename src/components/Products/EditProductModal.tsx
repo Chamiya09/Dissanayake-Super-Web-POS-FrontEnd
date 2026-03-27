@@ -269,7 +269,7 @@ export function EditProductModal({
             variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px] border-border bg-white dark:bg-slate-800 text-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="h-9 px-5 text-[13px] border-border bg-white text-foreground hover:bg-slate-100"
           >
             Cancel
           </Button>

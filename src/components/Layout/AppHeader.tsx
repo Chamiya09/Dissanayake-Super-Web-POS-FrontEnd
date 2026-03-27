@@ -165,7 +165,7 @@ export function AppHeader() {
 
           {/* Dropdown panel */}
           {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 dark:shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
 
               {/* User info header */}
               <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3.5">
@@ -232,7 +232,7 @@ function DropdownItem({
       className={cn(
         "flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-colors",
         danger
-          ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+          ? "text-red-600 hover:bg-red-50"
           : "text-foreground hover:bg-muted"
       )}
     >

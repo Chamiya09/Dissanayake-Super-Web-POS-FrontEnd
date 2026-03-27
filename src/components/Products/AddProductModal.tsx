@@ -131,14 +131,14 @@ export function FormRow({
     <div className="space-y-1.5">
       <Label
         htmlFor={id}
-        className="text-[13px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+        className="text-[13px] font-medium text-slate-700 flex items-center gap-1.5"
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
         {label}
       </Label>
       {children}
       {error && (
-        <p className="text-[11px] text-red-500 dark:text-red-400 font-medium">{error}</p>
+        <p className="text-[11px] text-red-500 font-medium">{error}</p>
       )}
     </div>
   );
@@ -301,10 +301,10 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
           {/* ── Barcode Scan Section ── */}
           <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 dark:bg-violet-400/20 text-violet-600 dark:text-violet-400">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
                 <ScanLine className="h-3.5 w-3.5" />
               </div>
-              <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">Scan Barcode</span>
+              <span className="text-[13px] font-semibold text-slate-800">Scan Barcode</span>
               <span className="ml-auto text-[11px] text-muted-foreground">Point scanner at barcode</span>
             </div>
 
@@ -313,7 +313,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
               <ScanLine
                 className={cn(
                   "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
-                  scanStatus === "scanning" ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-muted-foreground"
+                  scanStatus === "scanning" ? "text-violet-600 animate-pulse" : "text-muted-foreground"
                 )}
               />
               {scanStatus === "scanning" && (
@@ -326,8 +326,8 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 placeholder="Ready to scan…"
                 autoComplete="off"
                 className={cn(
-                  "flex h-11 w-full rounded-md border bg-white dark:bg-slate-950 px-3 py-2 text-[13px] font-mono pl-9 pr-9",
-                  "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                  "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-[13px] font-mono pl-9 pr-9",
+                  "placeholder:text-slate-400",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   scanStatus === "scanning" && "border-primary/60",
                   scanStatus === "found"    && "border-emerald-500 focus-visible:ring-emerald-400",
@@ -339,23 +339,23 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
             {/* Scan status banners */}
             {scanStatus === "scanning" && (
-              <div className="flex items-center gap-2 rounded-lg bg-violet-500/5 dark:bg-violet-400/10 border border-violet-200 dark:border-violet-800/40 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg bg-violet-50/50 border border-violet-200 px-3 py-2">
                 <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
                 <span className="text-[12px] text-primary font-medium">Scanning…</span>
               </div>
             )}
             {scanStatus === "found" && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="text-[12px] text-emerald-700 dark:text-emerald-400 font-medium">
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50/50 border border-emerald-500/20 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span className="text-[12px] text-emerald-700 font-medium">
                   Product found — details auto-filled below. Review and save.
                 </span>
               </div>
             )}
             {scanStatus === "notfound" && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="text-[12px] text-amber-700 dark:text-amber-400 font-medium">
+              <div className="flex items-center gap-2 rounded-lg bg-amber-50/50 border border-amber-500/20 px-3 py-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <span className="text-[12px] text-amber-700 font-medium">
                   Barcode not in database — SKU pre-filled. Complete the remaining fields.
                 </span>
               </div>
@@ -364,9 +364,9 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <div className="h-px flex-1 bg-slate-200" />
             <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Product Details</span>
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
 
           {/* Product Name — full width */}
@@ -485,7 +485,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
             variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px] border-border bg-white dark:bg-slate-800 text-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="h-9 px-5 text-[13px] border-border bg-white text-foreground hover:bg-slate-100"
           >
             Cancel
           </Button>

@@ -780,6 +780,7 @@ export default function LowStockAlerts() {
               </table>
             </div>
           )}
+          </div>
           {/* ── Footer count ── */}
           {!isLoading && visibleAlerts.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
@@ -797,7 +798,6 @@ export default function LowStockAlerts() {
           )}
         </div>
         </div>
-        </div>
 
         {/* Row count / source note — keep as spacing only when no footer shown */}
         {!isLoading && visibleAlerts.length === 0 && (
@@ -805,6 +805,7 @@ export default function LowStockAlerts() {
             {isDummy ? "Showing sample data — live inventory not yet available." : ""}
           </p>
         )}
+        </div>
 
       </main>
 
