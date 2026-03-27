@@ -27,8 +27,13 @@ export default function Login() {
       showToast(result.error ?? "Invalid Credentials", "error", "Login Failed");
       return;
     }
-    showToast("Login Successful", "success", "Welcome");
-    navigate(ROLE_HOME[result.user.role] ?? "/", { replace: true });
+    showToast("Login Successful!", "success", "Welcome");
+    
+    // Add a slight delay before redirecting so the user can easily read the toast
+    // before the page paints the new Dashboard UI.
+    setTimeout(() => {
+      navigate(ROLE_HOME[result.user.role] ?? "/", { replace: true });
+    }, 1200);
   };
 
   return (

@@ -20,7 +20,11 @@ export const ToastProvider = ({ children }) => {
     }
 
     const id = ++idCounter;
-    setToasts((prev) => [...prev, { id, message, type: toastType, title: toastTitle }]);
+    setToasts((prev) => {
+      const newToasts = [...prev, { id, message, type: toastType, title: toastTitle }];
+      console.log('Toast triggered:', newToasts); 
+      return newToasts;
+    });
 
     setTimeout(() => {
       removeToast(id);
