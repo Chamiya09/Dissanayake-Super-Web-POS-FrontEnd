@@ -74,13 +74,13 @@ export function EditProductModal({
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = validateForm(form);
     if (Object.keys(err).length) { setErrors(err); return; }
     if (!product) return;
     setSaving(true);
-    setTimeout(() => {
-      onSave({
+    try {
+      await onSave({
         id:           product.id,
         productName:  form.productName.trim(),
         sku:          form.sku.trim(),
@@ -89,9 +89,12 @@ export function EditProductModal({
         sellingPrice: Number(form.sellingPrice),
         unit:         form.unit || undefined,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch (e) {
+      // Handled by parent
+    } finally {
+      if (isOpen) setSaving(false);
+    }
   };
 
   if (!isOpen || !product) return null;

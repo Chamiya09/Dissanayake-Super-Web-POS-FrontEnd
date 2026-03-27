@@ -97,22 +97,25 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validation = validateForm(form);
     if (Object.keys(validation).length > 0) { setErrors(validation); return; }
     setSaving(true);
-    setTimeout(() => {
-      onAdd({
+    try {
+      await onAdd({
         fullName: form.fullName.trim(),
         username: form.username.trim(),
         email:    form.email.trim(),
         role:     form.role,
         password: form.password,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

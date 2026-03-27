@@ -57,9 +57,9 @@ export default function ProductManagement() {
     try {
       const created = await productApi.create(data);
       setProducts((prev) => [...prev, created]);
-      showToast("Product added successfully!");
+      showToast("Product added successfully!", "success");
     } catch {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to create product.");
     }
   }, []);
@@ -69,9 +69,9 @@ export default function ProductManagement() {
       const { id, ...payload } = updated;
       const saved = await productApi.update(id, payload);
       setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
-      showToast("Product updated successfully!");
+      showToast("Product updated successfully!", "success");
     } catch {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to update product.");
     }
   }, []);
@@ -81,9 +81,9 @@ export default function ProductManagement() {
     try {
       await productApi.remove(deleteTarget.id);
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      showToast("Product deleted successfully!");
+      showToast("Product deleted successfully!", "success");
     } catch {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to delete product.");
     }
   }, [deleteTarget]);

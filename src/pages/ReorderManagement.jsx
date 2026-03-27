@@ -689,11 +689,9 @@ export default function ReorderManagement() {
     try {
       const dto = await updateOrderStatus(order.dbId, "CANCELLED");
       const updated = mapHistoryItem(dto, suppliers);
-      setTimeout(() => {
-        setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-        setCancelOverlay(null);
-        showToast({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
-      }, 2000);
+      setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      setCancelOverlay(null);
+      showToast({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
     } catch (err) {
       setCancelOverlay(null);
       showToast({

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { useToast } from "@/context/GlobalToastContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
 import SuccessPopup from "@/components/ui/SuccessPopup";
@@ -187,7 +188,7 @@ export default function UserProfile() {
       setProfileFullName(data.fullName ?? editName.trim());
       setProfileEmail(data.email ?? editEmail.trim());
       setEditMode(false);
-      setPopup({ show: true, type: "success", message: "Profile updated successfully!" });
+      showToast("Profile updated successfully!", "success");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "Failed to update profile.";
       setEditErrors({ name: msg });
@@ -215,7 +216,7 @@ export default function UserProfile() {
         username: user?.username, currentPassword: current, newPassword: newPass,
       });
       setCurrent(""); setNewPass(""); setConfirm("");
-      setPopup({ show: true, type: "success", message: "Password updated successfully!" });
+      showToast("Password updated successfully!", "success");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Current password is incorrect.";
       setPwErrors({ current: msg });
@@ -469,12 +470,7 @@ export default function UserProfile() {
         </div>
       </div>
 
-      <SuccessPopup
-        show={popup.show}
-        type={popup.type}
-        message={popup.message}
-        onClose={() => setPopup((p) => ({ ...p, show: false }))}
-      />
+      
     </div>
   );
 }

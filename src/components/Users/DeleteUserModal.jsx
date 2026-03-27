@@ -44,12 +44,16 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
 
   if (!user) return null;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setDeleting(true);
-    setTimeout(() => {
-      onConfirm();
+    try {
+      await onConfirm();
+      onClose();
+    } catch(e) {
+      console.error(e);
+    } finally {
       setDeleting(false);
-    }, 400);
+    }
   };
 
   return (

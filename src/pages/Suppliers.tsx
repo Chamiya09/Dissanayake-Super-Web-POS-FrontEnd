@@ -103,9 +103,9 @@ export default function Suppliers() {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
-      showToast("Supplier added successfully!");
+      showToast("Supplier added successfully!", "success");
     } catch (err) {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -116,9 +116,9 @@ export default function Suppliers() {
       const { id, createdAt: _createdAt, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
-      showToast("Supplier updated successfully!");
+      showToast("Supplier updated successfully!", "success");
     } catch (err) {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -130,9 +130,9 @@ export default function Suppliers() {
       await supplierApi.remove(deleteTarget.id);
       setDeleteTarget(null);
       await fetchSuppliers();
-      showToast("Supplier deleted successfully!");
+      showToast("Supplier deleted successfully!", "success");
     } catch (err) {
-      showToast("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
   }, [deleteTarget, fetchSuppliers]);
@@ -145,9 +145,9 @@ export default function Suppliers() {
         await supplierApi.assignProducts(assignTarget.id, productIds);
         setAvailableProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
         setAssignTarget(null);
-        showToast("Products assigned successfully!");
+        showToast("Products assigned successfully!", "success");
       } catch (err) {
-        showToast("Something went wrong. Please try again.");
+        showToast("Something went wrong. Please try again.", "error");
         throw new Error(extractApiError(err));
       }
     },

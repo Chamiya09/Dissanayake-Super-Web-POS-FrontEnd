@@ -85,12 +85,16 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validation = validateForm(form);
     if (Object.keys(validation).length > 0) { setErrors(validation); return; }
-    onSave({ ...user, ...form });
-    onClose();
+    try {
+      await onSave({ ...user, ...form });
+      onClose();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (!user) return null;

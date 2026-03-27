@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Users, Search, UserCircle2, ShieldAlert, Edit3, Trash2, Lock, UserPlus, Loader2 } from "lucide-react";
+import { useToast } from "@/context/GlobalToastContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
 import AddUserModal from "@/components/Users/AddUserModal";
@@ -133,7 +134,7 @@ export default function UserManagement() {
       const { data } = await api.get("/api/users");
       setUsers(data);
     } catch (err) {
-      showPopup("error", err.response?.data?.message || "Failed to load users.");
+      showToast(err.response?.data?.message || "Failed to load users.", "error");
     } finally {
       setLoading(false);
     }
@@ -165,9 +166,9 @@ export default function UserManagement() {
         password: formData.password,
       });
       setUsers((prev) => [created, ...prev]);
-      showPopup("success", `${created.fullName} has been added successfully!`);
+      showToast(`${created.fullName} has been added successfully!`, "success");
     } catch (err) {
-      showPopup("error", err.response?.data?.message || "Failed to add user.");
+      showToast(err.response?.data?.message || "Failed to add user.", "error");
     }
   };
 
@@ -180,9 +181,9 @@ export default function UserManagement() {
         role:     updated.role,
       });
       setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
-      showPopup("success", `${saved.fullName} has been updated successfully!`);
+      showToast(`${saved.fullName} has been updated successfully!`, "success");
     } catch (err) {
-      showPopup("error", err.response?.data?.message || "Failed to update user.");
+      showToast(err.response?.data?.message || "Failed to update user.", "error");
     }
     setEditTarget(null);
   };
@@ -191,9 +192,9 @@ export default function UserManagement() {
     try {
       await api.delete(`/api/users/${targetUser.id}`);
       setUsers((prev) => prev.filter((u) => u.id !== targetUser.id));
-      showPopup("success", `${targetUser.fullName} has been removed.`);
+      showToast(`${targetUser.fullName} has been removed.`, "success");
     } catch (err) {
-      showPopup("error", err.response?.data?.message || "Failed to delete user.");
+      showToast(err.response?.data?.message || "Failed to delete user.", "error");
     }
     setDeleteTarget(null);
   };
@@ -429,12 +430,7 @@ export default function UserManagement() {
         />
       )}
 
-      <SuccessPopup
-        show={popup.show}
-        type={popup.type}
-        message={popup.message}
-        onClose={() => setPopup((p) => ({ ...p, show: false }))}
-      />
+      
     </div>
   );
 }

@@ -44,14 +44,16 @@ export function DeleteProductModal({
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, deleting, onClose]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setDeleting(true);
-    /* Brief delay mirrors the pattern used in Add/Edit modals */
-    setTimeout(() => {
-      onConfirm();
-      setDeleting(false);
+    try {
+      await onConfirm();
       onClose();
-    }, 400);
+    } catch (e) {
+      // error handled by parent
+    } finally {
+      if (isOpen) setDeleting(false);
+    }
   };
 
   if (!isOpen || !product) return null;

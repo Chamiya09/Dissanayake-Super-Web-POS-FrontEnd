@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { useToast } from "@/context/GlobalToastContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
 import SuccessPopup from "@/components/ui/SuccessPopup";
@@ -411,7 +412,7 @@ export default function Settings() {
   function toggleEmailNotifs(val) {
     setEmailNotifs(val);
     localStorage.setItem(LS_EMAIL, String(val));
-    showPopup("success", val ? "Email notifications enabled." : "Email notifications disabled.");
+    showToast(val ? "Email notifications enabled." : "Email notifications disabled.", "success");
   }
 
   /** Client-side password validation */
@@ -448,14 +449,14 @@ export default function Settings() {
         const body = await res.json().catch(() => ({}));
         const msg = body?.message ?? "Password update failed. Please try again.";
         if (res.status === 401) setPwErrors({ current: "Current password is incorrect." });
-        else showPopup("error", msg);
+        else showToast(msg, "error");
         return;
       }
 
-      showPopup("success", "Password updated successfully!");
+      showToast("Password updated successfully!", "success");
       setCurrent(""); setNewPass(""); setConfirm("");
     } catch {
-      showPopup("error", "Could not reach the server. Please try again.");
+      showToast("Could not reach the server. Please try again.", "error");
     } finally {
       setPwLoading(false);
     }
@@ -470,7 +471,7 @@ export default function Settings() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        showPopup("error", body?.message ?? "Could not deactivate account.");
+        showToast(body?.message ?? "Could not deactivate account.", "error");
         return;
       }
 
@@ -478,7 +479,7 @@ export default function Settings() {
       logout();
       navigate("/login", { replace: true });
     } catch {
-      showPopup("error", "Could not reach the server. Please try again.");
+      showToast("Could not reach the server. Please try again.", "error");
     } finally {
       setDeacLoading(false);
       setShowDeactivate(false);
@@ -711,12 +712,7 @@ export default function Settings() {
       )}
 
       {/* Toast notifications */}
-      <SuccessPopup
-        show={popup.show}
-        type={popup.type}
-        message={popup.message}
-        onClose={() => setPopup((p) => ({ ...p, show: false }))}
-      />
+      
     </div>
   );
 }

@@ -221,13 +221,12 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = validateForm(form);
     if (Object.keys(err).length) { setErrors(err); return; }
     setSaving(true);
-    // Brief artificial delay mirrors AddSupplierModal behaviour
-    setTimeout(() => {
-      onSave({
+    try {
+      await onSave({
         productName:  form.productName.trim(),
         sku:          form.sku.trim(),
         category:     form.category,
@@ -235,9 +234,12 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
         sellingPrice: Number(form.sellingPrice),
         unit:         form.unit || undefined,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch (e) {
+      // error handled by parent
+    } finally {
+      if (isOpen) setSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -507,3 +509,4 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
     </div>
   );
 }
+

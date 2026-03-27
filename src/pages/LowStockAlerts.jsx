@@ -573,7 +573,7 @@ export default function LowStockAlerts() {
 
     // 3. Show redirect toast and navigate
     showToast({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
-    setTimeout(() => { navigate("/reorder"); }, 900);
+    navigate("/reorder");
   }
 
   return (

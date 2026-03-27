@@ -97,6 +97,7 @@ const Field = ({ label, error, icon: Icon, children }) => (
 
 // ─── Add Inventory Stock Modal ───────────────────────────────────────────────
 const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUpdated }) => {
+  const { showToast } = useToast();
   // ── Product selection
   const [selectedId,   setSelectedId]   = useState(null);
   const [productSearch, setProductSearch] = useState("");
@@ -171,16 +172,13 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setApiError(null);
     try {
       await api.put(`/api/inventory/add-stock/${selectedId}`, { quantity: qtyNum });
-      showToast("Stock updated successfully!");
-      setSuccess(true);
-      setTimeout(() => {
-        onStockUpdated?.();   // Refresh the table
-        handleClose();
-      }, 1200);
+      handleClose();
+        onStockUpdated?.();
+        showToast("Stock updated successfully!", "success");
     } catch (err) {
       const msg = err.response?.data?.message ?? "Something went wrong. Please try again.";
       setApiError(msg);
-      showError(msg);
+        showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -582,6 +580,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
 // ─── Edit Inventory Modal ─────────────────────────────────────────────────────
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const [reorderLevel, setReorderLevel] = useState("");
   const [unit, setUnit] = useState("");
   const [adjustAmount, setAdjustAmount] = useState("");
@@ -649,11 +648,11 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
         parts.push(`Stock ${dir} by ${Math.abs(parsedAdjust)} ${selectedUnit}`);
       }
       if (settingsChanged) parts.push("settings updated");
-      showSuccess(`${parts.join(" and ")} for "${item.productName}".`);
-      onSaved();
       onClose();
+        onSaved();
+        showToast(`${parts.join(" and ")} for "${item.productName}".`, "success");
     } catch (err) {
-      showError(err.response?.data?.message ?? "Failed to update inventory.");
+      showToast(err.response?.data?.message ?? "Failed to update inventory.", "error");
     } finally {
       setSaving(false);
     }
@@ -843,6 +842,7 @@ const COLUMNS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const InventoryStock = () => {
+  const { showToast } = useToast();
   // products   = all products (dropdown list for AddStockModal)
   // inventoryItems = only tracked items from /api/inventory/status (table)
   const [products,       setProducts]       = useState([]);
@@ -926,11 +926,11 @@ const InventoryStock = () => {
     setDeleting(true);
     try {
       await api.delete(`/api/inventory/${deleteTarget.inventoryId}`);
-      showSuccess(`Stopped tracking "${deleteTarget.productName}".`);
       setDeleteTarget(null);
       refreshAll();
+      showToast(`Stopped tracking "${deleteTarget.productName}".`, "success");
     } catch (err) {
-      showError(err.response?.data?.message ?? "Something went wrong. Please try again.");
+      showToast(err.response?.data?.message ?? "Something went wrong. Please try again.", "error");
     } finally {
       setDeleting(false);
     }
