@@ -21,13 +21,13 @@ const categoryIcon: Record<string, React.ElementType> = {
 
 /* ── Category pastel background ── */
 const categoryBg: Record<string, string> = {
-  Fruits:     "bg-rose-50    text-rose-600    dark:bg-rose-900/20   dark:text-rose-400",
-  Dairy:      "bg-blue-50    text-blue-600    dark:bg-blue-900/20   dark:text-blue-400",
-  Beverages:  "bg-sky-50     text-sky-600     dark:bg-sky-900/20    dark:text-sky-400",
-  Bakery:     "bg-amber-50   text-amber-600   dark:bg-amber-900/20  dark:text-amber-400",
-  Snacks:     "bg-lime-50    text-lime-600    dark:bg-lime-900/20   dark:text-lime-400",
-  Meat:       "bg-red-50     text-red-600     dark:bg-red-900/20    dark:text-red-400",
-  Vegetables: "bg-green-50   text-green-600   dark:bg-green-900/20  dark:text-green-400",
+  Fruits:     "bg-rose-50    text-rose-600",
+  Dairy:      "bg-blue-50    text-blue-600",
+  Beverages:  "bg-sky-50     text-sky-600",
+  Bakery:     "bg-amber-50   text-amber-600",
+  Snacks:     "bg-lime-50    text-lime-600",
+  Meat:       "bg-red-50     text-red-600",
+  Vegetables: "bg-green-50   text-green-600",
 };
 
 /* ── Profit-margin badge (mirrors LeadTimeBadge palette logic) ── */
@@ -145,20 +145,20 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
   const fmt = (n: number) => formatCurrency(n);
 
   return (
-    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col mb-4">
 
       {/* ── Search & Filter toolbar ── */}
-      <div className="flex flex-col sm:flex-row gap-3 px-5 py-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row gap-4 px-6 py-4 border-b border-slate-200">
         {/* Search input */}
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-muted-foreground pointer-events-none" />
+          <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
             >
-              <X className="h-3 w-3" strokeWidth={2.5} />
+              <X size={16} />
             </button>
           )}
           <input
@@ -166,22 +166,22 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
             placeholder="Search by name, SKU or category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl shadow-sm pl-9 pr-8 py-2.5 text-sm text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-ring/20 focus:border-slate-400 dark:focus:border-slate-600 transition-all duration-200"
+            className="w-full bg-white border border-slate-200 rounded-xl shadow-sm pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all"
           />
         </div>
 
         {/* Category dropdown */}
-        <div className="relative sm:w-52">
+        <div className="relative sm:w-64">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full appearance-none bg-card border border-border rounded-xl shadow-sm pl-4 pr-9 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20 focus:border-slate-400 dark:focus:border-slate-600 cursor-pointer transition-all duration-200"
+            className="w-full appearance-none bg-white border border-slate-200 rounded-xl shadow-sm pl-4 pr-10 py-2.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 cursor-pointer transition-all"
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
 
         {/* Clear filters — only when active */}
@@ -189,19 +189,19 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           <button
             type="button"
             onClick={() => { setSearch(""); setFilterCategory("All"); }}
-            className="self-center sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-muted text-foreground border border-border hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-150 whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <X className="h-3 w-3" strokeWidth={2.5} />
-            Clear filters
+            <X size={16} />
+            Clear
           </button>
         )}
       </div>
 
       {/* ── Desktop table ── */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 dark:bg-slate-800/50">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
               {[
                 { label: "Product",       align: "text-left" },
                 { label: "SKU",            align: "text-left" },
@@ -214,10 +214,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               ].map(({ label, align }) => (
                 <th
                   key={label}
-                  className={cn(
-                    "px-6 py-4 text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap",
-                    align
-                  )}
+                  className={`px-6 py-4 font-semibold text-slate-600 ${align}`}
                 >
                   {label}
                 </th>
@@ -225,84 +222,87 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
             </tr>
           </thead>
           <tbody>
-            {filtered.map((product, idx) => (
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                  No products matched your search.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((product) => (
               <tr
                 key={product.id}
-                className={cn(
-                  "border-b border-border last:border-0",
-                  "hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-150",
-                  idx % 2 !== 0 ? "bg-slate-50/30 dark:bg-slate-800/[0.15]" : ""
-                )}
+                className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"
               >
                 {/* Product name + ID */}
-                <td className="px-6 py-4">
+                <td className="px-6 py-6 border-b border-slate-100/50">
                   <div className="flex items-center gap-3">
                     <ProductAvatar name={product.productName} />
                     <div>
-                      <p className="font-semibold text-foreground leading-tight">
+                      <p className="font-semibold text-slate-900 whitespace-nowrap">
                         {product.productName}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">#{product.id}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">#{product.id}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* SKU */}
-                <td className="px-6 py-4">
-                  <span className="rounded-lg border border-border bg-slate-100/60 dark:bg-slate-800/60 px-2 py-0.5 text-[12px] font-mono font-medium text-foreground">
+                <td className="px-6 py-6 border-b border-slate-100/50">
+                  <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
                     {product.sku}
                   </span>
                 </td>
 
                 {/* Category */}
-                <td className="px-6 py-4">
+                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
                   <CategoryChip category={product.category} />
                 </td>
 
                 {/* Unit */}
-                <td className="px-6 py-4">
+                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
                   {product.unit ? (
-                    <span className="inline-flex items-center rounded-lg border border-border bg-slate-100/60 dark:bg-slate-800/60 px-2 py-0.5 text-[11px] font-mono font-medium text-muted-foreground">
+                    <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-600">
                       {product.unit}
                     </span>
                   ) : (
-                    <span className="text-[13px] text-slate-300 dark:text-slate-600">—</span>
+                    <span className="text-sm text-slate-400">—</span>
                   )}
                 </td>
 
                 {/* Buying price */}
-                <td className="px-6 py-4 text-right tabular-nums text-foreground font-medium">
+                <td className="px-6 py-6 text-right tabular-nums text-slate-700 font-medium border-b border-slate-100/50 whitespace-nowrap">
                   {fmt(product.buyingPrice)}
                 </td>
 
                 {/* Selling price */}
-                <td className="px-6 py-4 text-right tabular-nums text-slate-800 dark:text-slate-100 font-semibold">
+                <td className="px-6 py-6 text-right tabular-nums text-slate-900 font-semibold border-b border-slate-100/50 whitespace-nowrap">
                   {fmt(product.sellingPrice)}
                 </td>
 
                 {/* Margin */}
-                <td className="px-6 py-4">
+                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
                   <ProfitBadge buying={product.buyingPrice} selling={product.sellingPrice} />
                 </td>
 
                 {/* Actions */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
+                <td className="px-6 py-6 border-b border-slate-100/50">
+                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
                       title="Edit product"
                       onClick={() => onEdit(product)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-all duration-150"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
-                      <Pencil className="h-[15px] w-[15px]" strokeWidth={1.8} />
+                      <Pencil size={18} />
                     </button>
                     <button
                       type="button"
                       title="Delete product"
                       onClick={() => onDelete(product)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-all duration-150"
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
-                      <Trash2 className="h-[15px] w-[15px]" strokeWidth={1.8} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </td>
@@ -313,15 +313,15 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       </div>
 
       {/* ── Mobile card list ── */}
-      <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="md:hidden divide-y divide-slate-100">
         {filtered.map((product) => (
           <div key={product.id} className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ProductAvatar name={product.productName} />
                 <div>
-                  <p className="font-semibold text-foreground leading-tight">{product.productName}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">#{product.id}</p>
+                  <p className="font-semibold text-slate-900 leading-tight">{product.productName}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">#{product.id}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -330,22 +330,22 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-border bg-muted/50 px-3 py-2.5">
+            <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">SKU</p>
-                <span className="font-mono font-medium text-foreground text-[12px]">{product.sku}</span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">SKU</p>
+                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku}</span>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Unit</p>
-                <span className="font-mono font-medium text-foreground text-[12px]">{product.unit ?? "—"}</span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Unit</p>
+                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.unit ?? "—"}</span>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Buying</p>
-                <p className="font-medium text-foreground tabular-nums">{fmt(product.buyingPrice)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Buying</p>
+                <p className="font-medium text-slate-700 tabular-nums">{fmt(product.buyingPrice)}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Selling</p>
-                <p className="font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{fmt(product.sellingPrice)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Selling</p>
+                <p className="font-semibold text-slate-900 tabular-nums">{fmt(product.sellingPrice)}</p>
               </div>
             </div>
 
@@ -353,7 +353,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               <button
                 type="button"
                 onClick={() => onEdit(product)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-foreground bg-white dark:bg-slate-800 border border-border hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:border-blue-900 transition-all duration-150"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-150"
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
                 Edit
@@ -361,7 +361,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               <button
                 type="button"
                 onClick={() => onDelete(product)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-foreground bg-white dark:bg-slate-800 border border-border hover:text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:text-red-400 dark:hover:bg-red-950/40 dark:hover:border-red-900 transition-all duration-150"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-150"
               >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                 Delete
@@ -373,17 +373,17 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
       {/* ── Empty state ── */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
           <Package className="h-10 w-10 mb-3 opacity-40" strokeWidth={1.2} />
           {hasActiveFilters ? (
             <>
-              <p className="text-sm font-medium text-muted-foreground">No products match your filters</p>
-              <p className="text-xs mt-1 text-muted-foreground">Try adjusting your search term or clearing the filters.</p>
+              <p className="text-sm font-medium text-slate-500">No products match your filters</p>
+              <p className="text-xs mt-1 text-slate-400">Try adjusting your search term or clearing the filters.</p>
             </>
           ) : (
             <>
-              <p className="text-sm font-medium text-muted-foreground">No products found</p>
-              <p className="text-xs mt-1 text-muted-foreground">Add your first product to get started.</p>
+              <p className="text-sm font-medium text-slate-500">No products found</p>
+              <p className="text-xs mt-1 text-slate-400">Add your first product to get started.</p>
             </>
           )}
         </div>
@@ -391,16 +391,16 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
       {/* ── Footer count ── */}
       {filtered.length > 0 && (
-        <div className="px-6 py-4 border-t border-border bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
             Showing{" "}
-            <span className="font-semibold text-foreground">{filtered.length}</span>
+            <span className="font-semibold text-slate-900">{filtered.length}</span>
             {" "}of{" "}
-            <span className="font-semibold text-foreground">{products.length}</span>
+            <span className="font-semibold text-slate-900">{products.length}</span>
             {" "}products
           </p>
           {hasActiveFilters && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-slate-400">
               {products.length - filtered.length} hidden by filters
             </span>
           )}

@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 
 /* ── Role colours (badge + avatar gradient) ────────────────────── */
 const ROLE_BADGE = {
-  Owner:   "bg-red-100   text-red-700   border-red-200   dark:bg-red-900/20   dark:text-red-400   dark:border-red-800",
-  Manager: "bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/20  dark:text-blue-400  dark:border-blue-800",
-  Staff:   "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+  Owner:   "bg-red-100   text-red-700   border-red-200",
+  Manager: "bg-blue-100  text-blue-700  border-blue-200",
+  Staff:   "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
 const ROLE_AVATAR_GRADIENT = {
@@ -121,7 +121,7 @@ export function AppHeader() {
 
         {/* Scanner status — POS page only */}
         {isPOS && (
-          <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+          <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 scanner-pulse" />
             <Wifi className="h-3 w-3" />
             <span>Scanner Ready</span>
