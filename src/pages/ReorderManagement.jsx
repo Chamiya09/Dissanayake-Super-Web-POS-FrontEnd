@@ -437,20 +437,14 @@ const DUMMY_SUPPLIERS = [
 
 function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${iconBg} shadow-inner shrink-0`}
-        >
-          <Icon className={`h-6 w-6 ${iconColor}`} />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 tracking-tight">
-            {value}
-          </p>
+    <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
       </div>
+      <p className="mt-3 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
     </div>
   );
 }
@@ -783,7 +777,7 @@ export default function ReorderManagement() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-teal-100 text-teal-600 shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
                   <Package className="h-6 w-6" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -799,31 +793,31 @@ export default function ReorderManagement() {
           {/* ── Summary Cards ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-6 lg:px-8">
             <SummaryCard
-              label="Total Orders"
+              label="TOTAL ORDERS"
               value={reorders.length}
               icon={ClipboardList}
-              iconBg="from-slate-100 to-slate-200"
-              iconColor="text-slate-600"
+              iconBg="bg-indigo-50"
+              iconColor="text-indigo-600"
             />
             <SummaryCard
-              label="Pending"
+              label="PENDING"
               value={reorders.filter((o) => o.status === "Pending").length}
               icon={Package}
-              iconBg="from-amber-100 to-amber-200"
+              iconBg="bg-amber-50"
               iconColor="text-amber-600"
             />
             <SummaryCard
-              label="Confirmed"
+              label="CONFIRMED"
               value={reorders.filter((o) => o.status === "Confirmed").length}
               icon={Building2}
-              iconBg="from-blue-100 to-blue-200"
+              iconBg="bg-blue-50"
               iconColor="text-blue-600"
             />
             <SummaryCard
-              label="Received"
+              label="RECEIVED"
               value={reorders.filter((o) => o.status === "Received").length}
               icon={CheckCircle}
-              iconBg="from-emerald-100 to-emerald-200"
+              iconBg="bg-emerald-50"
               iconColor="text-emerald-600"
             />
           </div>

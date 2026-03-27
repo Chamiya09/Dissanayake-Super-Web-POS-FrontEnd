@@ -156,113 +156,115 @@ export default function SalesManagement() {
   const cardCount = completedSales.filter((s) => s.paymentMethod === "Card").length;
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="w-full max-w-none py-8 space-y-8">
 
-        {}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-              <ReceiptText className="h-5 w-5" />
+        {/* ── Page Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
+                <ReceiptText className="h-6 w-6" />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Ledger</h1>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">Sales Ledger</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
-              </p>
-            </div>
+            <p className="text-sm text-slate-500 mt-1 ml-16">
+              {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
+            </p>
           </div>
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 px-4 sm:px-6 lg:px-8">
           {[
             { label: "Total Revenue",   value: formatCurrency(totalRevenue) },
             { label: "Completed Sales", value: completedSales.length },
             { label: "Cash Payments",   value: cashCount },
             { label: "Card Payments",   value: cardCount },
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-              <p className="text-[20px] font-bold text-foreground tabular-nums leading-snug">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
+            <div key={stat.label} className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <p className="text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{stat.value}</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-2">{stat.label}</p>
             </div>
           ))}
         </div>
 
-        {/* ── Toolbar ── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search receipt no. or payment…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm"
-            />
-          </div>
-          <div className="flex gap-2">
-            {["All", "Completed", "Voided", "Returned"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors",
-                  filterStatus === s
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            {/* ── Toolbar ── */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                <Input
+                  placeholder="Search receipt no. or payment…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+                />
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar shrink-0">
+                {["All", "Completed", "Voided", "Returned"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFilterStatus(s)}
+                    className={cn(
+                      "rounded-xl px-4 py-2 text-[13px] font-medium transition-colors border shadow-sm whitespace-nowrap",
+                      filterStatus === s
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* ── Loading spinner ── */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-24 gap-2 text-sm text-muted-foreground">
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-            Loading sales data…
-          </div>
-        )}
+            {/* ── Loading spinner ── */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-24 gap-3 text-slate-500">
+                <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                <span className="text-sm font-medium">Loading sales data…</span>
+              </div>
+            )}
 
-        {/* ── Table ── */}
-        {!isLoading && (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed">
+            {/* ── Table ── */}
+            {!isLoading && (
+              <div className="overflow-x-auto min-h-[400px]">
+                <table className="w-full text-sm">
 
-              {/* -- Head -- */}
-              <thead>
-                <tr className="border-b border-border bg-muted/60">
-                  <th className="w-[14%] px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Receipt No.
-                  </th>
-                  <th className="w-[18%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Date &amp; Time
-                  </th>
-                  <th className="w-[16%] px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Total Amount
-                  </th>
-                  <th className="w-[16%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Payment Method
-                  </th>
-                  <th className="w-[12%] px-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="w-[24%] px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+                  {/* -- Head -- */}
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50">
+                      <th className="w-[14%] px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Receipt No.
+                      </th>
+                      <th className="w-[18%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Date &amp; Time
+                      </th>
+                      <th className="w-[16%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Total Amount
+                      </th>
+                      <th className="w-[16%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Payment Method
+                      </th>
+                      <th className="w-[12%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Status
+                      </th>
+                      <th className="w-[24%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
 
-              {/* -- Body -- */}
-              <tbody className="divide-y divide-border">
+                  {/* -- Body -- */}
+                  <tbody className="divide-y divide-slate-50">
                 {!sales || sales.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-20 text-center text-sm text-muted-foreground">
@@ -332,7 +334,7 @@ export default function SalesManagement() {
                               variant="outline"
                               size="sm"
                               onClick={() => { setViewSale(sale); setIsViewOpen(true); }}
-                              className="h-8 gap-1.5 px-3 text-[12px] font-medium"
+                              className="h-8 gap-1.5 px-3 text-[12px] font-medium border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-sm"
                             >
                               <Eye className="h-3.5 w-3.5" />
                               View
@@ -345,10 +347,10 @@ export default function SalesManagement() {
                               disabled={isInactive}
                               onClick={() => handleVoid(sale.id)}
                               className={cn(
-                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
+                                "h-8 gap-1.5 px-3 text-[12px] font-medium border-slate-200 shadow-sm",
                                 !isInactive
-                                  ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-                                  : "opacity-40"
+                                  ? "text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
+                                  : "opacity-40 text-slate-400 border-slate-100"
                               )}
                             >
                               <Ban className="h-3.5 w-3.5" />
@@ -362,10 +364,10 @@ export default function SalesManagement() {
                               disabled={!isCompleted || returningId === sale.id}
                               onClick={() => handleReturn(sale.id)}
                               className={cn(
-                                "h-8 gap-1.5 px-3 text-[12px] font-medium",
+                                "h-8 gap-1.5 px-3 text-[12px] font-medium border-slate-200 shadow-sm",
                                 isCompleted && returningId !== sale.id
-                                  ? "border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
-                                  : "opacity-40"
+                                  ? "text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-colors"
+                                  : "opacity-40 text-slate-400 border-slate-100"
                               )}
                             >
                               <RotateCcw className={cn("h-3.5 w-3.5", returningId === sale.id && "animate-spin")} />
@@ -382,14 +384,14 @@ export default function SalesManagement() {
           </div>
 
           {/* -- Table footer -- */}
-          <div className="flex items-center justify-between border-t border-border bg-muted/30 px-6 py-3">
-            <p className="text-[11px] text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filtered.length}</span> of{" "}
-              <span className="font-semibold text-foreground">{sales.length}</span> transaction
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+            <p className="text-[12px] text-slate-500">
+              Showing <span className="font-semibold text-slate-900">{filtered.length}</span> of{" "}
+              <span className="font-semibold text-slate-900">{sales.length}</span> transaction
               {sales.length !== 1 ? "s" : ""}
             </p>
             {filterStatus !== "All" && (
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 border border-slate-200">
                 Filter: {filterStatus}
               </span>
             )}

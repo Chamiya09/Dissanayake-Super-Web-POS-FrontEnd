@@ -52,10 +52,10 @@ function RoleBadge({ role }) {
   const label = role;
   const dot = isOwner ? "bg-red-500" : isManager ? "bg-blue-500" : "bg-green-500";
   const colour = isOwner
-    ? "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800"
+    ? "bg-red-50 text-red-600 border-red-200"
     : isManager
-    ? "bg-blue-500/10 text-blue-700 border-blue-200 dark:text-blue-400 dark:border-blue-800"
-    : "bg-green-500/10 text-green-700 border-green-200 dark:text-green-400 dark:border-green-800";
+    ? "bg-blue-50 text-blue-600 border-blue-200"
+    : "bg-emerald-50 text-emerald-600 border-emerald-200";
 
   return (
     <span
@@ -193,17 +193,17 @@ export default function UserManagement() {
   const staffCount = users.filter((u) => u.role === "Staff").length;
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
       <AppHeader />
 
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-        <div className="w-full max-w-none py-8 space-y-8">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-none space-y-8">
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 shrink-0">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 border border-teal-100 text-teal-600 shrink-0">
                   <Users className="h-6 w-6" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -222,7 +222,7 @@ export default function UserManagement() {
                 onClick={fetchUsers}
                 disabled={loading}
                 title="Refresh List"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:border-blue-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-teal-600 hover:border-teal-100 hover:bg-teal-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
@@ -230,7 +230,7 @@ export default function UserManagement() {
               {canAddUsers ? (
                 <button
                   onClick={() => setIsAddOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                  className="inline-flex items-center gap-2 px-5 h-10 rounded-xl text-[13px] font-semibold bg-teal-600 text-white hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
                 >
                   <UserPlus className="h-4 w-4" />
                   <span className="hidden sm:inline">Add User</span>
@@ -249,8 +249,8 @@ export default function UserManagement() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
             <SummaryCard
               icon={Users}
-              iconBg="bg-blue-50"
-              iconColor="text-blue-600"
+              iconBg="bg-teal-50"
+              iconColor="text-teal-600"
               label="TOTAL USERS"
               value={users.length}
             />
@@ -263,8 +263,8 @@ export default function UserManagement() {
             />
             <SummaryCard
               icon={Shield}
-              iconBg="bg-violet-50"
-              iconColor="text-violet-600"
+              iconBg="bg-slate-100"
+              iconColor="text-slate-600"
               label="TOTAL STAFF"
               value={staffCount}
             />
@@ -376,7 +376,7 @@ export default function UserManagement() {
                               {canManage(u) ? (
                                 <>
                                   <button
-                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
                                     onClick={() => setEditTarget(u)}
                                     title={`Edit ${u.fullName}`}
                                   >

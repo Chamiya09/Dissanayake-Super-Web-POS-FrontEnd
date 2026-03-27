@@ -35,14 +35,14 @@ import {
 
 // ─── Category → icon mapping ──────────────────────────────────────────────────
 const CATEGORY_ICON = {
-  peripherals:  { icon: Mouse,      color: "text-violet-500",  bg: "bg-violet-50 dark:bg-violet-950/40"  },
-  accessories:  { icon: Cable,      color: "text-amber-500",   bg: "bg-amber-50 dark:bg-amber-950/40"   },
-  displays:     { icon: Monitor,    color: "text-rose-500",    bg: "bg-rose-50 dark:bg-rose-950/40"     },
-  audio:        { icon: Headphones, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/40"},
-  networking:   { icon: Wifi,       color: "text-cyan-500",    bg: "bg-cyan-50 dark:bg-cyan-950/40"     },
-  storage:      { icon: HardDrive,  color: "text-blue-500",    bg: "bg-blue-50 dark:bg-blue-950/40"     },
-  food:         { icon: Utensils,   color: "text-orange-500",  bg: "bg-orange-50 dark:bg-orange-950/40" },
-  keyboards:    { icon: Keyboard,   color: "text-indigo-500",  bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+  peripherals:  { icon: Mouse,      color: "text-violet-500",  bg: "bg-violet-50"  },
+  accessories:  { icon: Cable,      color: "text-amber-500",   bg: "bg-amber-50"   },
+  displays:     { icon: Monitor,    color: "text-rose-500",    bg: "bg-rose-50"     },
+  audio:        { icon: Headphones, color: "text-emerald-500", bg: "bg-emerald-50"},
+  networking:   { icon: Wifi,       color: "text-cyan-500",    bg: "bg-cyan-50"     },
+  storage:      { icon: HardDrive,  color: "text-blue-500",    bg: "bg-blue-50"     },
+  food:         { icon: Utensils,   color: "text-orange-500",  bg: "bg-orange-50" },
+  keyboards:    { icon: Keyboard,   color: "text-indigo-500",  bg: "bg-indigo-50" },
 };
 
 const getCategoryMeta = (category = "") => {
@@ -50,7 +50,7 @@ const getCategoryMeta = (category = "") => {
   return (
     CATEGORY_ICON[key] ??
     Object.entries(CATEGORY_ICON).find(([k]) => key.includes(k))?.[1] ??
-    { icon: Box, color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-800" }
+    { icon: Box, color: "text-slate-500", bg: "bg-slate-100" }
   );
 };
 
@@ -74,21 +74,20 @@ const REASON_PRESETS = ["New Shipment", "Return / Refund", "Stock Correction", "
 // ─── Field helper ─────────────────────────────────────────────────────────────
 const Field = ({ label, error, icon: Icon, children }) => (
   <div className="flex flex-col gap-1.5">
-    <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+    <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
       {label} <span className="text-red-500 normal-case tracking-normal">*</span>
     </label>
     <div className="relative">
       {Icon && (
         <Icon
-          size={14}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
         />
       )}
       {children}
     </div>
     {error && (
-      <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-        <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+      <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+        <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
         {error}
       </p>
     )}
@@ -197,11 +196,11 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   };
 
   const inputBase =
-    "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 " +
-    "rounded-xl py-2.5 px-3.5 text-sm text-slate-800 dark:text-slate-100 " +
-    "placeholder:text-slate-400 dark:placeholder:text-slate-500 " +
-    "outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 " +
-    "focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150";
+    "w-full bg-white border border-slate-200 " +
+    "rounded-xl h-10 px-3.5 text-[13px] text-slate-900 " +
+    "placeholder:text-slate-400 " +
+    "outline-none focus:ring-2 focus:ring-teal-600/20 " +
+    "focus:border-teal-600 transition-all duration-150";
 
   const selectedMeta  = selectedId ? getCategoryMeta(products.find((p) => p.id === selectedId)?.category ?? "") : null;
   const SelectedIcon  = selectedMeta?.icon;
@@ -213,22 +212,22 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
 
         {/* ── Modal Header ────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-50 flex-shrink-0">
-              <PackagePlus size={18} className="text-white dark:text-slate-900" strokeWidth={1.8} />
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 flex-shrink-0">
+              <PackagePlus className="h-5 w-5 text-teal-600" />
             </span>
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">
+              <h2 className="text-[16px] font-bold text-slate-900 leading-tight">
                 Add Inventory Stock
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[13px] text-slate-500 mt-1">
                 Enter a positive value to add stock, or negative to correct a mistake.
               </p>
             </div>
@@ -236,9 +235,9 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
           <button
             type="button"
             onClick={handleClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
-            <X size={16} />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -248,15 +247,15 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
             {/* API error banner */}
             {apiError && (
-              <div className="flex items-start gap-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-4 py-3 text-sm">
-                <AlertCircle size={15} className="text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" strokeWidth={2} />
-                <p className="text-red-700 dark:text-red-400">{apiError}</p>
+              <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-[13px]">
+                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                <p className="text-red-700">{apiError}</p>
               </div>
             )}
 
             {/* ── Step 1 · Product ─────────────────────────────── */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Product <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
 
@@ -267,51 +266,50 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   onClick={() => setDropdownOpen((v) => !v)}
                   className={`
                     w-full flex items-center justify-between gap-2
-                    bg-slate-50 dark:bg-slate-800
-                    border rounded-xl px-4 py-3 text-sm
+                    bg-white h-11
+                    border rounded-xl px-4 text-[13px]
                     transition-all duration-150
                     ${errors.product
-                      ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30"
-                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      ? "border-red-400 ring-2 ring-red-100"
+                      : "border-slate-200 hover:border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20"
                     }
                   `}
                 >
                   {selectedProductObj ? (
-                    <span className="flex items-center gap-2.5 text-slate-800 dark:text-slate-100 min-w-0">
+                    <span className="flex items-center gap-2.5 text-slate-900 min-w-0">
                       {SelectedIcon && (
-                        <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg ${selectedMeta.bg}`}>
-                          <SelectedIcon size={13} className={selectedMeta.color} strokeWidth={1.8} />
+                        <span className={`flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-md ${selectedMeta.bg}`}>
+                          <SelectedIcon className={`h-3.5 w-3.5 ${selectedMeta.color}`} />
                         </span>
                       )}
                       <span className="font-semibold truncate">{selectedProductObj.productName}</span>
-                      <span className="text-slate-400 dark:text-slate-500 text-xs flex-shrink-0">{selectedProductObj.sku}</span>
+                      <span className="text-slate-400 text-[12px] flex-shrink-0">{selectedProductObj.sku}</span>
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-                      <Search size={13} />
+                    <span className="flex items-center gap-2 text-slate-400">
+                      <Search className="h-4 w-4" />
                       Search and select a product…
                     </span>
                   )}
                   <ChevronDown
-                    size={15}
-                    className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                    className={`h-4 w-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                   />
                 </button>
 
                 {/* Dropdown */}
                 {dropdownOpen && (
-                  <div className="absolute z-20 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                  <div className="absolute z-20 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                     {/* Search bar inside dropdown */}
-                    <div className="px-3 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="px-3 pt-3 pb-2 border-b border-slate-100">
                       <div className="relative">
-                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         <input
                           autoFocus
                           type="text"
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
                           placeholder="Type name or SKU…"
-                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-500"
+                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 text-[13px] text-slate-900 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/20"
                         />
                       </div>
                     </div>
@@ -319,7 +317,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     {/* Options */}
                     <ul className="max-h-52 overflow-y-auto py-1.5">
                       {filteredProducts.length === 0 ? (
-                        <li className="px-4 py-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+                        <li className="px-4 py-4 text-[13px] text-slate-500 text-center">
                           No products match your search
                         </li>
                       ) : (
@@ -332,29 +330,29 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                                 type="button"
                                 onClick={() => selectProduct(p)}
                                 className={`
-                                  w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left
-                                  hover:bg-slate-50 dark:hover:bg-slate-800
+                                  w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-left
+                                  hover:bg-slate-50
                                   transition-colors duration-100
-                                  ${selectedId === p.id ? "bg-slate-50 dark:bg-slate-800" : ""}
+                                  ${selectedId === p.id ? "bg-slate-50" : ""}
                                 `}
                               >
-                                <span className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${pBg}`}>
-                                  <PIcon size={14} className={pColor} strokeWidth={1.8} />
+                                <span className={`flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg ${pBg}`}>
+                                  <PIcon className={`h-4 w-4 ${pColor}`} />
                                 </span>
                                 <span className="flex flex-col leading-snug min-w-0">
-                                  <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                  <span className="font-semibold text-slate-900 truncate">
                                     {p.productName}
                                   </span>
-                                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                                  <span className="text-[11px] text-slate-500 mt-0.5">
                                     {p.sku} &bull; {p.category}
                                   </span>
                                 </span>
-                                <span className={`ml-auto flex-shrink-0 text-xs font-semibold ${
+                                <span className={`ml-auto flex-shrink-0 text-[12px] font-semibold ${
                                   pQty === 0
-                                    ? "text-red-500 dark:text-red-400"
+                                    ? "text-red-600"
                                     : pQty < 10
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-slate-500 dark:text-slate-400"
+                                    ? "text-amber-600"
+                                    : "text-slate-500"
                                 }`}>
                                   {pQty} {p.unit ?? "units"}
                                 </span>
@@ -369,8 +367,8 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               </div>
 
               {errors.product && (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                  <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
                   {errors.product}
                 </p>
               )}
@@ -378,30 +376,30 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
             {/* ── Step 2 · Current Stock (read-only) ────────────── */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Current Stock
               </label>
               <div className={`
                 flex items-center justify-between
-                rounded-xl border px-4 py-3
-                bg-slate-50 dark:bg-slate-800/60
-                border-slate-200 dark:border-slate-700
+                rounded-xl border px-4 py-2.5 h-10
+                bg-slate-50
+                border-slate-200
                 ${!selectedId ? "opacity-50" : ""}
               `}>
                 {!selectedId ? (
-                  <span className="text-sm text-slate-400 dark:text-slate-500 italic">
+                  <span className="text-[13px] text-slate-400 italic">
                     — select a product first —
                   </span>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  <span className="text-[13px] font-semibold text-slate-900 flex items-center gap-1.5">
                     {(currentStock ?? 0) < 10 && (
-                      <AlertTriangle size={14} className="text-amber-500 dark:text-amber-400" strokeWidth={2.2} />
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
                     )}
                     {currentStock ?? 0}
-                    <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                    <span className="font-normal text-slate-500 text-[12px]">{selectedUnit}</span>
                   </span>
                 )}
-                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500 bg-slate-200/50 px-2 py-0.5 rounded">
                   read-only
                 </span>
               </div>
@@ -409,13 +407,12 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
             {/* ── Step 3 · Quantity to Add ───────────────────────── */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <div className="relative">
                 <Hash
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
                 />
                 <input
                   type="number"
@@ -427,16 +424,16 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   }}
                   placeholder="e.g. 50 or -5"
                   className={`${inputBase} pl-9 ${
-                    errors.qty ? "border-red-400 dark:border-red-600 ring-1 ring-red-400/30" : ""
+                    errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
                   }`}
                 />
               </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                Use a negative number (e.g.&nbsp;<code className="font-mono">-5</code>) to reduce stock.
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Use a negative number (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">-5</code>) to reduce stock.
               </p>
               {errors.qty && (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />
+                <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                  <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
                   {errors.qty}
                 </p>
               )}
@@ -446,38 +443,38 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {(() => {
               // Determine colour theme based on result
               const theme = belowZero
-                ? { card: "bg-red-50    dark:bg-red-950/30    border-red-200    dark:border-red-800",
-                    total: "text-red-600    dark:text-red-400",
-                    badge: "text-red-600    dark:text-red-400    bg-red-100    dark:bg-red-900/40" }
+                ? { card: "bg-red-50 border-red-200",
+                    total: "text-red-700",
+                    badge: "text-red-700 bg-red-100/50" }
                 : validQty && qtyNum < 0
-                ? { card: "bg-amber-50  dark:bg-amber-950/30  border-amber-200  dark:border-amber-800",
-                    total: "text-amber-600  dark:text-amber-400",
-                    badge: "text-amber-600  dark:text-amber-400  bg-amber-100  dark:bg-amber-900/40" }
+                ? { card: "bg-amber-50 border-amber-200",
+                    total: "text-amber-700",
+                    badge: "text-amber-700 bg-amber-100/50" }
                 : newTotal !== null
-                ? { card: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
-                    total: "text-emerald-600 dark:text-emerald-400",
-                    badge: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" }
-                : { card: "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 opacity-50",
-                    total: "text-slate-400 dark:text-slate-500",
+                ? { card: "bg-emerald-50 border-emerald-200",
+                    total: "text-emerald-700",
+                    badge: "text-emerald-700 bg-emerald-100/50" }
+                : { card: "bg-slate-50 border-slate-200 opacity-50",
+                    total: "text-slate-400",
                     badge: "" };
 
               return (
                 <div className={`rounded-xl border px-4 py-4 transition-all duration-300 ${theme.card}`}>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-3">
                     New Total Preview
                   </p>
                   <div className="flex items-center gap-3 flex-wrap">
 
                     {/* Current */}
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-2xl font-bold tabular-nums text-slate-700 dark:text-slate-300">
+                      <span className="text-2xl font-bold tabular-nums text-slate-800">
                         {currentStock ?? "—"}
                       </span>
-                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">Current</span>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-500">Current</span>
                     </div>
 
                     {/* Operator */}
-                    <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">
+                    <span className="text-xl font-light text-slate-400 pb-3">
                       {validQty && qtyNum < 0 ? "−" : "+"}
                     </span>
 
@@ -485,33 +482,33 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     <div className="flex flex-col items-center gap-0.5">
                       <span className={`text-2xl font-bold tabular-nums ${
                         validQty && qtyNum < 0
-                          ? "text-red-500 dark:text-red-400"
-                          : "text-slate-700 dark:text-slate-300"
+                          ? "text-red-600"
+                          : "text-slate-800"
                       }`}>
                         {validQty ? Math.abs(qtyNum) : "—"}
                       </span>
-                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      <span className="text-[10px] uppercase tracking-widest text-slate-500">
                         {validQty && qtyNum < 0 ? "Removing" : "Adding"}
                       </span>
                     </div>
 
                     {/* Equals */}
-                    <span className="text-xl font-light text-slate-400 dark:text-slate-500 pb-3">=</span>
+                    <span className="text-xl font-light text-slate-400 pb-3">=</span>
 
                     {/* New total */}
                     <div className="flex flex-col items-center gap-0.5">
                       <span className={`text-2xl font-bold tabular-nums ${theme.total}`}>
                         {newTotal ?? "—"}
                       </span>
-                      <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500">New Total</span>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-500">New Total</span>
                     </div>
 
                     {/* Trailing badge */}
                     {newTotal !== null && (
-                      <span className={`ml-auto flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg ${theme.badge}`}>
+                      <span className={`ml-auto flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-lg ${theme.badge}`}>
                         {belowZero
-                          ? <><AlertTriangle size={12} strokeWidth={2.2} /> Below zero!</>
-                          : <><CheckCircle2 size={12} strokeWidth={2.2} /> {selectedUnit}</>
+                          ? <><AlertTriangle className="h-4 w-4" strokeWidth={2.2} /> Below zero!</>
+                          : <><CheckCircle2 className="h-4 w-4 text-emerald-500" strokeWidth={2.5} /> {selectedUnit}</>
                         }
                       </span>
                     )}
@@ -519,8 +516,8 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
                   {/* Inline error under preview */}
                   {belowZero && (
-                    <p className="mt-3 text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5 font-medium">
-                      <AlertCircle size={13} strokeWidth={2} />
+                    <p className="mt-3 text-[12px] text-red-600 flex items-center gap-1.5 font-medium">
+                      <AlertCircle className="h-4 w-4" strokeWidth={2} />
                       Stock cannot be less than zero.
                     </p>
                   )}
@@ -532,11 +529,11 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
           </div>
 
           {/* ── Footer ─────────────────────────────────────────── */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
             <button
               type="button"
               onClick={handleClose}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150"
+              className="flex items-center justify-center h-10 px-5 rounded-xl text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors focus:ring-2 focus:ring-slate-200 focus:outline-none"
             >
               Cancel
             </button>
@@ -545,12 +542,11 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               disabled={submitting || success}
               className="
                 inline-flex items-center gap-2
-                px-6 py-2.5 rounded-xl text-sm font-semibold
-                bg-slate-900 dark:bg-slate-50
-                text-white dark:text-slate-900
-                hover:bg-slate-700 dark:hover:bg-slate-200
-                active:scale-95
-                disabled:opacity-60 disabled:cursor-not-allowed
+                px-6 h-10 rounded-xl text-[13px] font-semibold shadow-sm
+                bg-teal-600 text-white
+                hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2
+                active:scale-95 transition-all
+                disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all duration-150
               "
             >
@@ -611,8 +607,8 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
   const settingsChanged = rlChanged || unitChanged;
 
   const inputCls =
-    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10 focus:border-slate-400 dark:focus:border-slate-500 transition-all duration-150 border-slate-200 dark:border-slate-700";
-  const errorCls = "border-red-400 dark:border-red-600 ring-1 ring-red-400/30";
+    "w-full px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 placeholder:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-400 transition-all duration-150 border-slate-200";
+  const errorCls = "border-red-400 ring-1 ring-red-400/30";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -660,23 +656,23 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 flex flex-col" style={{ maxHeight: "90vh" }}>
+      <div className="bg-white rounded-2xl w-full max-w-md border border-slate-200 flex flex-col shadow-xl" style={{ maxHeight: "90vh" }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-600 dark:bg-violet-500 shrink-0">
-              <Pencil size={16} className="text-white" strokeWidth={2} />
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 shrink-0">
+              <Pencil size={16} className="text-teal-600" strokeWidth={2} />
             </span>
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight">Edit Inventory</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.productName}</p>
+              <h2 className="text-base font-bold text-slate-900 leading-tight">Edit Inventory</h2>
+              <p className="text-xs text-slate-500 mt-0.5">{item.productName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -688,55 +684,55 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
 
               {/* Current Stock (read-only) */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">Current Stock</label>
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-4 py-3">
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">Current Stock</label>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <span className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                     {currentQty <= (item.reorderLevel ?? 10) && <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.2} />}
                     {currentQty}
-                    <span className="font-normal text-slate-400 dark:text-slate-500 text-xs">{selectedUnit}</span>
+                    <span className="font-normal text-slate-400 text-xs">{selectedUnit}</span>
                   </span>
-                  <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">read-only</span>
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 bg-slate-200/50 px-2 py-0.5 rounded-md">read-only</span>
                 </div>
               </div>
 
               {/* Adjustment Amount */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Adjustment Amount <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  Adjustment Amount <span className="text-slate-400 normal-case tracking-normal font-normal">(optional)</span>
                 </label>
-                <p className="text-xs text-slate-400 dark:text-slate-500 -mt-0.5">Use positive to add stock, negative to remove.</p>
+                <p className="text-xs text-slate-400 -mt-0.5">Use positive to add stock, negative to remove.</p>
                 <div className="relative">
                   <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input type="number" step="any" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} placeholder="e.g. +10 or -5" className={`${inputCls} pl-10 ${errors.amount ? errorCls : ""}`} />
                 </div>
                 {errors.amount && (
-                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.amount}</p>
+                  <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.amount}</p>
                 )}
               </div>
 
               {/* Resulting Stock Preview */}
               {hasAdjustment && (
-                <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isNegativeResult ? "border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/30" : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30"}`}>
-                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Resulting Stock</span>
-                  <span className={`text-sm font-bold tabular-nums ${isNegativeResult ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                <div className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isNegativeResult ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Resulting Stock</span>
+                  <span className={`text-sm font-bold tabular-nums ${isNegativeResult ? "text-red-600" : "text-emerald-600"}`}>
                     {adjustResultQty} <span className="font-normal text-xs text-slate-400">{selectedUnit}</span>
                   </span>
                 </div>
               )}
               {isNegativeResult && (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} strokeWidth={2.2} />Resulting stock cannot be negative.</p>
+                <p className="text-xs text-red-500 flex items-center gap-1.5"><AlertTriangle size={12} strokeWidth={2.2} />Resulting stock cannot be negative.</p>
               )}
 
               {/* Notes / Reason */}
               {hasAdjustment && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
                   <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit…" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
                   <div className="flex items-center justify-between">
                     {errors.notes ? (
-                      <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
+                      <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
                     ) : <span />}
                     <span className="text-[10px] text-slate-400 tabular-nums">{adjustNotes.length}/500</span>
                   </div>
@@ -745,36 +741,36 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
 
               {/* Divider */}
               <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-700" /></div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white dark:bg-slate-900 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Settings</span>
+                  <span className="bg-white px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Settings</span>
                 </div>
               </div>
 
               {/* Reorder Level */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
                   Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
                 </label>
                 <input type="number" min="0" step="0.01" value={reorderLevel} onChange={(e) => { setReorderLevel(e.target.value); if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined })); }} className={`${inputCls} ${errors.reorderLevel ? errorCls : ""}`} required />
                 {errors.reorderLevel ? (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.reorderLevel}</p>
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.reorderLevel}</p>
                 ) : (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Alert when stock falls below this threshold</p>
+                  <p className="text-xs text-slate-400 mt-1">Alert when stock falls below this threshold</p>
                 )}
               </div>
 
               {/* Unit */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                  Unit <span className="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
+                  Unit <span className="text-slate-400 normal-case tracking-normal font-normal">(optional)</span>
                 </label>
                 <input type="text" maxLength={20} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. kg, pcs, L" className={inputCls} />
               </div>
 
               {/* General error */}
               {errors.general && (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.general}</p>
+                <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.general}</p>
               )}
 
             </div>
@@ -782,8 +778,8 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
         </div>
 
         {/* Footer — always visible */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 shrink-0 rounded-b-2xl">
-          <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors duration-150">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 shrink-0 rounded-b-2xl">
+          <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors duration-150">
             Cancel
           </button>
           <button
@@ -793,9 +789,9 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
             className="
               inline-flex items-center gap-2
               px-6 py-2.5 rounded-xl text-sm font-semibold
-              bg-slate-900 dark:bg-slate-50
-              text-white dark:text-slate-900
-              hover:bg-slate-700 dark:hover:bg-slate-200
+              bg-teal-600
+              text-white
+              hover:bg-teal-700
               active:scale-95
               disabled:opacity-60 disabled:cursor-not-allowed
               transition-all duration-150 shadow-sm
@@ -817,15 +813,15 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
 // ─── Status Config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   "In Stock": {
-    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800",
+    pill: "bg-emerald-50 text-emerald-700 border border-emerald-200",
     dot:  "bg-emerald-500",
   },
   "Low Stock": {
-    pill: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800",
+    pill: "bg-amber-50 text-amber-700 border border-amber-200",
     dot:  "bg-amber-500",
   },
   "Out of Stock": {
-    pill: "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-800",
+    pill: "bg-red-50 text-red-700 border border-red-200",
     dot:  "bg-red-500",
   },
 };
@@ -983,14 +979,14 @@ const InventoryStock = () => {
         <div className="flex flex-1 flex-col items-center justify-center gap-5">
           {/* Layered ring spinner */}
           <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-slate-100 dark:border-slate-800" />
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-slate-900 dark:border-t-slate-100 animate-spin" />
+            <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-slate-900 animate-spin" />
           </div>
           <div className="text-center">
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+            <p className="text-base font-semibold text-slate-700">
               Loading Inventory
             </p>
-            <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               Fetching your product stock levels…
             </p>
           </div>
@@ -1001,15 +997,15 @@ const InventoryStock = () => {
       {!loading && fetchError && (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
           {/* Icon illustration */}
-          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900">
-            <AlertCircle size={36} strokeWidth={1.5} className="text-red-400 dark:text-red-500" />
+          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-red-50 border border-red-100">
+            <AlertCircle size={36} strokeWidth={1.5} className="text-red-500" />
           </div>
           {/* Message */}
           <div className="text-center max-w-sm">
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-50">
+            <p className="text-xl font-bold text-slate-900">
               Error Loading Data
             </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
               {fetchError}
             </p>
           </div>
@@ -1019,12 +1015,12 @@ const InventoryStock = () => {
             onClick={fetchProducts}
             className="
               inline-flex items-center gap-2
-              px-6 py-3 rounded-xl text-sm font-semibold
-              bg-slate-900 dark:bg-slate-50
-              text-white dark:text-slate-900
-              hover:bg-slate-700 dark:hover:bg-slate-200
+              px-6 py-3 rounded-xl text-[13px] font-semibold
+              bg-teal-600
+              text-white
+              hover:bg-teal-700
               active:scale-95 transition-all duration-150
-              shadow-sm
+              shadow-sm focus:ring-2 focus:ring-teal-600 focus:ring-offset-2
             "
           >
             <svg
@@ -1041,7 +1037,7 @@ const InventoryStock = () => {
 
       {/* ── Main content (only when loaded successfully) ──────────── */}
       {!loading && !fetchError && (
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -1060,27 +1056,27 @@ const InventoryStock = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}
         >
-          <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col gap-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-200 p-6 flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40">
+              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50">
                 <Trash2 size={18} className="text-red-500" strokeWidth={1.8} />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-50">Remove from Tracking</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This will NOT delete the product.</p>
+                <h3 className="text-base font-bold text-slate-900">Remove from Tracking</h3>
+                <p className="text-xs text-slate-500 mt-0.5">This will NOT delete the product.</p>
               </div>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-sm text-slate-600 leading-relaxed">
               Stop tracking inventory for{" "}
-              <span className="font-semibold text-slate-900 dark:text-slate-50">{deleteTarget.productName}</span>?{" "}
+              <span className="font-semibold text-slate-900">{deleteTarget.productName}</span>?{" "}
               The product will remain in your catalogue.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="px-5 py-2.5 rounded-xl text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
@@ -1088,7 +1084,7 @@ const InventoryStock = () => {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 active:scale-95 disabled:opacity-60 transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 transition-all shadow-sm"
               >
                 {deleting
                   ? <><Loader2 size={14} className="animate-spin" />Removing…</>
@@ -1100,54 +1096,46 @@ const InventoryStock = () => {
       )}
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">
-            Inventory Stock
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Monitor stock levels and manage your product catalogue
-          </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+            <Package size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Inventory Stock</h1>
+            <p className="text-sm text-slate-500">
+              Monitor stock levels and manage your product catalogue
+            </p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="
-            inline-flex items-center gap-2 self-start sm:self-auto
-            bg-slate-900 dark:bg-slate-50
-            text-white dark:text-slate-900
-            text-sm font-medium
-            px-5 py-3 rounded-xl
-            shadow-sm
-            hover:bg-slate-700 dark:hover:bg-slate-200
-            active:scale-95
-            transition-all duration-200
-            whitespace-nowrap
-          "
+          className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95"
         >
-          <PlusCircle size={16} strokeWidth={2} />
+          <PlusCircle size={16} strokeWidth={2.5} />
           Add Inventory Stock
         </button>
       </div>
 
       {/* ── Analytics Cards (from InventoryContext) ───────────────────── */}
-      <InventoryAnalyticsCards className="mb-8" />
+      <InventoryAnalyticsCards />
 
       {/* ── Search + Category Filter Row ────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
 
         {/* Search input */}
         <div className="relative flex-1">
           <Search
             size={15}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
             >
               <X size={13} strokeWidth={2.5} />
             </button>
@@ -1158,37 +1146,25 @@ const InventoryStock = () => {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, SKU or category…"
             className="
-              w-full bg-white dark:bg-slate-900
-              border border-slate-200 dark:border-slate-800
+              w-full bg-white
+              border border-slate-200
               rounded-xl shadow-sm
               pl-9 pr-8 py-2.5
-              text-sm text-slate-700 dark:text-slate-200
-              placeholder:text-slate-400 dark:placeholder:text-slate-500
+              text-sm text-slate-700
+              placeholder:text-slate-400
               outline-none
-              focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10
-              focus:border-slate-400 dark:focus:border-slate-600
+              focus:ring-2 focus:ring-slate-200 focus:border-slate-400
               transition-all duration-200
             "
           />
         </div>
 
         {/* Category dropdown */}
-        <div className="relative sm:w-56">
+        <div className="relative w-full sm:w-64">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="
-              w-full appearance-none
-              bg-white dark:bg-slate-900
-              border border-slate-200 dark:border-slate-800
-              rounded-xl shadow-sm
-              pl-4 pr-9 py-2.5
-              text-sm text-slate-700 dark:text-slate-200
-              outline-none
-              focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-slate-50/10
-              focus:border-slate-400 dark:focus:border-slate-600
-              cursor-pointer transition-all duration-200
-            "
+            className="w-full appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-400 transition-all shadow-sm"
           >
             <option value="">All Categories</option>
             {categoryOptions.map((cat) => (
@@ -1196,69 +1172,52 @@ const InventoryStock = () => {
             ))}
           </select>
           <ChevronDown
-            size={14}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
+            size={16}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
         </div>
 
-        {/* Clear-filters button — only visible when a filter is active */}
+        {/* Clear Filters */}
         {(search || selectedCategory) && (
           <button
-            type="button"
             onClick={() => { setSearch(""); setSelectedCategory(""); }}
-            className="
-              self-center sm:self-auto
-              inline-flex items-center gap-1.5
-              px-3.5 py-2.5 rounded-xl text-xs font-semibold
-              bg-slate-100 dark:bg-slate-800
-              text-slate-600 dark:text-slate-300
-              border border-slate-200 dark:border-slate-700
-              hover:bg-slate-200 dark:hover:bg-slate-700
-              transition-colors duration-150 whitespace-nowrap
-            "
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <X size={12} strokeWidth={2.5} />
-            Clear filters
+            <X size={16} />
+            Clear
           </button>
         )}
       </div>
 
       {/* ── Table Card ───────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-
-          {/* Head */}
-          <thead>
-            <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
-              {COLUMNS.map(({ key, label, sortable }) => (
-                <th
-                  key={key}
-                  onClick={() => sortable && handleSort(key)}
-                  className={`
-                    py-4 px-6 text-left text-xs font-bold uppercase tracking-widest
-                    text-slate-500 dark:text-slate-400 whitespace-nowrap
-                    ${sortable ? "cursor-pointer select-none hover:text-slate-800 dark:hover:text-slate-200 transition-colors" : ""}
-                  `}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {label}
-                    {sortable && sortKey === key && (
-                      sortDir === "asc"
-                        ? <ChevronUp size={12} strokeWidth={2.5} />
-                        : <ChevronDown size={12} strokeWidth={2.5} />
-                    )}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden min-h-[500px] flex flex-col">
+        <div className="overflow-x-auto flex-1">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+              <tr>
+                {COLUMNS.map(({ key, label, sortable }) => (
+                  <th
+                    key={key}
+                    onClick={() => sortable && handleSort(key)}
+                    className={`px-6 py-4 font-semibold text-slate-600 ${sortable ? 'cursor-pointer select-none hover:text-slate-900' : ''}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {label}
+                      {sortable && sortKey === key && (
+                        sortDir === "asc" ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
           {/* Body */}
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-20 text-center">
-                  <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-600">
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
                     <Package size={36} strokeWidth={1.2} />
                     <p className="text-sm font-medium">No products match your search</p>
                   </div>
@@ -1277,27 +1236,21 @@ const InventoryStock = () => {
                 return (
                   <tr
                     key={item.inventoryId}
-                    className={`
-                      border-b border-slate-100 dark:border-slate-800 last:border-0
-                      hover:bg-slate-50/80 dark:hover:bg-slate-800/50
-                      hover:shadow-[inset_3px_0_0_0] hover:shadow-slate-900/10 dark:hover:shadow-slate-50/5
-                      transition-all duration-200
-                      ${idx % 2 !== 0 ? "bg-slate-50/30 dark:bg-slate-800/[0.15]" : ""}
-                    `}
+                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"
                   >
                     {/* Product Name */}
-                    <td className="py-6 px-6">
+                    <td className="px-6 py-6 font-medium text-slate-900 border-b border-slate-100/50">
                       <div className="flex items-center gap-3">
                         <span
-                          className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${iconBg}`}
+                          className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${iconBg}`}
                         >
-                          <Icon size={16} className={iconColor} strokeWidth={1.8} />
+                          <Icon size={20} className={iconColor} />
                         </span>
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-50 whitespace-nowrap">
+                          <p className="font-semibold text-slate-900 whitespace-nowrap">
                             {item.productName}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <p className="text-xs text-slate-500 mt-0.5">
                             {item.sku}
                           </p>
                         </div>
@@ -1305,46 +1258,45 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Category */}
-                    <td className="py-6 px-6 text-slate-500 dark:text-slate-400 text-sm">
+                    <td className="px-6 py-6 text-slate-500 text-sm border-b border-slate-100/50 whitespace-nowrap">
                       {item.category}
                     </td>
 
                     {/* Price */}
-                    <td className="py-6 px-6 font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                    <td className="px-6 py-6 font-medium text-slate-700 tabular-nums border-b border-slate-100/50">
                       {formatCurrency(item.sellingPrice)}
                     </td>
 
                     {/* Quantity (stockQuantity) */}
-                    <td className="py-6 px-6">
-                      <div className="flex items-center gap-1.5">
+                    <td className="px-6 py-6 border-b border-slate-100/50">
+                      <div className="flex items-center gap-2">
                         {isWarning && (
                           <span title="Low quantity warning">
                             <AlertTriangle
-                              size={13}
-                              strokeWidth={2.2}
-                              className="text-amber-500 dark:text-amber-400 flex-shrink-0 animate-pulse"
+                              size={16}
+                              className="text-amber-500 flex-shrink-0"
                             />
                           </span>
                         )}
                         <span
                           className={`font-semibold tabular-nums ${
                             qty === 0
-                              ? "text-red-600 dark:text-red-400"
+                              ? "text-red-600"
                               : isWarning
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-slate-700 dark:text-slate-300"
+                              ? "text-amber-600"
+                              : "text-slate-700"
                           }`}
                         >
                           {qty}
                         </span>
-                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                        <span className="text-xs text-slate-500">
                           {item.unit ?? "units"}
                         </span>
                       </div>
                     </td>
 
-                    {/* Status (derived from stockQuantity vs reorderLevel) */}
-                    <td className="py-6 px-6">
+                    {/* Status */}
+                    <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}
                       >
@@ -1354,57 +1306,32 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-6 px-6">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          title="Edit inventory settings"
-                          onClick={() => setEditTarget(item)}
-                          className="
-                            p-2 rounded-lg
-                            text-slate-400
-                            hover:text-blue-600 hover:bg-blue-50
-                            dark:hover:text-blue-400 dark:hover:bg-blue-950/40
-                            transition-all duration-150
-                          "
-                        >
-                          <Pencil size={15} strokeWidth={1.8} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Remove from inventory tracking"
-                          onClick={() => setDeleteTarget(item)}
-                          className="
-                            p-2 rounded-lg
-                            text-slate-400
-                            hover:text-red-600 hover:bg-red-50
-                            dark:hover:text-red-400 dark:hover:bg-red-950/40
-                            transition-all duration-150
-                          "
-                        >
-                          <Trash2 size={15} strokeWidth={1.8} />
-                        </button>
-
-                        {/* AI Reorder — only for low-stock items, placed last on the right */}
+                    <td className="px-6 py-6 border-b border-slate-100/50 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {isLow && (
                           <button
                             type="button"
                             title="Suggest AI reorder quantity"
-                            className="
-                              inline-flex items-center gap-1.5
-                              px-3 py-1.5 rounded-lg text-xs font-semibold
-                              bg-indigo-50 text-indigo-700
-                              ring-1 ring-indigo-200
-                              dark:bg-indigo-950/40 dark:text-indigo-400 dark:ring-indigo-800
-                              hover:bg-indigo-100 dark:hover:bg-indigo-950/60
-                              transition-all duration-200
-                              whitespace-nowrap
-                            "
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                           >
-                            <Sparkles size={12} strokeWidth={2} />
+                            <Sparkles size={14} />
                             Suggest Order
                           </button>
                         )}
+                        <button
+                          onClick={() => setEditTarget(item)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Inventory"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(item)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remove from inventory"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1413,24 +1340,17 @@ const InventoryStock = () => {
             )}
           </tbody>
         </table>
+        </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Showing{" "}
-            <span className="font-semibold text-slate-600 dark:text-slate-300">
-              {filtered.length}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-slate-600 dark:text-slate-300">
-              {inventoryItems.length}
-            </span>{" "}
-            tracked items
+        <div className="border-t border-slate-200 bg-slate-50 p-4 sm:px-6 flex items-center justify-between gap-4 mt-auto">
+          <p className="text-sm text-slate-500 font-medium">
+            Showing <span className="text-slate-900">{filtered.length}</span> of <span className="text-slate-900">{inventoryItems.length}</span> items
           </p>
           {lowStockCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-              <AlertTriangle size={12} strokeWidth={2.2} />
-              {lowStockCount} item{lowStockCount > 1 ? "s" : ""} need restocking
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+              <AlertTriangle size={16} />
+              {lowStockCount} items need restocking
             </span>
           )}
         </div>
@@ -1438,14 +1358,14 @@ const InventoryStock = () => {
 
       {/* ── Stock Movement History ───────────────────────────────────────── */}
       <section className="mt-2">
-        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">
+        <h2 className="text-base font-semibold text-slate-800 mb-4">
           Stock Movement History
         </h2>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50">
+              <tr className="border-b border-slate-200 bg-slate-50">
                 {[
                   { label: "Product",          w: "w-[35%]" },
                   { label: "Qty Changed",      w: "w-[18%]" },
@@ -1455,7 +1375,7 @@ const InventoryStock = () => {
                 ].map(({ label, w }) => (
                   <th
                     key={label}
-                    className={`${w} px-5 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400`}
+                    className={`${w} px-5 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-500`}
                   >
                     {label}
                   </th>
@@ -1463,17 +1383,17 @@ const InventoryStock = () => {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
                     <Loader2 size={18} className="inline-block animate-spin mr-2" />
                     Loading history…
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
                     No recent transactions found.
                   </td>
                 </tr>
@@ -1494,24 +1414,24 @@ const InventoryStock = () => {
                   return (
                     <tr
                       key={log.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-100"
+                      className="hover:bg-slate-50/80 transition-colors duration-100"
                     >
                       {/* Product name */}
-                      <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-200 truncate max-w-0">
+                      <td className="px-5 py-3.5 font-medium text-slate-700 truncate max-w-0">
                         <span className="truncate block">{log.productName}</span>
                       </td>
 
                       {/* Quantity changed */}
                       <td className={`px-5 py-3.5 font-semibold tabular-nums ${
                         isIn
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-500 dark:text-red-400"
+                          ? "text-emerald-600"
+                          : "text-red-500"
                       }`}>
                         {qtyLabel}
                       </td>
 
                       {/* Stock after */}
-                      <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300 tabular-nums">
+                      <td className="px-5 py-3.5 text-slate-600 tabular-nums">
                         {log.stockAfter}
                       </td>
 
@@ -1519,15 +1439,15 @@ const InventoryStock = () => {
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           isIn
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                            : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-red-50 text-red-600"
                         }`}>
                           {typeLabel}
                         </span>
                       </td>
 
                       {/* Timestamp */}
-                      <td className="px-5 py-3.5 text-slate-400 dark:text-slate-500 text-xs tabular-nums">
+                      <td className="px-5 py-3.5 text-slate-400 text-xs tabular-nums">
                         {formatted}
                       </td>
                     </tr>
@@ -1539,8 +1459,8 @@ const InventoryStock = () => {
 
           {/* Footer */}
           {!loading && logs.length > 0 && (
-            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50/50">
+              <p className="text-xs text-slate-500">
                 {logs.length} transaction{logs.length > 1 ? "s" : ""} recorded
               </p>
             </div>

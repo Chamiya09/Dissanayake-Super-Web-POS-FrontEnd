@@ -39,14 +39,14 @@ const LS_EMAIL = "pos_email_notifications";
 const SETTINGS_ROLE_GRADIENT = {
   Owner:   "from-red-400   to-red-600",
   Manager: "from-blue-400  to-blue-600",
-  Staff:   "from-green-400 to-green-600",
+  Staff:   "from-emerald-400 to-emerald-600",
 };
 const SETTINGS_ROLE_BADGE = {
-  Owner:   "bg-red-100   text-red-700   border border-red-200   dark:bg-red-900/20   dark:text-red-400",
-  Manager: "bg-blue-100  text-blue-700  border border-blue-200  dark:bg-blue-900/20  dark:text-blue-400",
-  Staff:   "bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400",
+  Owner:   "bg-red-50 text-red-600 border border-red-200",
+  Manager: "bg-blue-50 text-blue-600 border border-blue-200",
+  Staff:   "bg-emerald-50 text-emerald-600 border border-emerald-200",
 };
-const SETTINGS_ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
+const SETTINGS_ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
 /* ─────────────────────────────────────────────────────────────────────────
    Small reusable helpers
@@ -69,23 +69,23 @@ function PasswordField({ id, label, value, onChange, show, onToggle, error, plac
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            "h-10 w-full rounded-lg border border-border bg-background pl-9 pr-10 text-sm",
-            "text-foreground placeholder:text-muted-foreground",
-            "outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20",
-            error && "border-red-400 focus:border-red-400 focus:ring-red-200"
+            "h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-10 text-sm",
+            "text-slate-900 placeholder:text-slate-400",
+            "outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-100",
+            error && "border-red-400 focus:border-red-400 focus:ring-red-100"
           )}
         />
         <button
           type="button"
           tabIndex={-1}
           onClick={onToggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
         >
           {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </button>
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {hint && !error && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && !error && <p className="text-[11px] text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -96,17 +96,17 @@ function Toggle({ id, label, description, checked, onChange, disabled = false, b
     <div className="flex items-start justify-between gap-4 py-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <label htmlFor={id} className="cursor-pointer text-[14px] font-semibold text-foreground">
+          <label htmlFor={id} className="cursor-pointer text-[14px] font-semibold text-slate-900">
             {label}
           </label>
           {badge && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
               {badge}
             </span>
           )}
         </div>
         {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{description}</p>
+          <p className="mt-0.5 text-[13px] text-slate-500 leading-relaxed">{description}</p>
         )}
       </div>
       <button
@@ -117,14 +117,14 @@ function Toggle({ id, label, description, checked, onChange, disabled = false, b
         onClick={() => !disabled && onChange(!checked)}
         className={cn(
           "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full",
-          "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          checked ? "bg-primary" : "bg-input",
+          "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100",
+          checked ? "bg-blue-600" : "bg-slate-200",
           disabled && "opacity-50 cursor-not-allowed"
         )}
       >
         <span
           className={cn(
-            "block h-5 w-5 rounded-full bg-white shadow-md transform transition-transform duration-200",
+            "block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform duration-200",
             checked ? "translate-x-[22px]" : "translate-x-[2px]"
           )}
         />
@@ -151,7 +151,7 @@ function PasswordStrength({ password }) {
   const colours = [
     "bg-red-500",
     "bg-orange-500",
-    "bg-yellow-500",
+    "bg-amber-500",
     "bg-blue-500",
     "bg-emerald-500",
     "bg-emerald-600",
@@ -159,21 +159,21 @@ function PasswordStrength({ password }) {
   const textColours = [
     "text-red-500",
     "text-orange-500",
-    "text-yellow-600",
+    "text-amber-600",
     "text-blue-600",
     "text-emerald-600",
     "text-emerald-700",
   ];
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-1">
+    <div className="space-y-1.5 mt-2">
+      <div className="flex gap-1 h-1.5">
         {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
             className={cn(
-              "h-1 flex-1 rounded-full transition-all duration-300",
-              i < score ? colours[score] : "bg-border"
+              "h-full flex-1 rounded-full transition-all duration-300",
+              i < score ? colours[score] : "bg-slate-100"
             )}
           />
         ))}
@@ -186,17 +186,17 @@ function PasswordStrength({ password }) {
 /** Section card wrapper with header */
 function SectionCard({ icon: Icon, iconBg, title, subtitle, children }) {
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
-      <div className="flex items-center gap-3 border-b border-border px-8 py-5">
-        <div className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", iconBg)}>
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", iconBg)}>
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[15px] font-bold text-foreground">{title}</p>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+          <p className="text-[15px] font-bold text-slate-900">{title}</p>
+          {subtitle && <p className="text-[13px] text-slate-500">{subtitle}</p>}
         </div>
       </div>
-      <div className="px-8 py-6">{children}</div>
+      <div className="px-6 py-5">{children}</div>
     </div>
   );
 }
@@ -213,29 +213,29 @@ function AccountSummaryCard({ user, email }) {
     .toUpperCase();
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Role-coloured banner */}
       <div className={cn(
-        "h-16 bg-gradient-to-br opacity-30",
-        SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-zinc-400 to-zinc-600"
+        "h-16 bg-gradient-to-br opacity-80",
+        SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-slate-400 to-slate-600"
       )} />
 
       {/* Avatar + info body */}
       <div className="px-5 pb-5">
         {/* Avatar overlapping the banner */}
-        <div className="-mt-7 mb-3">
+        <div className="-mt-8 mb-3">
           <div className={cn(
-            "flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br",
-            "text-xl font-extrabold text-white shadow-md ring-2 ring-background",
-            SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-zinc-400 to-zinc-600"
+            "flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br",
+            "text-xl font-extrabold text-white shadow-md ring-4 ring-white",
+            SETTINGS_ROLE_GRADIENT[user?.role] ?? "from-slate-400 to-slate-600"
           )}>
             {initials}
           </div>
         </div>
 
-        <p className="text-[15px] font-bold text-foreground leading-tight">{user?.name}</p>
+        <p className="text-[16px] font-bold text-slate-900 leading-tight">{user?.name}</p>
         <span className={cn(
-          "mt-1.5 mb-4 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+          "mt-2 mb-5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
           SETTINGS_ROLE_BADGE[user?.role]
         )}>
           <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", SETTINGS_ROLE_DOT[user?.role])} />
@@ -243,25 +243,25 @@ function AccountSummaryCard({ user, email }) {
         </span>
 
         {/* Info rows */}
-        <div className="mt-3 space-y-2.5">
-          <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
-            <AtSign className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+        <div className="mt-2 space-y-3">
+          <div className="flex items-center gap-3 text-[13px] text-slate-500">
+            <AtSign className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="font-mono truncate">{user?.username}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
-            <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+          <div className="flex items-center gap-3 text-[13px] text-slate-500">
+            <Mail className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="truncate">{email}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs">
-            <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-            <span className="font-medium text-emerald-600 dark:text-emerald-400">Active account</span>
+          <div className="flex items-center gap-3 text-[13px]">
+            <User className="h-4 w-4 shrink-0 text-emerald-500" />
+            <span className="font-medium text-emerald-600">Active account</span>
           </div>
         </div>
       </div>
 
       {/* Footer note */}
-      <div className="border-t border-border bg-muted/30 px-5 py-3">
-        <p className="text-[11px] text-muted-foreground italic">
+      <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4">
+        <p className="text-[12px] text-slate-500 italic">
           Account details are managed by your administrator.
         </p>
       </div>
@@ -291,17 +291,17 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
     <div
       ref={overlayRef}
       onClick={handleOverlay}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
     >
-      <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
         {/* Header */}
-        <div className="flex items-start gap-4 border-b border-border px-6 py-5">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+        <div className="flex items-start gap-4 border-b border-slate-100 px-6 py-5">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-50">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
           </div>
-          <div>
-            <h3 className="text-[15px] font-bold text-foreground">Deactivate Account</h3>
-            <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+          <div className="pt-1">
+            <h3 className="text-[16px] font-bold text-slate-900">Deactivate Account</h3>
+            <p className="mt-1.5 text-[13px] text-slate-500 leading-relaxed">
               This will immediately lock your account. You will be signed out and unable to log in until
               an administrator reactivates it.
             </p>
@@ -309,8 +309,8 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
         </div>
 
         {/* Warning box */}
-        <div className="mx-6 mt-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 dark:bg-red-900/10 dark:border-red-800">
-          <p className="text-[12px] font-medium text-red-700 dark:text-red-400">
+        <div className="mx-6 mt-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+          <p className="text-[12px] font-medium text-red-700">
             <AlertTriangle className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
             This action cannot be undone by yourself. Contact your administrator to restore access.
           </p>
@@ -322,7 +322,7 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="h-9 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            className="flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -331,11 +331,11 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
             onClick={onConfirm}
             disabled={loading}
             className={cn(
-              "flex h-9 items-center justify-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-colors",
-              "bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-60"
+              "flex h-10 items-center justify-center gap-2 rounded-xl px-5 text-[13px] font-semibold text-white shadow-sm transition-all",
+              "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 disabled:opacity-50"
             )}
           >
-            {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Yes, Deactivate My Account
           </button>
         </div>
@@ -488,7 +488,7 @@ export default function Settings() {
 
   /* ─── Render ───────────────────────────────────────────────────────────── */
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-slate-50">
       <AppHeader />
 
       {/* Scrollable body */}
@@ -497,12 +497,12 @@ export default function Settings() {
 
           {/* Page heading */}
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Settings2 className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50">
+              <Settings2 className="h-5 w-5 text-teal-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Settings</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
+              <p className="text-[13px] text-slate-500 mt-1">
                 Manage your security, preferences, and account.
               </p>
             </div>
@@ -521,7 +521,7 @@ export default function Settings() {
           {/* ── Section 1 · Security ──────────────────────────────────────── */}
           <SectionCard
             icon={ShieldCheck}
-            iconBg="bg-primary/10 text-primary"
+            iconBg="bg-teal-50 text-teal-600"
             title="Security"
             subtitle="Change your account password."
           >
@@ -559,18 +559,18 @@ export default function Settings() {
                 error={pwErrors.confirm}
               />
 
-              <div className="pt-1">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={pwLoading}
                   className={cn(
-                    "flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-colors",
-                    "bg-primary hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60"
+                    "flex h-10 items-center justify-center gap-2 rounded-xl px-5 text-[13px] font-semibold text-white shadow-sm transition-all",
+                    "bg-teal-600 hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:opacity-50 w-full sm:w-auto"
                   )}
                 >
                   {pwLoading
-                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…</>
-                    : <><KeyRound className="h-3.5 w-3.5" /> Update Password</>
+                    ? <><Loader2 className="h-4 w-4 animate-spin" /> Updating…</>
+                    : <><KeyRound className="h-4 w-4" /> Update Password</>
                   }
                 </button>
               </div>
@@ -580,23 +580,23 @@ export default function Settings() {
           {/* ── Section 2 · Preferences ──────────────────────────────────── */}
           <SectionCard
             icon={Sliders}
-            iconBg="bg-violet-500/10 text-violet-600"
+            iconBg="bg-violet-50 text-violet-600"
             title="Preferences"
             subtitle="Personalise your experience."
           >
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-slate-100">
               {/* Dark mode */}
-              <div className="flex items-start justify-between gap-4 py-4 first:pt-0">
+              <div className="flex items-start justify-between gap-4 py-5 first:pt-0">
                 <div className="flex items-start gap-3">
                   <div className={cn(
-                    "mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg",
-                    darkMode ? "bg-zinc-800 text-yellow-400" : "bg-amber-100 text-amber-600"
+                    "mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl",
+                    darkMode ? "bg-slate-800 text-yellow-400" : "bg-amber-50 text-amber-500"
                   )}>
-                    {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                    {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                   </div>
                   <div>
-                    <p className="text-[14px] font-semibold text-foreground">Dark Mode</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[14px] font-bold text-slate-900">Dark Mode</p>
+                    <p className="text-[13px] text-slate-500 mt-0.5 max-w-[250px]">
                       {darkMode ? "Dark theme is active." : "Light theme is active."}
                     </p>
                   </div>
@@ -606,38 +606,37 @@ export default function Settings() {
                   aria-checked={darkMode}
                   onClick={() => toggleDark(!darkMode)}
                   className={cn(
-                    "relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full",
-                    "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    darkMode ? "bg-primary" : "bg-input"
+                    "relative mt-1 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2",
+                    darkMode ? "bg-teal-600" : "bg-slate-200"
                   )}
                 >
                   <span className={cn(
-                    "block h-5 w-5 rounded-full bg-white shadow-md transform transition-transform duration-200",
-                    darkMode ? "translate-x-[22px]" : "translate-x-[2px]"
+                    "block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transform transition-transform duration-200",
+                    darkMode ? "translate-x-5" : "translate-x-0"
                   )} />
                 </button>
               </div>
 
               {/* Email notifications — Owner/Manager only */}
               {canSeeEmailNotif && (
-                <div className="flex items-start justify-between gap-4 py-4">
+                <div className="flex items-start justify-between gap-4 py-5">
                   <div className="flex items-start gap-3">
                     <div className={cn(
-                      "mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg",
-                      emailNotifs ? "bg-blue-100 text-blue-600" : "bg-muted text-muted-foreground"
+                      "mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl",
+                      emailNotifs ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-400"
                     )}>
-                      {emailNotifs ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                      {emailNotifs ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-semibold text-foreground">
+                        <p className="text-[14px] font-bold text-slate-900">
                           Low-Stock Email Notifications
                         </p>
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                        <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                           {user?.role}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[13px] text-slate-500 mt-0.5 max-w-[280px]">
                         Receive an email alert when any product falls below its reorder threshold.
                       </p>
                     </div>
@@ -647,14 +646,13 @@ export default function Settings() {
                     aria-checked={emailNotifs}
                     onClick={() => toggleEmailNotifs(!emailNotifs)}
                     className={cn(
-                      "relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full",
-                      "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      emailNotifs ? "bg-primary" : "bg-input"
+                      "relative mt-1 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2",
+                      emailNotifs ? "bg-teal-600" : "bg-slate-200"
                     )}
                   >
                     <span className={cn(
-                      "block h-5 w-5 rounded-full bg-white shadow-md transform transition-transform duration-200",
-                      emailNotifs ? "translate-x-[22px]" : "translate-x-[2px]"
+                      "block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transform transition-transform duration-200",
+                      emailNotifs ? "translate-x-5" : "translate-x-0"
                     )} />
                   </button>
                 </div>
@@ -665,17 +663,17 @@ export default function Settings() {
           {/* ── Section 3 · Danger Zone ──────────────────────────────────── */}
           <SectionCard
             icon={Shield}
-            iconBg="bg-red-500/10 text-red-600"
+            iconBg="bg-red-50 text-red-600"
             title="Account Actions"
             subtitle="Irreversible operations. Proceed with caution."
           >
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/10">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[14px] font-bold text-red-800 dark:text-red-300">
+                  <p className="text-[14px] font-bold text-red-800">
                     Deactivate Account
                   </p>
-                  <p className="mt-0.5 text-xs text-red-700 dark:text-red-400 leading-relaxed">
+                  <p className="mt-1 text-[13px] text-red-700 leading-relaxed max-w-sm">
                     Lock your account immediately. Only an administrator can restore it.
                   </p>
                 </div>
@@ -683,10 +681,9 @@ export default function Settings() {
                   type="button"
                   onClick={() => setShowDeactivate(true)}
                   className={cn(
-                    "flex flex-shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold",
-                    "border border-red-300 bg-white text-red-700 shadow-sm",
-                    "hover:bg-red-100 active:bg-red-200 transition-colors",
-                    "dark:bg-red-900/20 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+                    "flex flex-shrink-0 h-10 items-center justify-center gap-2 rounded-xl px-5 text-[13px] font-semibold",
+                    "border border-red-200 bg-white text-red-700 shadow-sm",
+                    "hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all"
                   )}
                 >
                   <UserX className="h-4 w-4" />

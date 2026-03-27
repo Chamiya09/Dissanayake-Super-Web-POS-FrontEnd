@@ -285,24 +285,24 @@ export default function StaffDashboard() {
                 value={formatCurrency(stats.revenue)}
                 sub="From completed transactions"
                 icon={TrendingUp}
-                iconBg="bg-emerald-500/10"
-                iconColor="text-emerald-600 dark:text-emerald-400"
+                iconBg="bg-teal-50"
+                iconColor="text-teal-600"
               />
               <MetricCard
                 label="Total Products"
                 value={stats.products}
                 sub="Items in inventory"
                 icon={Package}
-                iconBg="bg-indigo-500/10"
-                iconColor="text-indigo-600 dark:text-indigo-400"
+                iconBg="bg-indigo-50"
+                iconColor="text-indigo-600"
               />
               <MetricCard
                 label="Registered Suppliers"
                 value={stats.suppliers}
                 sub="Active supplier accounts"
                 icon={Truck}
-                iconBg="bg-orange-500/10"
-                iconColor="text-orange-600 dark:text-orange-400"
+                iconBg="bg-amber-50"
+                iconColor="text-amber-600"
               />
             </>
           )}

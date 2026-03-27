@@ -581,34 +581,37 @@ export default function LowStockAlerts() {
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="w-full max-w-none py-8 space-y-8">
 
-        {/* ── Heading ───────────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 shrink-0">
-              <AlertTriangle className="h-5 w-5 text-white" />
-            </div>
+          {/* ── Page header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-                Low Stock Alerts
-              </h1>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 text-orange-600 shrink-0">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Low Stock Alerts
+                </h1>
+              </div>
+              <p className="text-sm text-slate-500 mt-1 ml-16">
                 Products at or below their reorder threshold — act before stock runs out.
               </p>
             </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { refreshInventory(); fetchAlerts(); }}
+                disabled={isLoading}
+                title="Refresh Alerts"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-orange-600 hover:border-orange-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => { refreshInventory(); fetchAlerts(); }}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 self-start shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors sm:self-auto"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
-        </div>
 
-        {/* ── Analytics cards ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* ── Analytics cards ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
           <SummaryCard
             icon={AlertTriangle}
             iconBg="bg-amber-50"
@@ -636,64 +639,68 @@ export default function LowStockAlerts() {
         </div>
 
         {/* ── Filter + search ───────────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
-            {[{ k: "all", l: "All" }, { k: "LOW_STOCK", l: "Low Stock" }, { k: "OUT_OF_STOCK", l: "Out of Stock" }].map((t) => (
-              <button
-                key={t.k}
-                onClick={() => setStatusFilter(t.k)}
-                className={`rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-150 ${
-                  statusFilter === t.k
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {t.l}
-              </button>
-            ))}
-          </div>
-          <div className="relative sm:w-72">
-            <input
-              type="text"
-              placeholder="Search by product or category…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl shadow-sm px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-slate-300 transition-all duration-200"
-            />
-          </div>
-        </div>
-
-        {/* ── Table ────────────────────────────────────────────────────── */}
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          {isLoading ? (
-            <SkeletonTable
-              rows={4}
-              columns={[
-                { width: "w-44", flexible: true },
-                { width: "w-24" },
-                { width: "w-16" },
-                { width: "w-16" },
-                { width: "w-20" },
-                { width: "w-28", align: "right" },
-              ]}
-            />
-          ) : visibleAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <PackageSearch className="h-10 w-10 text-slate-300 mb-1" strokeWidth={1.2} />
-              <p className="text-sm font-medium text-slate-500">
-                {alertSource.length === 0 ? "All products are well-stocked!" : "No items match your filters."}
-              </p>
-              <p className="text-xs text-slate-400">
-                {alertSource.length === 0
-                  ? "No low-stock or out-of-stock alerts at the moment."
-                  : "Try adjusting the filter or search term."}
-              </p>
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-6 border-b border-slate-200 bg-slate-50/50">
+              <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
+                {[{ k: "all", l: "All" }, { k: "LOW_STOCK", l: "Low Stock" }, { k: "OUT_OF_STOCK", l: "Out of Stock" }].map((t) => (
+                  <button
+                    key={t.k}
+                    onClick={() => setStatusFilter(t.k)}
+                    className={`rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-150 ${
+                      statusFilter === t.k
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {t.l}
+                  </button>
+                ))}
+              </div>
+              <div className="relative sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Search by product or category…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto transition-opacity duration-300 opacity-100">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
+
+            {/* ── Table ────────────────────────────────────────────────────── */}
+            <div className="overflow-x-auto min-h-[400px]">
+              {isLoading ? (
+                <div className="p-6">
+                  <SkeletonTable
+                    rows={4}
+                    columns={[
+                      { width: "w-44", flexible: true },
+                      { width: "w-24" },
+                      { width: "w-16" },
+                      { width: "w-16" },
+                      { width: "w-20" },
+                      { width: "w-28", align: "right" },
+                    ]}
+                  />
+                </div>
+              ) : visibleAlerts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+                  <PackageSearch className="h-10 w-10 text-slate-300 mb-1" strokeWidth={1.2} />
+                  <p className="text-sm font-medium text-slate-500">
+                    {alertSource.length === 0 ? "All products are well-stocked!" : "No items match your filters."}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {alertSource.length === 0
+                      ? "No low-stock or out-of-stock alerts at the moment."
+                      : "Try adjusting the filter or search term."}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto transition-opacity duration-300 opacity-100">
+                  <table className="w-full text-sm text-left">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/80">
                     {[
                       { h: "Product Name",  align: "text-left"   },
                       { h: "Category",      align: "text-left"   },
@@ -775,7 +782,7 @@ export default function LowStockAlerts() {
           )}
           {/* ── Footer count ── */}
           {!isLoading && visibleAlerts.length > 0 && (
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
               <p className="text-xs text-slate-500">
                 {isDummy ? "Showing sample data — live inventory not yet available." : (
                   <>Showing{" "}
@@ -788,6 +795,8 @@ export default function LowStockAlerts() {
               </p>
             </div>
           )}
+        </div>
+        </div>
         </div>
 
         {/* Row count / source note — keep as spacing only when no footer shown */}

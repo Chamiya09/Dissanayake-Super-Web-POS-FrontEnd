@@ -103,19 +103,20 @@ export default function ProductManagement() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto">
+        <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
 
         {/* ── Page header ── */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shrink-0">
-              <Package className="h-5 w-5 text-primary-foreground" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 text-pink-600 shrink-0">
+              <Package size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">
+              <h1 className="text-2xl font-bold text-slate-900 leading-tight">
                 Product Management
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 {loading
                   ? "Loading products…"
                   : `${products.length} product${products.length !== 1 ? "s" : ""} registered`
@@ -127,27 +128,28 @@ export default function ProductManagement() {
           <button
             onClick={() => setIsAddOpen(true)}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add New Product</span>
-            <span className="sm:hidden">Add</span>
+            <Plus size={18} />
+            Add New Product
           </button>
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { label: "Total Products", value: loading ? "—" : products.length },
-            { label: "Categories",     value: loading ? "—" : categories },
-            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%` },
+            { label: "Total Products", value: loading ? "—" : products.length, bg: "bg-blue-50", text: "text-blue-600" },
+            { label: "Categories",     value: loading ? "—" : categories, bg: "bg-indigo-50", text: "text-indigo-600" },
+            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%`, bg: "bg-emerald-50", text: "text-emerald-600" },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between"
             >
-              <p className="text-[22px] font-bold text-foreground tabular-nums">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1 font-medium">{stat.label}</p>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
+                <span className="mt-1 text-3xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -155,28 +157,28 @@ export default function ProductManagement() {
         {/* ── Loading state ── */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground font-medium">Loading products…</p>
+            <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
+            <p className="text-sm text-slate-500 font-medium">Loading products…</p>
           </div>
         )}
 
         {/* ── Error state ── */}
         {!loading && fetchError && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-6 py-5 flex items-start gap-3 max-w-md w-full">
-              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 flex items-start gap-3 max-w-md w-full">
+              <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">
+                <p className="text-sm font-semibold text-red-700">
                   Could not fetch products
                 </p>
-                <p className="text-[12px] text-red-600/80 dark:text-red-400/80">{fetchError}</p>
+                <p className="text-xs text-red-600/80">{fetchError}</p>
               </div>
             </div>
             <button
               onClick={fetchProducts}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw size={14} />
               Retry
             </button>
           </div>
@@ -190,6 +192,7 @@ export default function ProductManagement() {
             onDelete={(p) => setDeleteTarget(p)}
           />
         )}
+        </div>
       </main>
 
       {/* ── Modals ── */}
