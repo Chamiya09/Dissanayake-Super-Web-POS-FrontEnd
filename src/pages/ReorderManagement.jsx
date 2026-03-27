@@ -433,6 +433,28 @@ const DUMMY_SUPPLIERS = [
   { id: 3, companyName: "Anchor Dairy Distributors", contactPerson: "Priya Fernando", email: "purchaseorders@anchor.lk", phone: "+94 11 456 7890" },
 ];
 
+// ── Components ─────────────────────────────────────────────────────────
+
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${iconBg} shadow-inner shrink-0`}
+        >
+          <Icon className={`h-6 w-6 ${iconColor}`} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900 tracking-tight">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ReorderManagement() {
@@ -755,224 +777,253 @@ export default function ReorderManagement() {
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-        <div className="mx-auto max-w-6xl space-y-6">
+        <div className="w-full max-w-none py-8 space-y-8">
 
-        {/* Heading */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 shrink-0">
-            <Package className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-              Reorder Management
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Track and manage all purchase orders placed through the system.
-            </p>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            RECENT PURCHASE ORDERS HISTORY
-        ══════════════════════════════════════════════════════════════════ */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-
-          {/* Section header */}
-          <div className="flex flex-col gap-4 px-6 py-5 border-b border-slate-200">
-            {/* Title row */}
-            <div className="flex items-center justify-between gap-3">
+          {/* ── Page header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 shrink-0">
-                  <ClipboardList className="h-4 w-4 text-white" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-teal-100 text-teal-600 shrink-0">
+                  <Package className="h-6 w-6" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">Purchase Order History</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">All orders placed through this system</p>
-                </div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Reorder Management
+                </h1>
               </div>
-              <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-                {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
-              </span>
-            </div>
-
-            {/* Search + filter controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Search by supplier */}
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search by supplier name…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                />
-              </div>
-
-              {/* Status filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition appearance-none cursor-pointer sm:w-44"
-              >
-                {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
-                  <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
-                ))}
-              </select>
+              <p className="text-sm text-slate-500 mt-1 ml-16">
+                Track and manage all purchase orders placed through the system.
+              </p>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            {historyLoading ? (
-              <SkeletonTable
-                rows={5}
-                columns={[
-                  { width: "w-28" },
-                  { width: "w-44", flexible: true },
-                  { width: "w-36" },
-                  { width: "w-16" },
-                  { width: "w-24" },
-                  { width: "w-20" },
-                  { width: "w-32" },
-                ]}
-              />
-            ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider text-slate-800"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredReorders.map((order, idx) => (
-                  <tr
-                    key={order.id}
-                    className={`transition-colors hover:bg-blue-50/50 ${
-                      idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    }`}
-                  >
-                    <td className="px-5 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
-                      {order.id}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-semibold text-slate-900">{order.productName}</span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
-                      {order.supplierName}
-                    </td>
-                    <td className="px-5 py-4 tabular-nums font-bold text-slate-900 whitespace-nowrap">
-                      {order.quantity}
-                    </td>
-                    <td className="px-5 py-4 tabular-nums text-slate-500 whitespace-nowrap">
-                      {new Date(order.orderDate).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <OrderStatusBadge status={order.status} />
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      {cancelConfirmId === order.id ? (
-                        /* ── Inline cancel confirmation ── */
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Cancel this order?</span>
-                          <button
-                            onClick={() => handleCancelOrder(order.id)}
-                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setCancelConfirmId(null)}
-                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition-all duration-200"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          {/* View — available for every status */}
-                          <button
-                            onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
-                            title="View order email"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            View
-                          </button>
-                          {/* Download PDF — available for every status */}
-                          <button
-                            onClick={() => generatePurchaseOrderPDF(order, managerName)}
-                            title="Download Purchase Order PDF"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            <FileDown className="h-3.5 w-3.5" />
-                            PDF
-                          </button>
-                          {/* Edit — Pending only */}
-                          {order.status === "Pending" && (
-                            <button
-                              onClick={() => setEditOrderModal(order)}
-                              title="Edit Order"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 active:scale-95 transition-all duration-200"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Edit
-                            </button>
-                          )}
-                          {/* Cancel — Pending only */}
-                          {order.status === "Pending" && (
-                            <button
-                              onClick={() => setCancelConfirmId(order.id)}
-                              title="Cancel Order"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            )}
+          {/* ── Summary Cards ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-6 lg:px-8">
+            <SummaryCard
+              label="Total Orders"
+              value={reorders.length}
+              icon={ClipboardList}
+              iconBg="from-slate-100 to-slate-200"
+              iconColor="text-slate-600"
+            />
+            <SummaryCard
+              label="Pending"
+              value={reorders.filter((o) => o.status === "Pending").length}
+              icon={Package}
+              iconBg="from-amber-100 to-amber-200"
+              iconColor="text-amber-600"
+            />
+            <SummaryCard
+              label="Confirmed"
+              value={reorders.filter((o) => o.status === "Confirmed").length}
+              icon={Building2}
+              iconBg="from-blue-100 to-blue-200"
+              iconColor="text-blue-600"
+            />
+            <SummaryCard
+              label="Received"
+              value={reorders.filter((o) => o.status === "Received").length}
+              icon={CheckCircle}
+              iconBg="from-emerald-100 to-emerald-200"
+              iconColor="text-emerald-600"
+            />
           </div>
 
-          {/* Empty state */}
-          {filteredReorders.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <ClipboardList className="h-10 w-10 text-slate-300" strokeWidth={1.2} />
-              {reorders.length === 0 ? (
-                <p className="text-sm font-medium text-slate-500">No purchase orders yet</p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-slate-500">No orders match your search</p>
-                  <button
-                    onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+              {/* Section header */}
+              <div className="flex flex-col gap-4 p-6 border-b border-slate-200 bg-slate-50/50">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Purchase Order History</h2>
+                    <p className="text-sm text-slate-500 mt-1">All orders placed through this system</p>
+                  </div>
+                  <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 font-semibold text-slate-700">
+                    {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
+                  </span>
+                </div>
+
+                {/* Search + filter controls */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Search by supplier */}
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by supplier name…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                    />
+                  </div>
+
+                  {/* Status filter */}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full sm:w-48 rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm font-medium text-slate-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm appearance-none cursor-pointer"
                   >
-                    Clear filters
-                  </button>
-                </>
-              )}
+                    {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
+                      <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto min-h-[400px]">
+                {historyLoading ? (
+                  <div className="p-6">
+                    <SkeletonTable
+                      rows={5}
+                      columns={[
+                        { width: "w-28" },
+                        { width: "w-44", flexible: true },
+                        { width: "w-36" },
+                        { width: "w-16" },
+                        { width: "w-24" },
+                        { width: "w-20" },
+                        { width: "w-32" },
+                      ]}
+                    />
+                  </div>
+                ) : (
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80">
+                      {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", ""].map((h, i) => (
+                        <th
+                          key={h}
+                          className={`px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider ${i === 6 ? "text-right" : ""}`}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredReorders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="group hover:bg-slate-50/80 transition-colors"
+                      >
+                        <td className="px-6 py-6 border-b border-slate-50 font-mono text-xs text-slate-500 whitespace-nowrap">
+                          {order.id}
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50">
+                          <span className="font-semibold text-slate-900">{order.productName}</span>
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50 text-slate-600 whitespace-nowrap">
+                          {order.supplierName}
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50 tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                          {order.quantity}
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50 tabular-nums text-slate-500 whitespace-nowrap">
+                          {new Date(order.orderDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50 whitespace-nowrap">
+                          <OrderStatusBadge status={order.status} />
+                        </td>
+                        <td className="px-6 py-6 border-b border-slate-50 whitespace-nowrap text-right">
+                          {cancelConfirmId === order.id ? (
+                            /* ── Inline cancel confirmation ── */
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-xs font-medium text-slate-600">Cancel?</span>
+                              <button
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setCancelConfirmId(null)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* View */}
+                              <button
+                                onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
+                                title="View order email"
+                                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              {/* Download PDF */}
+                              <button
+                                onClick={() => generatePurchaseOrderPDF(order, managerName)}
+                                title="Download Purchase Order PDF"
+                                className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </button>
+                              {/* Edit — Pending only */}
+                              {order.status === "Pending" && (
+                                <button
+                                  onClick={() => setEditOrderModal(order)}
+                                  title="Edit Order"
+                                  className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              )}
+                              {/* Cancel — Pending only */}
+                              {order.status === "Pending" && (
+                                <button
+                                  onClick={() => setCancelConfirmId(order.id)}
+                                  title="Cancel Order"
+                                  className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                )}
+
+                {/* Empty state */}
+                {!historyLoading && filteredReorders.length === 0 && (
+                  <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                      <Package className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">
+                        {reorders.length === 0 ? "No Purchase Orders" : "No Matches Found"}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                        {reorders.length === 0
+                          ? "Purchase orders will appear here once you start resolving low stock items."
+                          : "Try adjusting your search or filters to see more results."}
+                      </p>
+                    </div>
+                    {reorders.length > 0 && (
+                      <button
+                        onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
+                        className="mt-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Clear all filters
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+
         </div>
-
-        </div>{/* /max-w-6xl */}
       </main>
 
 
