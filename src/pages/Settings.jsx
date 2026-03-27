@@ -697,7 +697,7 @@ export default function Settings() {
           </div>{/* end grid */}
 
         </div>
-      </div>
+      </main>
 
       {/* Deactivation confirmation modal */}
       {showDeactivate && (

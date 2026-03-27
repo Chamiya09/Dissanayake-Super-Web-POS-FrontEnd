@@ -25,7 +25,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 60%;             /* #3B82F6 */
+    --primary: 175 84% 32%;             /* #0d9488 teal-600 */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 9% 95%;            /* #F3F4F6 */
@@ -34,7 +34,7 @@
     --muted: 220 9% 95%;
     --muted-foreground: 220 9% 46%;     /* #6B7280 */
 
-    --accent: 221 83% 53%;              /* #2563EB  hover/darker blue */
+    --accent: 175 70% 41%;              /* teal-500 hover */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;           /* #EF4444 */
@@ -42,19 +42,19 @@
 
     --border: 220 13% 91%;              /* #E5E7EB */
     --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --ring: 175 84% 32%;
 
     --radius: 0.75rem;                  /* 12px */
 
     /* ── Sidebar: slightly darker gray (#F3F4F6) ── */
     --sidebar-background: 220 9% 95%;   /* #F3F4F6 */
     --sidebar-foreground: 222 47% 20%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 175 84% 32%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 100% 97%;     /* #EFF6FF  active item bg */
-    --sidebar-accent-foreground: 221 83% 40%; /* blue text */
+    --sidebar-accent: 175 70% 90%;     /* teal-50 active item bg */
+    --sidebar-accent-foreground: 175 84% 32%; /* teal text */
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 175 84% 32%;
 
     --success: 142 71% 45%;             /* #22C55E */
     --success-foreground: 0 0% 100%;
@@ -70,7 +70,7 @@
     --popover: 222 47% 13%;
     --popover-foreground: 210 40% 95%;
 
-    --primary: 213 94% 68%;             /* #60A5FA — lighter blue for dark bg */
+    --primary: 175 70% 41%;             /* teal-400 for dark bg */
     --primary-foreground: 222 47% 8%;
 
     --secondary: 217 33% 17%;           /* #1E2D40 */
@@ -79,7 +79,7 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;    /* #94A3B8 */
 
-    --accent: 213 94% 68%;
+    --accent: 175 70% 41%;
     --accent-foreground: 222 47% 8%;
 
     --destructive: 0 72% 51%;
@@ -87,16 +87,16 @@
 
     --border: 217 33% 25%;              /* #334155 */
     --input: 217 33% 25%;
-    --ring: 213 94% 68%;
+    --ring: 175 70% 41%;
 
     --sidebar-background: 222 47% 11%;  /* #162032 */
     --sidebar-foreground: 210 40% 85%;
-    --sidebar-primary: 213 94% 68%;
+    --sidebar-primary: 175 70% 41%;
     --sidebar-primary-foreground: 222 47% 8%;
     --sidebar-accent: 217 33% 20%;
-    --sidebar-accent-foreground: 213 94% 78%;
+    --sidebar-accent-foreground: 175 70% 50%;
     --sidebar-border: 217 33% 22%;
-    --sidebar-ring: 213 94% 68%;
+    --sidebar-ring: 175 70% 41%;
 
     --success: 142 76% 55%;
     --success-foreground: 0 0% 100%;
