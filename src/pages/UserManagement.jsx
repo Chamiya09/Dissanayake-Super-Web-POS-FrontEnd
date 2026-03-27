@@ -3,131 +3,121 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Users, Search, UserCircle2, ShieldAlert, Edit3, Trash2, Lock, UserPlus, Loader2 } from "lucide-react";
+import {
+  Users,
+  Search,
+  UserCircle2,
+  ShieldAlert,
+  Edit3,
+  Trash2,
+  Lock,
+  UserPlus,
+  Loader2,
+  Shield,
+  UserCog,
+  RefreshCw,
+  Mail,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/context/GlobalToastContext";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
 import AddUserModal from "@/components/Users/AddUserModal";
 import EditUserModal from "@/components/Users/EditUserModal";
 import DeleteUserModal from "@/components/Users/DeleteUserModal";
-import SuccessPopup from "@/components/ui/SuccessPopup";
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Role-based permission config
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const CAN_ADD_USERS = ["Owner", "Manager"]; // Staff cannot add users
+/* ── Role-based permission config ── */
+const CAN_ADD_USERS = ["Owner", "Manager"];
 
 /* Which roles can each logged-in role edit or delete */
 const MANAGEABLE_ROLES = {
-  Owner:   ["Manager", "Staff"],
+  Owner: ["Manager", "Staff"],
   Manager: ["Staff"],
-  Staff:   [],
+  Staff: [],
 };
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Role badge colours
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const ROLE_STYLES = {
-  Owner:   "bg-red-100   text-red-700   border-red-200   dark:bg-red-900/20   dark:text-red-400   dark:border-red-800",
-  Manager: "bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/20  dark:text-blue-400  dark:border-blue-800",
-  Staff:   "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
-};
-
-const ROLE_DOT = {
-  Owner:   "bg-red-500",
-  Manager: "bg-blue-500",
-  Staff:   "bg-green-500",
-};
-
+/* ── Role badge colours ── */
 function RoleBadge({ role }) {
+  const isOwner = role === "Owner";
+  const isManager = role === "Manager";
+  // Staff fallback
+  
+  const label = role;
+  const dot = isOwner ? "bg-red-500" : isManager ? "bg-blue-500" : "bg-green-500";
+  const colour = isOwner
+    ? "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800"
+    : isManager
+    ? "bg-blue-500/10 text-blue-700 border-blue-200 dark:text-blue-400 dark:border-blue-800"
+    : "bg-green-500/10 text-green-700 border-green-200 dark:text-green-400 dark:border-green-800";
+
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
-        ROLE_STYLES[role]
+        colour
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[role])} />
-      {role}
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
+      {label}
     </span>
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Avatar initials helper
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const AVATAR_COLOURS = [
-  "bg-violet-100 text-violet-700",
-  "bg-sky-100 text-sky-700",
-  "bg-amber-100 text-amber-700",
-  "bg-teal-100 text-teal-700",
-  "bg-pink-100 text-pink-700",
-  "bg-orange-100 text-orange-700",
-];
-
-function Avatar({ fullName, index }) {
-  const initials = fullName
+/* ── Avatar initials helper ── */
+function UserAvatar({ name }) {
+  const initials = name
     .split(" ")
     .slice(0, 2)
-    .map((n) => n[0])
+    .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const colour = AVATAR_COLOURS[index % AVATAR_COLOURS.length];
   return (
-    <div
-      className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-        colour
-      )}
-    >
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 text-[12px] font-bold select-none tracking-wide">
       {initials}
     </div>
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Empty State
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function EmptyState({ onAdd }) {
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground gap-3">
-      <UserCircle2 className="h-12 w-12 opacity-25" />
-      <p className="text-base font-medium text-foreground">No users found</p>
-      <p className="text-sm">Try adjusting your search or add a new user.</p>
-      <Button size="sm" className="mt-2 gap-2" onClick={onAdd}>
-        <UserPlus className="h-4 w-4" /> Add User
-      </Button>
+    <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+      </div>
+      <p className="mt-3 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
     </div>
   );
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   UserManagement page
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function UserManagement() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const currentUserRole = user?.role ?? "Staff";
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [popup, setPopup] = useState({ show: false, type: "success", message: "" });
 
   const canAddUsers = CAN_ADD_USERS.includes(currentUserRole);
 
-  /* â”€â”€ Permission helpers â”€â”€ */
   const canManage = (targetUser) =>
     targetUser.username !== "admin" &&
     (MANAGEABLE_ROLES[currentUserRole] ?? []).includes(targetUser.role);
 
-  const showPopup = (type, message) =>
-    setPopup({ show: true, type, message });
-
-  /* â”€â”€ Fetch users from API â”€â”€ */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -138,35 +128,34 @@ export default function UserManagement() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  /* â”€â”€ Filtering â”€â”€ */
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     const matchesSearch =
       u.fullName.toLowerCase().includes(q) ||
       u.username.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q);
-    const matchesRole = roleFilter === "All" || u.role === roleFilter;
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
-  /* â”€â”€ CRUD handlers â”€â”€ */
   const handleAdd = async (formData) => {
     try {
       const { data: created } = await api.post("/api/users", {
         fullName: formData.fullName,
         username: formData.username,
-        email:    formData.email,
-        role:     formData.role,
+        email: formData.email,
+        role: formData.role,
         password: formData.password,
       });
       setUsers((prev) => [created, ...prev]);
       showToast(`${created.fullName} has been added successfully!`, "success");
+      setIsAddOpen(false);
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to add user.", "error");
     }
@@ -177,15 +166,15 @@ export default function UserManagement() {
       const { data: saved } = await api.put(`/api/users/${updated.id}`, {
         fullName: updated.fullName,
         username: updated.username,
-        email:    updated.email,
-        role:     updated.role,
+        email: updated.email,
+        role: updated.role,
       });
       setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
       showToast(`${saved.fullName} has been updated successfully!`, "success");
+      setEditTarget(null);
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to update user.", "error");
     }
-    setEditTarget(null);
   };
 
   const handleDelete = async (targetUser) => {
@@ -193,218 +182,236 @@ export default function UserManagement() {
       await api.delete(`/api/users/${targetUser.id}`);
       setUsers((prev) => prev.filter((u) => u.id !== targetUser.id));
       showToast(`${targetUser.fullName} has been removed.`, "success");
+      setDeleteTarget(null);
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to delete user.", "error");
     }
-    setDeleteTarget(null);
   };
 
-  const ROLE_FILTERS = ["All", "Owner", "Manager", "Staff"];
-
-  /* â”€â”€ Derived stats â”€â”€ */
-  const ownerCount   = users.filter((u) => u.role === "Owner").length;
+  const ownerCount = users.filter((u) => u.role === "Owner").length;
   const managerCount = users.filter((u) => u.role === "Manager").length;
-  const staffCount   = users.filter((u) => u.role === "Staff").length;
+  const staffCount = users.filter((u) => u.role === "Staff").length;
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="w-full max-w-none py-8 space-y-8">
 
-        {/* â”€â”€ Page header â”€â”€ */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-              <Users className="h-5 w-5" />
-            </div>
+          {/* ── Page header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">
-                User Management
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {users.length} user{users.length !== 1 ? "s" : ""} registered
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 shrink-0">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  System Users
+                </h1>
+              </div>
+              <p className="text-sm text-slate-500 mt-1 ml-16">
+                {loading
+                  ? "Loading users..."
+                  : `Manage system access, roles, and staff accounts · ${users.length} active user${users.length !== 1 ? "s" : ""}`}
               </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchUsers}
+                disabled={loading}
+                title="Refresh List"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:border-blue-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </button>
+
+              {canAddUsers ? (
+                <button
+                  onClick={() => setIsAddOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add User</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-medium text-orange-700 shadow-sm shrink-0">
+                  <ShieldAlert className="h-4 w-4" />
+                  No permission to add
+                </div>
+              )}
             </div>
           </div>
 
-          {canAddUsers ? (
-            <Button
-              onClick={() => setIsAddOpen(true)}
-              className="gap-2 shadow-sm shrink-0"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add New User</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[11px] font-semibold text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400 shrink-0">
-              <ShieldAlert className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">No permission to add</span>
-            </div>
-          )}
-        </div>
-
-        {/* â”€â”€ Stats strip â”€â”€ */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Total Users",   value: users.length  },
-            { label: "Owners",        value: ownerCount    },
-            { label: "Managers",      value: managerCount  },
-            { label: "Staff Members", value: staffCount    },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
-            >
-              <p className="text-[22px] font-bold text-foreground tabular-nums">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* â”€â”€ Search + filter strip â”€â”€ */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search usersâ€¦"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-56 pl-8 text-sm"
+          {/* ── Stats strip ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
+            <SummaryCard
+              icon={Users}
+              iconBg="bg-blue-50"
+              iconColor="text-blue-600"
+              label="TOTAL USERS"
+              value={users.length}
+            />
+            <SummaryCard
+              icon={UserCog}
+              iconBg="bg-indigo-50"
+              iconColor="text-indigo-600"
+              label="ACTIVE MANAGERS"
+              value={managerCount}
+            />
+            <SummaryCard
+              icon={Shield}
+              iconBg="bg-violet-50"
+              iconColor="text-violet-600"
+              label="TOTAL STAFF"
+              value={staffCount}
             />
           </div>
 
-          <div className="flex gap-1">
-            {ROLE_FILTERS.map((r) => (
-              <button
-                key={r}
-                onClick={() => setRoleFilter(r)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors",
-                  roleFilter === r
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+          {/* ── Main content (Filters and Table) ── */}
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+              {/* Toolbar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                  <Input
+                    placeholder="Search users..."
+                    className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2 shrink-0">
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="h-10 w-44 text-sm bg-white border-slate-200 rounded-xl focus:ring-slate-300">
+                      <SelectValue placeholder="All Roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="Owner">Owners</SelectItem>
+                      <SelectItem value="Manager">Managers</SelectItem>
+                      <SelectItem value="Staff">Staff</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(search !== "" || roleFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
+                    onClick={() => { setSearch(""); setRoleFilter("all"); }}
+                  >
+                    Clear
+                  </Button>
                 )}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* â”€â”€ Table â”€â”€ */}
-        {loading ? (
-          <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Loading usersâ€¦</span>
-          </div>
-        ) : filtered.length === 0 ? (
-          <EmptyState onAdd={() => setIsAddOpen(true)} />
-        ) : (
-          <div className="rounded-xl border border-border bg-card overflow-x-auto shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/50 border-b border-border">
-                  <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-10">
-                    #
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    User
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">
-                    Username
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Role
-                  </th>
-                  <th className="px-6 py-4 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-border">
-                {filtered.map((u, idx) => (
-                  <tr key={u.id} className="transition-colors hover:bg-muted/40">
-                    <td className="px-6 py-4 text-xs text-muted-foreground">{idx + 1}</td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar fullName={u.fullName} index={users.indexOf(u)} />
-                        <span className="font-medium text-foreground">{u.fullName}</span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground hidden sm:table-cell">
-                      @{u.username}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-muted-foreground hidden md:table-cell">
-                      {u.email}
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <RoleBadge role={u.role} />
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-1">
-                        {canManage(u) ? (
-                          <>
-                            <button
-                              onClick={() => setEditTarget(u)}
-                              title={`Edit ${u.fullName}`}
-                              className="rounded-lg p-1.5 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
-                            >
-                              <Edit3 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteTarget(u)}
-                              title={`Delete ${u.fullName}`}
-                              className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <span
-                            title={
-                              u.username === "admin"
-                                ? "Admin account is protected"
-                                : "Insufficient permissions"
-                            }
-                            className="inline-flex items-center rounded-lg p-1.5 text-muted-foreground/40 cursor-not-allowed"
-                          >
-                            <Lock className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Table footer */}
-            <div className="border-t border-border bg-muted/30 px-6 py-3">
-              <p className="text-xs text-muted-foreground">
-                Showing{" "}
-                <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
-                of{" "}
-                <span className="font-semibold text-foreground">{users.length}</span>{" "}
-                users
-              </p>
+              {/* Table */}
+              <div className="hidden md:block overflow-x-auto bg-white">
+                {loading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    <span className="ml-2 text-sm text-slate-500">Loading users...</span>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <UserCircle2 className="h-12 w-12 text-slate-300 mb-3" />
+                    <p className="text-sm font-medium text-slate-900">No users found</p>
+                    <p className="text-sm text-slate-500">
+                      Try adjusting your search criteria or add a new user.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                          User
+                        </th>
+                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                          Contact
+                        </th>
+                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                          Role
+                        </th>
+                        <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filtered.map((u) => (
+                        <tr 
+                          key={u.id} 
+                          className="group transition-colors duration-150 hover:bg-slate-50/60"
+                        >
+                          <td className="px-6 py-6">
+                            <div className="flex items-center gap-3">
+                              <UserAvatar name={u.fullName} />
+                              <div>
+                                <p className="font-semibold text-slate-900 leading-tight">
+                                  {u.fullName}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-0.5">@{u.username}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                              {u.email}
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <RoleBadge role={u.role} />
+                          </td>
+                          <td className="px-6 py-6 text-right">
+                            <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                              {canManage(u) ? (
+                                <>
+                                  <button
+                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    onClick={() => setEditTarget(u)}
+                                    title={`Edit ${u.fullName}`}
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    onClick={() => setDeleteTarget(u)}
+                                    title={`Delete ${u.fullName}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 cursor-not-allowed"
+                                  disabled
+                                  title={u.username === "admin" ? "Admin account is protected" : "Insufficient permissions"}
+                                >
+                                  <Lock className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      </main>
 
-      </main>{/* end scrollable area */}
-
-      {/* â”€â”€ Modals â”€â”€ */}
       {isAddOpen && (
         <AddUserModal
           onClose={() => setIsAddOpen(false)}
@@ -429,8 +436,6 @@ export default function UserManagement() {
           onConfirm={() => handleDelete(deleteTarget)}
         />
       )}
-
-      
     </div>
   );
 }
