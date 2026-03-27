@@ -174,6 +174,7 @@ export default function SalesManagement() {
                   {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
                 </p>
               </div>
+            </div>
         </div>
 
         {/* ── Stats strip ── */}

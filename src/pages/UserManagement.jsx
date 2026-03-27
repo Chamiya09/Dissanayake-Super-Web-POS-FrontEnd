@@ -215,6 +215,7 @@ export default function UserManagement() {
                       : `Manage system access, roles, and staff accounts · ${users.length} active user${users.length !== 1 ? "s" : ""}`}
                   </p>
                 </div>
+              </div>
 
             <div className="flex items-center gap-3">
               <button

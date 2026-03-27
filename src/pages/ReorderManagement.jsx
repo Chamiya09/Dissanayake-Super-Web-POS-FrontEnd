@@ -184,7 +184,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
           <div className="flex items-center justify-end border-t border-slate-100 bg-white px-5 py-4 shrink-0">
             <button
               onClick={onClose}
-              className="inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex items-center rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-none hover:bg-teal-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2"
             >
               Close
             </button>
@@ -308,7 +308,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               <input
                 type="number" min="1" value={qty}
                 onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all"
               />
               <button
                 onClick={() => setQty((q) => q + 1)}
@@ -327,7 +327,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="supplier@example.com"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all"
             />
           </div>
 
@@ -340,7 +340,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={8}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 caret-black outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all resize-none"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 caret-black outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all resize-none"
             />
           </div>
         </div>
@@ -787,10 +787,7 @@ export default function ReorderManagement() {
                     Track and manage all purchase orders placed through the system.
                   </p>
                 </div>
-          </div>
-
-          {/* ── Summary Cards ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-6 lg:px-8">
+                </div>
             <SummaryCard
               label="TOTAL ORDERS"
               value={reorders.length}
