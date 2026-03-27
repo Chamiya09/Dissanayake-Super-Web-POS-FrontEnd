@@ -41,14 +41,13 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
   // Soft pastel icon-area background per category (light + dark)
   const categoryBg: Record<string, string> = {
-    Fruits:     "bg-rose-50    dark:bg-rose-900/30",
-    Dairy:      "bg-blue-50    dark:bg-blue-900/30",
-    Beverages:  "bg-sky-50     dark:bg-sky-900/30",
-    Bakery:     "bg-amber-50   dark:bg-amber-900/30",
-    Snacks:     "bg-lime-50    dark:bg-lime-900/30",
-    Meat:       "bg-red-50     dark:bg-red-900/30",
-    Vegetables: "bg-green-50   dark:bg-green-900/30",
-  };
+  Fruits:     "bg-rose-50",
+  Dairy:      "bg-blue-50",
+  Beverages:  "bg-sky-50",
+  Bakery:     "bg-amber-50",
+  Snacks:     "bg-lime-50",
+  Meat:       "bg-red-50",
+  Vegetables: "bg-green-50",
 
   // Category accent border color (top strip)
   const categoryBorder: Record<string, string> = {

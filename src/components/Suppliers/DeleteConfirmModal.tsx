@@ -61,7 +61,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
       {/* Panel */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl",
+          "relative z-10 w-full max-w-md rounded-2xl border border-slate-100 bg-white shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
@@ -70,7 +70,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
           onClick={onClose}
           disabled={deleting}
           aria-label="Close modal"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:pointer-events-none disabled:opacity-50"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors disabled:pointer-events-none disabled:opacity-50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -78,7 +78,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
         {/* Body */}
         <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center gap-4">
           {/* Warning icon */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-8 ring-red-500/5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600 ring-8 ring-red-50/50">
             <AlertTriangle className="h-8 w-8" />
           </div>
 
@@ -86,35 +86,35 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
           <div className="space-y-1.5">
             <h2
               id="delete-supplier-title"
-              className="text-[18px] font-bold text-foreground"
+              className="text-[18px] font-bold text-slate-900"
             >
               Delete Supplier?
             </h2>
-            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
+            <p className="text-[13px] text-slate-500 leading-relaxed max-w-xs mx-auto">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">{supplier.companyName}</span>?
+              <span className="font-semibold text-slate-900">{supplier.companyName}</span>?
               This action cannot be undone.
             </p>
           </div>
 
           {/* Supplier detail chip */}
-          <div className="w-full rounded-xl border border-border bg-muted/40 px-4 py-3 text-left space-y-1">
-            <p className="text-[12px] font-semibold text-foreground">{supplier.companyName}</p>
-            <p className="text-[11px] text-muted-foreground">
+          <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left space-y-1">
+            <p className="text-[12px] font-semibold text-slate-900">{supplier.companyName}</p>
+            <p className="text-[11px] text-slate-500">
               {supplier.id} &middot; {supplier.contactPerson} &middot; {supplier.phone}
             </p>
           </div>
 
           {/* API error */}
           {apiError && (
-            <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+            <div className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
               {apiError}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
           <Button
             variant="outline"
             onClick={onClose}
@@ -128,8 +128,8 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
             disabled={deleting}
             className={cn(
               "h-9 px-5 text-[13px] gap-2 shadow-sm",
-              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-              "focus-visible:ring-red-500 dark:bg-red-600 dark:hover:bg-red-700"
+              "bg-red-600 text-white hover:bg-red-700",
+              "focus-visible:ring-red-500"
             )}
           >
             {deleting ? (

@@ -109,8 +109,8 @@ export function PaymentMethodModal({ open, onConfirm, onClose }: PaymentMethodMo
             className={cn(
               "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 py-8 px-4 transition-all duration-150 focus:outline-none select-none",
               selected === "Cash"
-                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/25 scale-[1.04]"
-                : "border-border bg-secondary/30 hover:border-emerald-300 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10"
+                ? "border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/25 scale-[1.04]"
+                : "border-border bg-secondary/30 hover:border-emerald-300 hover:bg-emerald-50/40"
             )}
           >
             {/* Icon circle */}
@@ -129,7 +129,7 @@ export function PaymentMethodModal({ open, onConfirm, onClose }: PaymentMethodMo
             {/* Label */}
             <span className={cn(
               "text-[16px] font-black tracking-widest uppercase transition-colors",
-              selected === "Cash" ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"
+              selected === "Cash" ? "text-emerald-700" : "text-muted-foreground"
             )}>
               CASH
             </span>
@@ -153,8 +153,8 @@ export function PaymentMethodModal({ open, onConfirm, onClose }: PaymentMethodMo
             className={cn(
               "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 py-8 px-4 transition-all duration-150 focus:outline-none select-none",
               selected === "Card"
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/25 scale-[1.04]"
-                : "border-border bg-secondary/30 hover:border-blue-300 hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+                ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/25 scale-[1.04]"
+                : "border-border bg-secondary/30 hover:border-blue-300 hover:bg-blue-50/40"
             )}
           >
             {/* Icon circle */}
@@ -173,7 +173,7 @@ export function PaymentMethodModal({ open, onConfirm, onClose }: PaymentMethodMo
             {/* Label */}
             <span className={cn(
               "text-[16px] font-black tracking-widest uppercase transition-colors",
-              selected === "Card" ? "text-blue-700 dark:text-blue-400" : "text-muted-foreground"
+              selected === "Card" ? "text-blue-700" : "text-muted-foreground"
             )}>
               CARD
             </span>

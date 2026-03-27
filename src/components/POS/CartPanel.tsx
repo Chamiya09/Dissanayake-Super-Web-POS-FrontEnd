@@ -28,10 +28,10 @@ interface CartPanelProps {
 function TierBadge({ tier }: { tier: LoyaltyCustomer["tier"] }) {
   const cfg = TIER_CONFIG[tier];
   const color: Record<string, string> = {
-    Bronze:   "bg-amber-100  text-amber-700  border-amber-200  dark:bg-amber-900/30  dark:text-amber-500  dark:border-amber-800",
-    Silver:   "bg-slate-100  text-slate-500  border-slate-200  dark:bg-slate-800/60  dark:text-slate-400  dark:border-slate-700",
-    Gold:     "bg-yellow-50  text-yellow-600 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
-    Platinum: "bg-sky-50     text-sky-500    border-sky-200    dark:bg-sky-900/30    dark:text-sky-400    dark:border-sky-800",
+    Bronze:   "bg-amber-100  text-amber-700  border-amber-200",
+    Silver:   "bg-slate-100  text-slate-500  border-slate-200",
+    Gold:     "bg-yellow-50  text-yellow-600 border-yellow-200",
+    Platinum: "bg-sky-50     text-sky-500    border-sky-200",
   };
   return (
     <span className={cn("inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", color[tier])}>
@@ -564,7 +564,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                       <span className="font-semibold text-foreground">{loyaltyCustomer.points.toLocaleString()}</span>&nbsp;pts balance
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-center gap-1 font-semibold text-emerald-600">
                     <span>+{pointsEarned}</span>
                     <span className="font-normal text-muted-foreground">pts earned</span>
                   </div>
@@ -577,8 +577,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-[12px] text-left transition-all",
                       redeemPoints
-                        ? "border-amber-400 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                        : "border-border bg-card text-muted-foreground hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-900/10"
+                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                        : "border-border bg-card text-muted-foreground hover:border-amber-300 hover:bg-amber-50/50"
                     )}
                   >
                     <Star className={cn(
@@ -618,17 +618,17 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
           </div>
           {loyaltyDiscount > 0 && (
-            <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
-              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60">
+              <span className="flex items-center gap-1.5 text-amber-600">
                 <Star className="h-3 w-3 fill-amber-400/30" />
                 Loyalty Discount
               </span>
-              <span className="tabular-nums font-bold text-amber-600 dark:text-amber-400">
+              <span className="tabular-nums font-bold text-amber-600">
                 -{formatCurrency(loyaltyDiscount)}
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-900/30">
+          <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 border-t border-blue-100">
             <span className="text-[13px] font-bold text-foreground">Total</span>
             <div className="flex items-baseline gap-1.5">
               {loyaltyDiscount > 0 && (
@@ -652,8 +652,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               className={cn(
                 "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
                 paymentMethod === "Cash"
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/20"
-                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10"
+                  ? "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-500/20"
+                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40"
               )}
             >
               <div className={cn(
@@ -667,7 +667,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               <span className={cn(
                 "text-[12.5px] font-bold transition-colors",
                 paymentMethod === "Cash"
-                  ? "text-emerald-700 dark:text-emerald-400"
+                  ? "text-emerald-700"
                   : "text-muted-foreground"
               )}>
                 Cash
@@ -686,8 +686,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               className={cn(
                 "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
                 paymentMethod === "Card"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/20"
-                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+                  ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-500/20"
+                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40"
               )}
             >
               <div className={cn(
@@ -701,7 +701,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               <span className={cn(
                 "text-[12.5px] font-bold transition-colors",
                 paymentMethod === "Card"
-                  ? "text-blue-700 dark:text-blue-400"
+                  ? "text-blue-700"
                   : "text-muted-foreground"
               )}>
                 Card
