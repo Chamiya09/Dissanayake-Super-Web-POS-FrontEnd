@@ -8,10 +8,20 @@ let idCounter = 0;
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const showToast = useCallback((message, type = 'info', title) => {
+  const showToast = useCallback((msgOrObj, type = 'info', title) => {
+    let message = msgOrObj;
+    let toastType = type;
+    let toastTitle = title;
+
+    if (typeof msgOrObj === 'object' && msgOrObj !== null) {
+      message = msgOrObj.message || '';
+      toastType = msgOrObj.type || 'info';
+      toastTitle = msgOrObj.title;
+    }
+
     const id = ++idCounter;
-    setToasts((prev) => [...prev, { id, message, type, title }]);
-    
+    setToasts((prev) => [...prev, { id, message, type: toastType, title: toastTitle }]);
+
     setTimeout(() => {
       removeToast(id);
     }, 3000);
@@ -24,7 +34,7 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast, toasts, removeToast }}>
       {children}
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-3 pointer-events-none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
         ))}
