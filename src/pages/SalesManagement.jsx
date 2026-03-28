@@ -9,7 +9,7 @@ const API = "/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw } from "lucide-react";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw, TrendingUp, CheckCircle } from "lucide-react";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 
 
@@ -178,19 +178,50 @@ export default function SalesManagement() {
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 px-4 sm:px-6 lg:px-8">
-          {[
-            { label: "Total Revenue",   value: formatCurrency(totalRevenue) },
-            { label: "Completed Sales", value: completedSales.length },
-            { label: "Cash Payments",   value: cashCount },
-            { label: "Card Payments",   value: cardCount },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
-              <p className="text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{stat.value}</p>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-2">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 sm:px-6 lg:px-8">
+            {[
+              { 
+                label: "Total Revenue",   
+                value: formatCurrency(totalRevenue),
+                icon: TrendingUp,
+                iconBg: "bg-indigo-50",
+                iconColor: "text-indigo-600"
+              },
+              { 
+                label: "Completed Sales", 
+                value: completedSales.length,
+                icon: CheckCircle,
+                iconBg: "bg-emerald-50",
+                iconColor: "text-emerald-600"
+              },
+              { 
+                label: "Cash Payments",   
+                value: cashCount,
+                icon: Banknote,
+                iconBg: "bg-amber-50",
+                iconColor: "text-amber-600"
+              },
+              { 
+                label: "Card Payments",   
+                value: cardCount,
+                icon: CreditCard,
+                iconBg: "bg-blue-50",
+                iconColor: "text-blue-600"
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", stat.iconBg, stat.iconColor)}>
+                    <stat.icon className="h-6 w-6" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
+                    <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">

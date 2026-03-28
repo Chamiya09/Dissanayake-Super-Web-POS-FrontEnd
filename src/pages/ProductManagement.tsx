@@ -4,7 +4,7 @@ import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
-import { Package, Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Package, Plus, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
@@ -138,17 +138,24 @@ export default function ProductManagement() {
         {/* ── Stats strip ── */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { label: "Total Products", value: loading ? "—" : products.length, bg: "bg-blue-50", text: "text-blue-600" },
-            { label: "Categories",     value: loading ? "—" : categories, bg: "bg-indigo-50", text: "text-indigo-600" },
-            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%`, bg: "bg-emerald-50", text: "text-emerald-600" },
+            { label: "Total Products", value: loading ? "—" : products.length, bg: "bg-blue-50", text: "text-blue-600", icon: Package },
+            { label: "Categories",     value: loading ? "—" : categories, bg: "bg-indigo-50", text: "text-indigo-600", icon: Layers },
+            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%`, bg: "bg-emerald-50", text: "text-emerald-600", icon: TrendingUp },
           ].map((stat) => (
             <div
               key={stat.label}
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between"
             >
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
-                <span className="mt-1 text-3xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
+              <div className="flex items-center gap-4">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg} ${stat.text}`}
+                >
+                  <stat.icon className="h-6 w-6" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
+                  <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
+                </div>
               </div>
             </div>
           ))}
