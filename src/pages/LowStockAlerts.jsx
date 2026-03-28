@@ -11,6 +11,8 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
   PackageSearch,
+  Search,
+  SlidersHorizontal,
   RefreshCw,
   DollarSign,
   ArrowRight,
@@ -648,32 +650,44 @@ export default function LowStockAlerts() {
 
         {/* ── Filter + search ───────────────────────────────────────────── */}
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-6 border-b border-slate-200 bg-slate-50/50">
-              <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
-                {[{ k: "all", l: "All" }, { k: "LOW_STOCK", l: "Low Stock" }, { k: "OUT_OF_STOCK", l: "Out of Stock" }].map((t) => (
-                  <button
-                    key={t.k}
-                    onClick={() => setStatusFilter(t.k)}
-                    className={`rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-150 ${
-                      statusFilter === t.k
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {t.l}
-                  </button>
-                ))}
-              </div>
-              <div className="relative sm:w-72">
+          <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by product or category…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                  className="w-full rounded-xl border border-slate-200 bg-white h-10 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
                 />
               </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="h-10 w-full sm:w-44 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="LOW_STOCK">Low Stock</option>
+                  <option value="OUT_OF_STOCK">Out of Stock</option>
+                </select>
+              </div>
+
+              {(search !== "" || statusFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("all");
+                  }}
+                  className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
             {/* ── Table ────────────────────────────────────────────────────── */}
@@ -708,7 +722,7 @@ export default function LowStockAlerts() {
                 <div className="overflow-x-auto transition-opacity duration-300 opacity-100">
                   <table className="w-full text-sm text-left">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50/80">
+                      <tr className="border-b border-slate-100">
                     {[
                       { h: "Product Name",  align: "text-left"   },
                       { h: "Category",      align: "text-left"   },
@@ -719,7 +733,7 @@ export default function LowStockAlerts() {
                     ].map(({ h, align }) => (
                       <th
                         key={h}
-                        className={`px-6 py-3.5 text-[11px] font-black uppercase tracking-wider text-slate-800 whitespace-nowrap ${align}`}
+                        className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent whitespace-nowrap ${align}`}
                       >
                         {h}
                       </th>
@@ -727,12 +741,10 @@ export default function LowStockAlerts() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {visibleAlerts.map((item, idx) => (
+                  {visibleAlerts.map((item) => (
                     <tr
                       key={item.inventoryId}
-                      className={`transition-colors duration-150 hover:bg-blue-50/50 ${
-                        idx % 2 !== 0 ? "bg-slate-50/50" : "bg-white"
-                      }`}
+                      className="group transition-colors duration-150 hover:bg-slate-50/60"
                     >
                       {/* Product Name */}
                       <td className="px-6 py-4">
@@ -776,7 +788,7 @@ export default function LowStockAlerts() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 opacity-0 group-hover:opacity-100"
                         >
                           Place Order
                           <ArrowRight className="h-3.5 w-3.5" />

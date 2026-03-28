@@ -423,6 +423,69 @@ export default function UserManagement() {
                   </table>
                 )}
               </div>
+
+              {/* Mobile card list */}
+              <div className="md:hidden divide-y divide-slate-100 bg-white">
+                {loading ? (
+                  <div className="flex items-center justify-center py-16 text-slate-500">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="ml-2 text-sm">Loading users...</span>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <UserCircle2 className="h-10 w-10 text-slate-300 mb-2" />
+                    <p className="text-sm font-medium text-slate-900">No users found</p>
+                    <p className="text-xs text-slate-500 mt-1">Try changing your filters.</p>
+                  </div>
+                ) : (
+                  filtered.map((u) => (
+                    <div key={u.id} className="p-6 space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar name={u.fullName} />
+                          <div>
+                            <p className="font-semibold text-slate-900 leading-tight">{u.fullName}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">@{u.username}</p>
+                          </div>
+                        </div>
+                        <RoleBadge role={u.role} />
+                      </div>
+
+                      <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{u.email}</span>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        {canManage(u) ? (
+                          <>
+                            <button
+                              className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                              onClick={() => setEditTarget(u)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-red-50 hover:text-red-700 transition-colors"
+                              onClick={() => setDeleteTarget(u)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="w-full h-10 rounded-xl border border-slate-200 text-slate-400 text-sm font-medium cursor-not-allowed"
+                            disabled
+                            title={u.username === "admin" ? "Admin account is protected" : "Insufficient permissions"}
+                          >
+                            Protected Account
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

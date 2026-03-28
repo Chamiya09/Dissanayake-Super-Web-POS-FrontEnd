@@ -28,6 +28,7 @@ import {
   PackageCheck,
   Search,
   FileDown,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -865,26 +866,42 @@ export default function ReorderManagement() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Search by supplier */}
                   <div className="relative flex-1">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search by supplier name…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                      className="w-full rounded-xl border border-slate-200 bg-white h-10 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
                     />
                   </div>
 
                   {/* Status filter */}
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full sm:w-48 rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm font-medium text-slate-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm appearance-none cursor-pointer"
-                  >
-                    {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
-                      <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full sm:w-44 h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all appearance-none cursor-pointer"
+                    >
+                      {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
+                        <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(searchQuery !== "" || statusFilter !== "All") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("All");
+                      }}
+                      className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
 

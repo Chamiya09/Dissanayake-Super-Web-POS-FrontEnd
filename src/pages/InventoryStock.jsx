@@ -1122,84 +1122,75 @@ const InventoryStock = () => {
       {/* ── Analytics Cards (from InventoryContext) ───────────────────── */}
       <InventoryAnalyticsCards />
 
-      {/* ── Search + Category Filter Row ────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      {/* ── Table Card ───────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden min-h-[500px] flex flex-col">
+        {/* ── Search + Category Filter Row ─────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
 
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search
-            size={15}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-          {search && (
+          {/* Search input */}
+          <div className="relative flex-1 min-w-0">
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={13} strokeWidth={2.5} />
+              </button>
+            )}
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, SKU or category…"
+              className="w-full h-10 bg-white border border-slate-200 rounded-xl pl-10 pr-8 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-300 transition-all"
+            />
+          </div>
+
+          {/* Category dropdown */}
+          <div className="flex items-center gap-2 shrink-0">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <div className="relative w-full sm:w-52">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full h-10 appearance-none pl-4 pr-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
+              >
+                <option value="">All Categories</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
+            </div>
+          </div>
+
+          {/* Clear Filters */}
+          {(search || selectedCategory) && (
             <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => { setSearch(""); setSelectedCategory(""); }}
+              className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
             >
-              <X size={13} strokeWidth={2.5} />
+              Clear
             </button>
           )}
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, SKU or category…"
-            className="
-              w-full bg-white
-              border border-slate-200
-              rounded-xl shadow-sm
-              pl-9 pr-8 py-2.5
-              text-sm text-slate-700
-              placeholder:text-slate-400
-              outline-none
-              focus:ring-2 focus:ring-slate-200 focus:border-slate-400
-              transition-all duration-200
-            "
-          />
         </div>
 
-        {/* Category dropdown */}
-        <div className="relative w-full sm:w-64">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-400 transition-all shadow-sm"
-          >
-            <option value="">All Categories</option>
-            {categoryOptions.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <ChevronDown
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-        </div>
-
-        {/* Clear Filters */}
-        {(search || selectedCategory) && (
-          <button
-            onClick={() => { setSearch(""); setSelectedCategory(""); }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            <X size={16} />
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* ── Table Card ───────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden min-h-[500px] flex flex-col">
         <div className="overflow-x-auto flex-1">
           <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+            <thead className="border-b border-slate-100 sticky top-0 z-10 bg-white">
               <tr>
                 {COLUMNS.map(({ key, label, sortable }) => (
                   <th
                     key={key}
                     onClick={() => sortable && handleSort(key)}
-                    className={`px-6 py-4 font-semibold text-slate-600 ${sortable ? 'cursor-pointer select-none hover:text-slate-900' : ''}`}
+                    className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${sortable ? 'cursor-pointer select-none hover:text-slate-700' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       {label}
@@ -1213,7 +1204,7 @@ const InventoryStock = () => {
             </thead>
 
           {/* Body */}
-          <tbody>
+          <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-20 text-center">
@@ -1224,7 +1215,7 @@ const InventoryStock = () => {
                 </td>
               </tr>
             ) : (
-              filtered.map((item, idx) => {
+              filtered.map((item) => {
                 const qty      = item.stockQuantity  ?? 0;
                 const reorder  = item.reorderLevel   ?? 10;
                 const status   = deriveStatus(qty, reorder);
@@ -1236,10 +1227,10 @@ const InventoryStock = () => {
                 return (
                   <tr
                     key={item.inventoryId}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"
+                    className="group transition-colors duration-150 hover:bg-slate-50/60"
                   >
                     {/* Product Name */}
-                    <td className="px-6 py-6 font-medium text-slate-900 border-b border-slate-100/50">
+                    <td className="px-6 py-6 font-medium text-slate-900">
                       <div className="flex items-center gap-3">
                         <span
                           className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${iconBg}`}
@@ -1258,17 +1249,17 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Category */}
-                    <td className="px-6 py-6 text-slate-500 text-sm border-b border-slate-100/50 whitespace-nowrap">
+                    <td className="px-6 py-6 text-slate-500 text-sm whitespace-nowrap">
                       {item.category}
                     </td>
 
                     {/* Price */}
-                    <td className="px-6 py-6 font-medium text-slate-700 tabular-nums border-b border-slate-100/50">
+                    <td className="px-6 py-6 font-medium text-slate-700 tabular-nums">
                       {formatCurrency(item.sellingPrice)}
                     </td>
 
                     {/* Quantity (stockQuantity) */}
-                    <td className="px-6 py-6 border-b border-slate-100/50">
+                    <td className="px-6 py-6">
                       <div className="flex items-center gap-2">
                         {isWarning && (
                           <span title="Low quantity warning">
@@ -1296,7 +1287,7 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Status */}
-                    <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
+                    <td className="px-6 py-6 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}
                       >
@@ -1306,7 +1297,7 @@ const InventoryStock = () => {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-6 border-b border-slate-100/50 text-right">
+                    <td className="px-6 py-6 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {isLow && (
                           <button
