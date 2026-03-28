@@ -848,7 +848,7 @@ export default function ReorderManagement() {
           </div>
 
           <div className="px-4 sm:px-6 lg:px-8">
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
               {/* Section header */}
               <div className="flex flex-col gap-4 p-6 border-b border-slate-200 bg-slate-50/50">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -908,11 +908,11 @@ export default function ReorderManagement() {
                 ) : (
                 <table className="w-full text-sm text-left">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/80">
+                    <tr className="border-b border-slate-100">
                       {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", ""].map((h, i) => (
                         <th
                           key={h}
-                          className={`px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider ${i === 6 ? "text-right" : ""}`}
+                          className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${i === 6 ? "text-right" : ""}`}
                         >
                           {h}
                         </th>
@@ -923,31 +923,31 @@ export default function ReorderManagement() {
                     {filteredReorders.map((order) => (
                       <tr
                         key={order.id}
-                        className="group hover:bg-slate-50/80 transition-colors"
+                        className="group transition-colors duration-150 hover:bg-slate-50/60"
                       >
-                        <td className="px-6 py-6 border-b border-slate-50 font-mono text-xs text-slate-500 whitespace-nowrap">
+                        <td className="px-6 py-6 font-mono text-xs text-slate-500 whitespace-nowrap">
                           {order.id}
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50">
+                        <td className="px-6 py-6">
                           <span className="font-semibold text-slate-900">{order.productName}</span>
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50 text-slate-600 whitespace-nowrap">
+                        <td className="px-6 py-6 text-slate-600 whitespace-nowrap">
                           {order.supplierName}
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50 tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                        <td className="px-6 py-6 tabular-nums font-bold text-slate-900 whitespace-nowrap">
                           {order.quantity}
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50 tabular-nums text-slate-500 whitespace-nowrap">
+                        <td className="px-6 py-6 tabular-nums text-slate-500 whitespace-nowrap">
                           {new Date(order.orderDate).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                           })}
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50 whitespace-nowrap">
+                        <td className="px-6 py-6 whitespace-nowrap">
                           <OrderStatusBadge status={order.status} />
                         </td>
-                        <td className="px-6 py-6 border-b border-slate-50 whitespace-nowrap text-right">
+                        <td className="px-6 py-6 whitespace-nowrap text-right">
                           {cancelConfirmId === order.id ? (
                             /* ── Inline cancel confirmation ── */
                             <div className="flex items-center justify-end gap-2">

@@ -9,7 +9,14 @@ const API = "/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw, TrendingUp, CheckCircle } from "lucide-react";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw, TrendingUp, CheckCircle, SlidersHorizontal } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 
 
@@ -175,6 +182,7 @@ export default function SalesManagement() {
   const totalRevenue = completedSales.reduce((sum, s) => sum + s.totalAmount, 0);
   const cashCount = completedSales.filter((s) => s.paymentMethod === "Cash").length;
   const cardCount = completedSales.filter((s) => s.paymentMethod === "Card").length;
+  const hasActiveFilters = search !== "" || filterStatus !== "All";
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -247,7 +255,7 @@ export default function SalesManagement() {
           </div>
 
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
             {/* ── Toolbar ── */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
               <div className="relative flex-1 min-w-0">
@@ -259,22 +267,34 @@ export default function SalesManagement() {
                   className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
                 />
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar shrink-0">
-                {["All", "Completed", "Voided", "Returned"].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setFilterStatus(s)}
-                    className={cn(
-                      "rounded-xl px-4 py-2 text-[13px] font-medium transition-colors border shadow-sm whitespace-nowrap",
-                      filterStatus === s
-                        ? "bg-slate-900 text-white border-slate-900"
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                    )}
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 shrink-0">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-10 w-44 text-sm bg-white border-slate-200 rounded-xl focus:ring-slate-300">
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Statuses</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Voided">Voided</SelectItem>
+                    <SelectItem value="Returned">Returned</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
+                  onClick={() => {
+                    setSearch("");
+                    setFilterStatus("All");
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
             </div>
 
             {/* ── Loading spinner ── */}
@@ -296,23 +316,23 @@ export default function SalesManagement() {
 
                   {/* -- Head -- */}
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50">
-                      <th className="w-[14%] px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                    <tr className="border-b border-slate-100">
+                      <th className="w-[14%] px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Receipt No.
                       </th>
-                      <th className="w-[18%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="w-[18%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Date &amp; Time
                       </th>
-                      <th className="w-[16%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="w-[16%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Total Amount
                       </th>
-                      <th className="w-[16%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="w-[16%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Payment Method
                       </th>
-                      <th className="w-[12%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="w-[12%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Status
                       </th>
-                      <th className="w-[24%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="w-[24%] px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Actions
                       </th>
                     </tr>
@@ -383,7 +403,7 @@ export default function SalesManagement() {
 
                         {/* Actions – right-aligned */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-3">
+                          <div className="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover:opacity-100">
                             {/* View */}
                             <Button
                               variant="outline"

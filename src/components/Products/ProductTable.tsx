@@ -1,12 +1,13 @@
 import { useState } from "react";
 import {
   Pencil, Trash2, Search, ChevronDown, X,
-  Package, Apple, Milk, Coffee,
+  Package, Apple, Milk, Coffee, SlidersHorizontal,
   Wheat, Cookie, Beef, Leaf, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { Input } from "@/components/ui/input";
 
 /* ── Category icon map ── */
 const categoryIcon: Record<string, React.ElementType> = {
@@ -145,13 +146,13 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
   const fmt = (n: number) => formatCurrency(n);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col mb-4">
+    <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col mb-4">
 
       {/* ── Search & Filter toolbar ── */}
-      <div className="flex flex-col sm:flex-row gap-4 px-6 py-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
         {/* Search input */}
         <div className="relative flex-1 min-w-0">
-          <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
           {search && (
             <button
               type="button"
@@ -161,27 +162,30 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               <X size={16} />
             </button>
           )}
-          <input
+          <Input
             type="text"
             placeholder="Search by name, SKU or category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl shadow-sm pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-all"
+            className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
           />
         </div>
 
         {/* Category dropdown */}
-        <div className="relative sm:w-64">
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full appearance-none bg-white border border-slate-200 rounded-xl shadow-sm pl-4 pr-10 py-2.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 cursor-pointer transition-all"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
-            ))}
-          </select>
-          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <div className="flex items-center gap-2 shrink-0">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <div className="relative w-full sm:w-52">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="h-10 w-full appearance-none bg-white border border-slate-200 rounded-xl pl-4 pr-10 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer transition-all"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
         </div>
 
         {/* Clear filters — only when active */}
@@ -189,9 +193,8 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           <button
             type="button"
             onClick={() => { setSearch(""); setFilterCategory("All"); }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+            className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
           >
-            <X size={16} />
             Clear
           </button>
         )}
@@ -200,8 +203,8 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       {/* ── Desktop table ── */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
+          <thead>
+            <tr className="border-b border-slate-100">
               {[
                 { label: "Product",       align: "text-left" },
                 { label: "SKU",            align: "text-left" },
@@ -214,14 +217,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               ].map(({ label, align }) => (
                 <th
                   key={label}
-                  className={`px-6 py-4 font-semibold text-slate-600 ${align}`}
+                  className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${align}`}
                 >
                   {label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
@@ -232,10 +235,10 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               filtered.map((product) => (
               <tr
                 key={product.id}
-                className="border-b border-slate-100 hover:bg-slate-50 transition-colors group"
+                className="group transition-colors duration-150 hover:bg-slate-50/60"
               >
                 {/* Product name + ID */}
-                <td className="px-6 py-6 border-b border-slate-100/50">
+                <td className="px-6 py-6">
                   <div className="flex items-center gap-3">
                     <ProductAvatar name={product.productName} />
                     <div>
@@ -248,19 +251,19 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 </td>
 
                 {/* SKU */}
-                <td className="px-6 py-6 border-b border-slate-100/50">
+                <td className="px-6 py-6">
                   <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
                     {product.sku}
                   </span>
                 </td>
 
                 {/* Category */}
-                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
+                <td className="px-6 py-6 whitespace-nowrap">
                   <CategoryChip category={product.category} />
                 </td>
 
                 {/* Unit */}
-                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
+                <td className="px-6 py-6 whitespace-nowrap">
                   {product.unit ? (
                     <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-600">
                       {product.unit}
@@ -271,23 +274,23 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 </td>
 
                 {/* Buying price */}
-                <td className="px-6 py-6 text-right tabular-nums text-slate-700 font-medium border-b border-slate-100/50 whitespace-nowrap">
+                <td className="px-6 py-6 text-right tabular-nums text-slate-700 font-medium whitespace-nowrap">
                   {fmt(product.buyingPrice)}
                 </td>
 
                 {/* Selling price */}
-                <td className="px-6 py-6 text-right tabular-nums text-slate-900 font-semibold border-b border-slate-100/50 whitespace-nowrap">
+                <td className="px-6 py-6 text-right tabular-nums text-slate-900 font-semibold whitespace-nowrap">
                   {fmt(product.sellingPrice)}
                 </td>
 
                 {/* Margin */}
-                <td className="px-6 py-6 border-b border-slate-100/50 whitespace-nowrap">
+                <td className="px-6 py-6 whitespace-nowrap">
                   <ProfitBadge buying={product.buyingPrice} selling={product.sellingPrice} />
                 </td>
 
                 {/* Actions */}
-                <td className="px-6 py-6 border-b border-slate-100/50">
-                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <td className="px-6 py-6">
+                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
                       title="Edit product"
