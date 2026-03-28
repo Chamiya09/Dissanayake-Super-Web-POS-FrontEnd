@@ -14,7 +14,21 @@ import { supplierApi } from "@/lib/supplierApi";
 import api from "@/lib/axiosInstance";
 import { useToast } from "@/context/GlobalToastContext";
 
-function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }: { icon: any, iconBg: string, iconColor: string, label: string, value: number }) {
+function SummaryCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  sub,
+}: {
+  icon: any;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: number;
+  sub?: string;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
       <div className="flex items-center gap-4">
@@ -28,6 +42,11 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }: { icon: an
           <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
         </div>
       </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -214,13 +233,14 @@ export default function Suppliers() {
           )}
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6 lg:px-8">
             <SummaryCard 
               icon={Truck}
               iconBg="bg-indigo-50"
               iconColor="text-indigo-600"
               label="Total Suppliers"
               value={suppliers.length}
+              sub="Suppliers currently active in network"
             />
             <SummaryCard 
               icon={Zap}
@@ -228,6 +248,7 @@ export default function Suppliers() {
               iconColor="text-emerald-600"
               label="AI Auto-Reorder"
               value={suppliers.filter((s) => s.isAutoReorderEnabled).length}
+              sub="Suppliers enabled for auto reorder"
             />
             <SummaryCard 
               icon={Clock}
@@ -235,6 +256,7 @@ export default function Suppliers() {
               iconColor="text-amber-600"
               label="Slow Delivery (> 5 Days)"
               value={suppliers.filter((s) => s.leadTime > 5).length}
+              sub="Suppliers exceeding lead-time threshold"
             />
           </div>
 

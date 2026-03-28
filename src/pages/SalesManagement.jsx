@@ -58,6 +58,27 @@ function PaymentBadge({ method }) {
   );
 }
 
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
+        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", iconBg, iconColor)}>
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{value}</span>
+        </div>
+      </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 export default function SalesManagement() {
   const { showToast } = useToast();
@@ -178,48 +199,50 @@ export default function SalesManagement() {
         </div>
 
         {/* ── Stats strip ── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-4 sm:px-6 lg:px-8">
             {[
               { 
                 label: "Total Revenue",   
                 value: formatCurrency(totalRevenue),
                 icon: TrendingUp,
                 iconBg: "bg-indigo-50",
-                iconColor: "text-indigo-600"
+                iconColor: "text-indigo-600",
+                sub: "Revenue from completed sales"
               },
               { 
                 label: "Completed Sales", 
                 value: completedSales.length,
                 icon: CheckCircle,
                 iconBg: "bg-emerald-50",
-                iconColor: "text-emerald-600"
+                iconColor: "text-emerald-600",
+                sub: "Successfully completed transactions"
               },
               { 
                 label: "Cash Payments",   
                 value: cashCount,
                 icon: Banknote,
                 iconBg: "bg-amber-50",
-                iconColor: "text-amber-600"
+                iconColor: "text-amber-600",
+                sub: "Completed sales paid in cash"
               },
               { 
                 label: "Card Payments",   
                 value: cardCount,
                 icon: CreditCard,
                 iconBg: "bg-blue-50",
-                iconColor: "text-blue-600"
+                iconColor: "text-blue-600",
+                sub: "Completed sales paid by card"
               },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", stat.iconBg, stat.iconColor)}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
-                    <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
-                  </div>
-                </div>
-              </div>
+              <SummaryCard
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                iconBg={stat.iconBg}
+                iconColor={stat.iconColor}
+                sub={stat.sub}
+              />
             ))}
           </div>
 

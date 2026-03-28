@@ -85,7 +85,7 @@ function UserAvatar({ name }) {
   );
 }
 
-function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
       <div className="flex items-center gap-4">
@@ -103,6 +103,11 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
           <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
         </div>
       </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -254,27 +259,30 @@ export default function UserManagement() {
           </div>
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6 lg:px-8">
             <SummaryCard
               icon={Users}
               iconBg="bg-teal-50"
               iconColor="text-teal-600"
-              label="TOTAL USERS"
+              label="Total Users"
               value={users.length}
+              sub="Active user accounts in the system"
             />
             <SummaryCard
               icon={UserCog}
               iconBg="bg-indigo-50"
               iconColor="text-indigo-600"
-              label="ACTIVE MANAGERS"
+              label="Active Managers"
               value={managerCount}
+              sub="Users assigned to Manager role"
             />
             <SummaryCard
               icon={Shield}
               iconBg="bg-slate-100"
               iconColor="text-slate-600"
-              label="TOTAL STAFF"
+              label="Total Staff"
               value={staffCount}
+              sub="Users assigned to Staff role"
             />
           </div>
 

@@ -10,6 +10,41 @@ import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
 export type { Product };
 
+function SummaryCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  sub,
+}: {
+  icon: any;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{value}</span>
+        </div>
+      </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /* ─────────────────────────────────────────────────────────────────────────
    ProductManagement  —  main page
@@ -136,28 +171,42 @@ export default function ProductManagement() {
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { label: "Total Products", value: loading ? "—" : products.length, bg: "bg-blue-50", text: "text-blue-600", icon: Package },
-            { label: "Categories",     value: loading ? "—" : categories, bg: "bg-indigo-50", text: "text-indigo-600", icon: Layers },
-            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%`, bg: "bg-emerald-50", text: "text-emerald-600", icon: TrendingUp },
+            {
+              label: "Total Products",
+              value: loading ? "—" : products.length,
+              bg: "bg-blue-50",
+              text: "text-blue-600",
+              icon: Package,
+              sub: "Products currently registered",
+            },
+            {
+              label: "Categories",
+              value: loading ? "—" : categories,
+              bg: "bg-indigo-50",
+              text: "text-indigo-600",
+              icon: Layers,
+              sub: "Unique product categories",
+            },
+            {
+              label: "Avg. Margin",
+              value: loading ? "—" : `${avgMargin.toFixed(1)}%`,
+              bg: "bg-emerald-50",
+              text: "text-emerald-600",
+              icon: TrendingUp,
+              sub: "Average gross margin percentage",
+            },
           ].map((stat) => (
-            <div
+            <SummaryCard
               key={stat.label}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg} ${stat.text}`}
-                >
-                  <stat.icon className="h-6 w-6" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{stat.label}</span>
-                  <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{stat.value}</span>
-                </div>
-              </div>
-            </div>
+              label={stat.label}
+              value={stat.value}
+              icon={stat.icon}
+              iconBg={stat.bg}
+              iconColor={stat.text}
+              sub={stat.sub}
+            />
           ))}
         </div>
 
