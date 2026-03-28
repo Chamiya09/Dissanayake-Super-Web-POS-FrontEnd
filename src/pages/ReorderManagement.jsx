@@ -435,7 +435,7 @@ const DUMMY_SUPPLIERS = [
 
 // ── Components ─────────────────────────────────────────────────────────
 
-function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
       <div className="flex items-center gap-4">
@@ -449,6 +449,55 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }) {
           <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
         </div>
       </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReorderAnalyticsCards({ reorders }) {
+  const totalOrders = reorders.length;
+  const pendingOrders = reorders.filter((o) => o.status === "Pending").length;
+  const confirmedOrders = reorders.filter((o) => o.status === "Confirmed").length;
+  const receivedOrders = reorders.filter((o) => o.status === "Received").length;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <SummaryCard
+        label="Total Orders"
+        value={totalOrders}
+        sub="All purchase orders in history"
+        icon={ClipboardList}
+        iconBg="bg-indigo-50"
+        iconColor="text-indigo-600"
+      />
+      <SummaryCard
+        label="Pending"
+        value={pendingOrders}
+        sub="Orders waiting for confirmation"
+        icon={Package}
+        iconBg="bg-amber-50"
+        iconColor="text-amber-600"
+      />
+      <SummaryCard
+        label="Confirmed"
+        value={confirmedOrders}
+        sub="Supplier-approved purchase orders"
+        icon={Building2}
+        iconBg="bg-blue-50"
+        iconColor="text-blue-600"
+      />
+      <SummaryCard
+        label="Received"
+        value={receivedOrders}
+        sub="Orders marked as stock received"
+        icon={CheckCircle}
+        iconBg="bg-emerald-50"
+        iconColor="text-emerald-600"
+      />
     </div>
   );
 }
@@ -791,35 +840,11 @@ export default function ReorderManagement() {
                     Track and manage all purchase orders placed through the system.
                   </p>
                 </div>
-                </div>
-            <SummaryCard
-              label="TOTAL ORDERS"
-              value={reorders.length}
-              icon={ClipboardList}
-              iconBg="bg-indigo-50"
-              iconColor="text-indigo-600"
-            />
-            <SummaryCard
-              label="PENDING"
-              value={reorders.filter((o) => o.status === "Pending").length}
-              icon={Package}
-              iconBg="bg-amber-50"
-              iconColor="text-amber-600"
-            />
-            <SummaryCard
-              label="CONFIRMED"
-              value={reorders.filter((o) => o.status === "Confirmed").length}
-              icon={Building2}
-              iconBg="bg-blue-50"
-              iconColor="text-blue-600"
-            />
-            <SummaryCard
-              label="RECEIVED"
-              value={reorders.filter((o) => o.status === "Received").length}
-              icon={CheckCircle}
-              iconBg="bg-emerald-50"
-              iconColor="text-emerald-600"
-            />
+              </div>
+          </div>
+
+          <div className="px-4 sm:px-6 lg:px-8">
+            <ReorderAnalyticsCards reorders={reorders} />
           </div>
 
           <div className="px-4 sm:px-6 lg:px-8">
