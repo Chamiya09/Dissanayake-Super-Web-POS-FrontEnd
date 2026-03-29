@@ -34,7 +34,9 @@ import {
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
+const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
+
+const normalizeEmail = (value) => (value ?? "").trim().toLowerCase();
 
 function StatusBadge({ status }) {
   const map = {
@@ -163,7 +165,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
             {/* To */}
             <div className="flex gap-3 px-4 py-2.5">
               <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0 pt-px">To:</span>
-              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail ?? "—"}</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail || "No supplier email assigned"}</span>
             </div>
             {/* Subject */}
             <div className="flex gap-3 px-4 py-2.5">
@@ -558,7 +560,7 @@ export default function ReorderManagement() {
           // Auto-select the supplier that matches the product's assigned supplierEmail
           const productEmail = location.state?.product?.supplierEmail;
           if (productEmail) {
-            const match = data.find((s) => s.email === productEmail);
+            const match = data.find((s) => normalizeEmail(s.email) === normalizeEmail(productEmail));
             if (match) return match;
           }
           return data[0];
@@ -623,9 +625,19 @@ export default function ReorderManagement() {
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handlePrepareEmail() {
-    if (!product || !selectedSupplier) return;
+    if (!product) return;
+    const recipientEmail = selectedSupplier?.email ?? product?.supplierEmail;
+    if (!recipientEmail) {
+      showToast({
+        type: "error",
+        title: "Missing Supplier Email",
+        message: "Assign a supplier email in Supplier Management before sending an order.",
+      });
+      return;
+    }
+    const recipientName = selectedSupplier?.contactPerson ?? product?.supplierName ?? "Supplier";
     setEmailBody([
-      `Dear ${selectedSupplier.contactPerson},`,
+      `Dear ${recipientName},`,
       ``,
       `I hope this message finds you well. We are writing from Dissanayake Super to place a formal purchase order for the following product:`,
       ``,
@@ -651,7 +663,18 @@ export default function ReorderManagement() {
 
   async function handleCreateReorder(e) {
     e?.preventDefault();
-    if (!product || !selectedSupplier || isSubmitting) return;
+    if (!product || isSubmitting) return;
+
+    const recipientEmailRaw = selectedSupplier?.email ?? product?.supplierEmail;
+    const recipientEmail = (recipientEmailRaw ?? "").trim();
+    if (!recipientEmail) {
+      showToast({
+        type: "error",
+        title: "Missing Supplier Email",
+        message: "Assign a supplier email in Supplier Management before sending an order.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setSending(true);
@@ -662,7 +685,7 @@ export default function ReorderManagement() {
     // Build ReorderRequestDTO
     const dto = {
       orderRef,
-      supplierEmail: selectedSupplier.email,
+      supplierEmail: recipientEmail,
       items: [{
         productName: product.productName,
         productId:   product.productId ?? product.id ?? null,
@@ -675,8 +698,8 @@ export default function ReorderManagement() {
     const optimisticOrder = {
       id:            orderRef,
       productName:   product.productName,
-      supplierName:  selectedSupplier.companyName,
-      supplierEmail: selectedSupplier.email,
+      supplierName:  selectedSupplier?.companyName ?? product?.supplierName ?? recipientEmail,
+      supplierEmail: recipientEmail,
       quantity:      orderQty,
       orderDate:     new Date().toISOString().slice(0, 10),
       status:        "Pending",
@@ -697,7 +720,7 @@ export default function ReorderManagement() {
       showToast({
         type: "success",
         title: "Order Confirmed",
-        message: `Purchase Order ${orderRef} saved — email sent to ${selectedSupplier.email}.`,
+        message: `Purchase Order ${orderRef} saved — email sent to ${recipientEmail}.`,
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
@@ -791,12 +814,12 @@ export default function ReorderManagement() {
       });
       const updatedOrder = mapHistoryItem(dto, suppliers);
       setReorders((prev) => prev.map((o) => (o.id === id ? updatedOrder : o)));
-      showToast({ type: "info", title: "Order Updated", message: "Purchase Order updated successfully." });
+      showToast({ type: "info", title: "Order Updated", message: "Purchase Order updated and revised email sent to supplier." });
     } catch (err) {
       showToast({
         type: "error",
         title: "Update Failed",
-        message: err.response?.data?.message ?? "Failed to update order.",
+        message: err.response?.data?.message ?? "Failed to update order. Accepted orders cannot be revised.",
       });
     } finally {
       setUpdateOverlay(false);

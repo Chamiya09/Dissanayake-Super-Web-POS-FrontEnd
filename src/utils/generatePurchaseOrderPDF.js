@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
+const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
 /**
  * Generates and downloads a professional Purchase Order PDF.

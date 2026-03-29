@@ -63,7 +63,7 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   );
 }
 
-const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
+const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
@@ -400,7 +400,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     {/* To */}
                     <div className="flex gap-3">
                       <span className="text-[11px] font-bold text-slate-900 w-12 shrink-0 pt-px">To:</span>
-                      <span className="text-[12px] text-slate-900 break-all leading-relaxed">{assignedSupplier.email}</span>
+                      <span className="text-[12px] text-slate-900 break-all leading-relaxed">{assignedSupplier.email || "No supplier email assigned"}</span>
                     </div>
                     {/* Subject */}
                     <div className="flex gap-3">

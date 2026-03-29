@@ -31,7 +31,10 @@ function capitalizeStatus(status = "") {
  * @returns {Object} frontend order shape
  */
 export function mapHistoryItem(dto, suppliers = []) {
-  const supplier    = suppliers.find((s) => s.email === dto.supplierEmail);
+  const targetEmail = (dto.supplierEmail ?? "").trim().toLowerCase();
+  const supplier = suppliers.find(
+    (s) => (s.email ?? "").trim().toLowerCase() === targetEmail
+  );
   const productName = dto.items?.map((i) => i.productName).join(", ") || "—";
   const quantity    = dto.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
   const orderDate   = dto.createdAt
