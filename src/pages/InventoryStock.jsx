@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { useToast } from "@/context/GlobalToastContext";
@@ -41,7 +41,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-// ─── Category → icon mapping ──────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Category ΓåÆ icon mapping ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const CATEGORY_ICON = {
   peripherals:  { icon: Mouse,      color: "text-violet-500",  bg: "bg-violet-50"  },
   accessories:  { icon: Cable,      color: "text-amber-500",   bg: "bg-amber-50"   },
@@ -62,24 +62,24 @@ const getCategoryMeta = (category = "") => {
   );
 };
 
-// ─── Derive status from stock level ──────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Derive status from stock level ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const deriveStatus = (qty, reorder) => {
   if (qty === 0)      return "Out of Stock";
   if (qty <= reorder) return "Low Stock";
   return "In Stock";
 };
 
-// ─── Stock Form Empty State ──────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Stock Form Empty State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const EMPTY_STOCK_FORM = {
   productId: null,
   qtyToAdd: "",
   reason: "",
 };
 
-// ─── Reason presets ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Reason presets ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const REASON_PRESETS = ["New Shipment", "Return / Refund", "Stock Correction", "Supplier Restock", "Damaged Replacement"];
 
-// ─── Field helper ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Field helper ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const Field = ({ label, error, icon: Icon, children }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
@@ -102,31 +102,31 @@ const Field = ({ label, error, icon: Icon, children }) => (
   </div>
 );
 
-// ─── Add Inventory Stock Modal ───────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Add Inventory Stock Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUpdated }) => {
   const { showToast } = useToast();
-  // ── Product selection
+  // ΓöÇΓöÇ Product selection
   const [selectedId,   setSelectedId]   = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const comboRef = useRef(null);
 
-  // ── Current stock resolved from inventoryItems (no extra API call needed)
+  // ΓöÇΓöÇ Current stock resolved from inventoryItems (no extra API call needed)
   const [currentStock, setCurrentStock] = useState(null);
   const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
 
-  // ── Manual quantity input
+  // ΓöÇΓöÇ Manual quantity input
   const [qtyToAdd, setQtyToAdd] = useState("");
 
-  // ── Submission state
+  // ΓöÇΓöÇ Submission state
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState(null);
   const [success,    setSuccess]    = useState(false);
 
-  // ── Validation errors
+  // ΓöÇΓöÇ Validation errors
   const [errors, setErrors] = useState({});
 
-  // ── Close combobox on outside click
+  // ΓöÇΓöÇ Close combobox on outside click
   useEffect(() => {
     if (!dropdownOpen) return;
     const handler = (e) => {
@@ -137,7 +137,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
-  // ── Resolve current stock from inventoryItems when a product is selected
+  // ΓöÇΓöÇ Resolve current stock from inventoryItems when a product is selected
   useEffect(() => {
     if (!selectedId) { setCurrentStock(null); return; }
     const tracked = inventoryItems.find((item) => item.productId === selectedId);
@@ -146,7 +146,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   if (!open) return null;
 
-  // ── Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
+  // ΓöÇΓöÇ Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
   const validQty  = !isNaN(qtyNum) && qtyNum !== 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
@@ -158,7 +158,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  // ── Handlers
+  // ΓöÇΓöÇ Handlers
   const selectProduct = (p) => {
     setSelectedId(p.id);
     setProductSearch("");
@@ -225,7 +225,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       {/* Panel */}
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
 
-        {/* ── Modal Header ────────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Modal Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 flex-shrink-0">
@@ -249,7 +249,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
           </button>
         </div>
 
-        {/* ── Form ────────────────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Form ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         <form onSubmit={handleManualStockUpdate} noValidate>
           <div className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
 
@@ -261,7 +261,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               </div>
             )}
 
-            {/* ── Step 1 · Product ─────────────────────────────── */}
+            {/* ΓöÇΓöÇ Step 1 ┬╖ Product ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Product <span className="text-red-500 normal-case tracking-normal">*</span>
@@ -296,7 +296,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   ) : (
                     <span className="flex items-center gap-2 text-slate-400">
                       <Search className="h-4 w-4" />
-                      Search and select a product…
+                      Search and select a productΓÇª
                     </span>
                   )}
                   <ChevronDown
@@ -316,7 +316,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                           type="text"
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
-                          placeholder="Type name or SKU…"
+                          placeholder="Type name or SKUΓÇª"
                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 text-[13px] text-slate-900 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/20"
                         />
                       </div>
@@ -382,7 +382,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               )}
             </div>
 
-            {/* ── Step 2 · Current Stock (read-only) ────────────── */}
+            {/* ΓöÇΓöÇ Step 2 ┬╖ Current Stock (read-only) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Current Stock
@@ -396,7 +396,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               `}>
                 {!selectedId ? (
                   <span className="text-[13px] text-slate-400 italic">
-                    — select a product first —
+                    ΓÇö select a product first ΓÇö
                   </span>
                 ) : (
                   <span className="text-[13px] font-semibold text-slate-900 flex items-center gap-1.5">
@@ -413,7 +413,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               </div>
             </div>
 
-            {/* ── Step 3 · Quantity to Add ───────────────────────── */}
+            {/* ΓöÇΓöÇ Step 3 ┬╖ Quantity to Add ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
@@ -447,7 +447,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               )}
             </div>
 
-            {/* ── Step 4 · New Total Preview ─────────────────────── */}
+            {/* ΓöÇΓöÇ Step 4 ┬╖ New Total Preview ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
             {(() => {
               // Determine colour theme based on result
               const theme = belowZero
@@ -476,14 +476,14 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     {/* Current */}
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-2xl font-bold tabular-nums text-slate-800">
-                        {currentStock ?? "—"}
+                        {currentStock ?? "ΓÇö"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">Current</span>
                     </div>
 
                     {/* Operator */}
                     <span className="text-xl font-light text-slate-400 pb-3">
-                      {validQty && qtyNum < 0 ? "−" : "+"}
+                      {validQty && qtyNum < 0 ? "ΓêÆ" : "+"}
                     </span>
 
                     {/* Quantity */}
@@ -493,7 +493,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                           ? "text-red-600"
                           : "text-slate-800"
                       }`}>
-                        {validQty ? Math.abs(qtyNum) : "—"}
+                        {validQty ? Math.abs(qtyNum) : "ΓÇö"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">
                         {validQty && qtyNum < 0 ? "Removing" : "Adding"}
@@ -506,7 +506,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     {/* New total */}
                     <div className="flex flex-col items-center gap-0.5">
                       <span className={`text-2xl font-bold tabular-nums ${theme.total}`}>
-                        {newTotal ?? "—"}
+                        {newTotal ?? "ΓÇö"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">New Total</span>
                     </div>
@@ -536,7 +536,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
           </div>
 
-          {/* ── Footer ─────────────────────────────────────────── */}
+          {/* ΓöÇΓöÇ Footer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
             <button
               type="button"
@@ -566,7 +566,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               ) : submitting ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  Updating…
+                  UpdatingΓÇª
                 </>
               ) : (
                 <>
@@ -582,7 +582,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   );
 };
 
-// ─── Edit Inventory Modal ─────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Edit Inventory Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
   const { showToast } = useToast();
   const [reorderLevel, setReorderLevel] = useState("");
@@ -737,7 +737,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                   <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
-                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit…" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after auditΓÇª" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
                   <div className="flex items-center justify-between">
                     {errors.notes ? (
                       <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
@@ -785,7 +785,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
           </form>
         </div>
 
-        {/* Footer — always visible */}
+        {/* Footer ΓÇö always visible */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 shrink-0 rounded-b-2xl">
           <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors duration-150">
             Cancel
@@ -806,7 +806,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
             "
           >
             {saving ? (
-              <><Loader2 size={15} className="animate-spin" /> Saving…</>
+              <><Loader2 size={15} className="animate-spin" /> SavingΓÇª</>
             ) : (
               <><CheckCircle2 size={15} /> Update Inventory</>
             )}
@@ -818,7 +818,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
   );
 };
 
-// ─── Status Config ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Status Config ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const STATUS_CONFIG = {
   "In Stock": {
     pill: "bg-emerald-50 text-emerald-700 border border-emerald-200",
@@ -834,7 +834,7 @@ const STATUS_CONFIG = {
   },
 };
 
-// ─── Column Definitions ───────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Column Definitions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const COLUMNS = [
   { key: "name", label: "Product Name", sortable: true },
   { key: "category", label: "Category", sortable: true },
@@ -844,7 +844,7 @@ const COLUMNS = [
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const InventoryStock = () => {
   const { showToast } = useToast();
   // products   = all products (dropdown list for AddStockModal)
@@ -866,7 +866,7 @@ const InventoryStock = () => {
 
   const { refreshInventory } = useInventory();
 
-  // ── Fetch all products (for AddStockModal dropdown)
+  // ΓöÇΓöÇ Fetch all products (for AddStockModal dropdown)
   const fetchProducts = () =>
     api.get("/api/products").then((res) => {
       setProducts(
@@ -880,7 +880,7 @@ const InventoryStock = () => {
       );
     });
 
-  // ── Fetch products not yet in inventory (for AddStockModal — new entries only)
+  // ΓöÇΓöÇ Fetch products not yet in inventory (for AddStockModal ΓÇö new entries only)
   const fetchAvailableProducts = () =>
     api.get("/api/products/available-for-inventory").then((res) => {
       setAvailableProducts(
@@ -894,11 +894,11 @@ const InventoryStock = () => {
       );
     });
 
-  // ── Fetch all stock movement logs
+  // ΓöÇΓöÇ Fetch all stock movement logs
   const fetchLogs = () =>
     api.get("/api/inventory/logs").then((res) => setLogs(res.data));
 
-  // ── Fetch tracked inventory items (for the table)
+  // ΓöÇΓöÇ Fetch tracked inventory items (for the table)
   const fetchInventory = () =>
     api.get("/api/inventory/status").then((res) => {
       setInventoryItems(
@@ -911,7 +911,7 @@ const InventoryStock = () => {
       );
     });
 
-  // ── Refresh all (used after any mutation)
+  // ΓöÇΓöÇ Refresh all (used after any mutation)
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
@@ -921,10 +921,10 @@ const InventoryStock = () => {
       .finally(() => setLoading(false));
   };
 
-  // ── Initial load
+  // ΓöÇΓöÇ Initial load
   useEffect(() => { refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Delete inventory record (stops tracking; does NOT delete the product)
+  // ΓöÇΓöÇ Delete inventory record (stops tracking; does NOT delete the product)
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -940,7 +940,7 @@ const InventoryStock = () => {
     }
   };
 
-  // ── Sorting
+  // ΓöÇΓöÇ Sorting
   const handleSort = (key) => {
     if (!key) return;
     if (sortKey === key) {
@@ -951,10 +951,10 @@ const InventoryStock = () => {
     }
   };
 
-  // ── Derived category list for the filter dropdown
+  // ΓöÇΓöÇ Derived category list for the filter dropdown
   const categoryOptions = [...new Set(inventoryItems.map((i) => i.category).filter(Boolean))].sort();
 
-  // ── Filtered + Sorted Data (from /api/inventory/status → inventoryItems only)
+  // ΓöÇΓöÇ Filtered + Sorted Data (from /api/inventory/status ΓåÆ inventoryItems only)
   const filtered = inventoryItems
     .filter(({ productName, category, sku }) => {
       const q = search.toLowerCase();
@@ -973,7 +973,7 @@ const InventoryStock = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
-  // ── lowStockCount still used in the table footer badge
+  // ΓöÇΓöÇ lowStockCount still used in the table footer badge
   const lowStockCount  = inventoryItems.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
 
   return (
@@ -982,9 +982,9 @@ const InventoryStock = () => {
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
 
-      {/* ── Scrollable page content ─────────────────────────────── */}
+      {/* ΓöÇΓöÇ Scrollable page content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
 
-      {/* ── Full-page loading state ────────────────────────── */}
+      {/* ΓöÇΓöÇ Full-page loading state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       {loading && (
         <div className="flex flex-1 flex-col items-center justify-center gap-5">
           {/* Layered ring spinner */}
@@ -997,13 +997,13 @@ const InventoryStock = () => {
               Loading Inventory
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              Fetching your product stock levels…
+              Fetching your product stock levelsΓÇª
             </p>
           </div>
         </div>
       )}
 
-      {/* ── Full-page error state ───────────────────────────── */}
+      {/* ΓöÇΓöÇ Full-page error state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       {!loading && fetchError && (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
           {/* Icon illustration */}
@@ -1045,7 +1045,7 @@ const InventoryStock = () => {
         </div>
       )}
 
-      {/* ── Main content (only when loaded successfully) ──────────── */}
+      {/* ΓöÇΓöÇ Main content (only when loaded successfully) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       {!loading && !fetchError && (
       <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
       <AddStockModal
@@ -1060,7 +1060,7 @@ const InventoryStock = () => {
         onClose={() => setEditTarget(null)}
         onSaved={refreshAll}
       />
-      {/* ── Delete Confirm Dialog ──────────────────────────────────────────────── */}
+      {/* ΓöÇΓöÇ Delete Confirm Dialog ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       {deleteTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1097,7 +1097,7 @@ const InventoryStock = () => {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 transition-all shadow-sm"
               >
                 {deleting
-                  ? <><Loader2 size={14} className="animate-spin" />Removing…</>
+                  ? <><Loader2 size={14} className="animate-spin" />RemovingΓÇª</>
                   : <><Trash2 size={14} />Remove</>}
               </button>
             </div>
@@ -1105,7 +1105,7 @@ const InventoryStock = () => {
         </div>
       )}
 
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      {/* ΓöÇΓöÇ Page Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
@@ -1129,12 +1129,12 @@ const InventoryStock = () => {
         </button>
       </div>
 
-      {/* ── Analytics Cards (from InventoryContext) ───────────────────── */}
+      {/* ΓöÇΓöÇ Analytics Cards (from InventoryContext) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       <InventoryAnalyticsCards />
 
-      {/* ── Table Card ───────────────────────────────────────────────────── */}
+      {/* ΓöÇΓöÇ Table Card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden min-h-[500px] flex flex-col">
-        {/* ── Search + Category Filter Row ─────────────────────────────── */}
+        {/* ΓöÇΓöÇ Search + Category Filter Row ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
 
           {/* Search input */}
@@ -1145,7 +1145,7 @@ const InventoryStock = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, SKU or category…"
+              placeholder="Search by name, SKU or categoryΓÇª"
               className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
             />
           </div>
@@ -1261,262 +1261,142 @@ const InventoryStock = () => {
                       <div className="flex items-center gap-2">
                         {isWarning && (
                           <span title="Low quantity warning">
-                            <AlertTriangle
-                              size={16}
-                              className="text-amber-500 flex-shrink-0"
-                            />
+                            <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
                           </span>
-                      <div className="hidden md:block overflow-x-auto flex-1">
-                        <span
-                          <thead>
-                            <tr className="border-b border-slate-100">
-                              {COLUMNS.map(({ key, label, sortable }) => (
-                                <th
-                                  key={key}
-                                  onClick={() => sortable && handleSort(key)}
-                                  className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${sortable ? 'cursor-pointer select-none hover:text-slate-700' : ''}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {label}
-                                    {sortable && sortKey === key && (
-                                      sortDir === "asc" ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />
-                                    )}
-                                  </div>
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-
-                        {/* Body */}
-                        <tbody className="divide-y divide-slate-50">
-                          {filtered.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="py-20 text-center">
-                                <div className="flex flex-col items-center gap-2 text-slate-400">
-                                  <Package size={36} strokeWidth={1.2} />
-                                  <p className="text-sm font-medium">No products match your search</p>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : (
-                            filtered.map((item) => {
-                              const qty      = item.stockQuantity  ?? 0;
-                              const reorder  = item.reorderLevel   ?? 10;
-                              const status   = deriveStatus(qty, reorder);
-                              const isLow    = status !== "In Stock";
-                              const isWarning = qty < 10;
-                              const cfg      = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
-                              const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
-
-                              return (
-                                <tr
-                                  key={item.inventoryId}
-                                  className="group transition-colors duration-150 hover:bg-slate-50/60"
-                                >
-                                  {/* Product Name */}
-                                  <td className="px-6 py-6 font-medium text-slate-900">
-                                    <div className="flex items-center gap-3">
-                                      <span
-                                        className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg ${iconBg}`}
-                                      >
-                                        <Icon size={20} className={iconColor} />
-                                      </span>
-                                      <div>
-                                        <p className="font-semibold text-slate-900 whitespace-nowrap">
-                                          {item.productName}
-                                        </p>
-                                        <p className="text-xs text-slate-500 mt-0.5">
-                                          {item.sku}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </td>
-
-                                  {/* Category */}
-                                  <td className="px-6 py-6 text-slate-500 text-sm whitespace-nowrap">
-                                    {item.category}
-                                  </td>
-
-                                  {/* Price */}
-                                  <td className="px-6 py-6 font-medium text-slate-700 tabular-nums">
-                                    {formatCurrency(item.sellingPrice)}
-                                  </td>
-
-                                  {/* Quantity (stockQuantity) */}
-                                  <td className="px-6 py-6">
-                                    <div className="flex items-center gap-2">
-                                      {isWarning && (
-                                        <span title="Low quantity warning">
-                                          <AlertTriangle
-                                            size={16}
-                                            className="text-amber-500 flex-shrink-0"
-                                          />
-                                        </span>
-                                      )}
-                                      <span
-                                        className={`font-semibold tabular-nums ${
-                                          qty === 0
-                                            ? "text-red-600"
-                                            : isWarning
-                                            ? "text-amber-600"
-                                            : "text-slate-700"
-                                        }`}
-                                      >
-                                        {qty}
-                                      </span>
-                                      <span className="text-xs text-slate-500">
-                                        {item.unit ?? "units"}
-                                      </span>
-                                    </div>
-                                  </td>
-
-                                  {/* Status */}
-                                  <td className="px-6 py-6 whitespace-nowrap">
-                                    <span
-                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}
-                                    >
-                                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                      {status}
-                                    </span>
-                                  </td>
-
-                                  {/* Actions */}
-                                  <td className="px-6 py-6 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {isLow && (
-                                        <button
-                                          type="button"
-                                          title="Suggest AI reorder quantity"
-                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
-                                        >
-                                          <Sparkles size={14} />
-                                          Suggest Order
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => setEditTarget(item)}
-                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Edit Inventory"
-                                      >
-                                        <Pencil size={18} />
-                                      </button>
-                                      <button
-                                        onClick={() => setDeleteTarget(item)}
-                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Remove from inventory"
-                                      >
-                                        <Trash2 size={18} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                      </div>
-
-                      {/* Mobile card list (Supplier-style) */}
-                      <div className="md:hidden divide-y divide-slate-100 flex-1">
-                        {filtered.length === 0 ? (
-                          <div className="py-20 text-center">
-                            <div className="flex flex-col items-center gap-2 text-slate-400">
-                              <Package size={36} strokeWidth={1.2} />
-                              <p className="text-sm font-medium">No products match your search</p>
-                            </div>
-                          </div>
-                        ) : (
-                          filtered.map((item) => {
-                            const qty = item.stockQuantity ?? 0;
-                            const reorder = item.reorderLevel ?? 10;
-                            const status = deriveStatus(qty, reorder);
-                            const isLow = status !== "In Stock";
-                            const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
-                            const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
-
-                            return (
-                              <div key={item.inventoryId} className="p-6 space-y-4">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex items-center gap-3">
-                                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-                                      <Icon size={18} className={iconColor} />
-                                    </span>
-                                    <div>
-                                      <p className="font-semibold text-slate-900 leading-tight">{item.productName}</p>
-                                      <p className="text-xs text-slate-400 mt-0.5">{item.sku}</p>
-                                    </div>
-                                  </div>
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${cfg.pill}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                    {status}
-                                  </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                  <div className="text-slate-500">
-                                    <span className="text-xs text-slate-400">Category:</span> {item.category}
-                                  </div>
-                                  <div className="text-slate-700 tabular-nums text-right">
-                                    <span className="text-xs text-slate-400">Price:</span> {formatCurrency(item.sellingPrice)}
-                                  </div>
-                                  <div className="text-slate-700 tabular-nums">
-                                    <span className="text-xs text-slate-400">Stock:</span> {qty} {item.unit ?? "units"}
-                                  </div>
-                                  <div className="text-slate-700 tabular-nums text-right">
-                                    <span className="text-xs text-slate-400">Reorder:</span> {reorder}
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2 pt-1 flex-wrap">
-                                  {isLow && (
-                                    <button
-                                      type="button"
-                                      className="flex-1 h-10 gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl inline-flex items-center justify-center"
-                                    >
-                                      <Sparkles className="h-3.5 w-3.5" />
-                                      Suggest Order
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => setEditTarget(item)}
-                                    className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl border border-slate-200 inline-flex items-center justify-center"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteTarget(item)}
-                                    className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200 inline-flex items-center justify-center"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })
                         )}
+                        <span
+                          className={`font-semibold tabular-nums ${
+                            qty === 0 ? "text-red-600" : isWarning ? "text-amber-600" : "text-slate-700"
+                          }`}
+                        >
+                          {qty}
+                        </span>
+                        <span className="text-xs text-slate-500">{item.unit ?? "units"}</span>
                       </div>
-                      <td className="px-5 py-3.5 text-slate-600 tabular-nums">
-                        {log.stockAfter}
-                      </td>
+                    </td>
 
-                      {/* Type badge */}
+                    {/* Status */}
+                    <td className="px-6 py-6 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        {status}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isLow && (
+                          <button
+                            type="button"
+                            title="Suggest AI reorder quantity"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
+                          >
+                            <Sparkles size={14} />
+                            Suggest Order
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setEditTarget(item)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Inventory"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(item)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remove from inventory"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-slate-200 bg-slate-50 p-4 sm:px-6 flex items-center justify-between gap-4 mt-auto">
+          <p className="text-sm text-slate-500 font-medium">
+            Showing <span className="text-slate-900">{filtered.length}</span> of <span className="text-slate-900">{inventoryItems.length}</span> items
+          </p>
+          {lowStockCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+              <AlertTriangle size={16} />
+              {lowStockCount} items need restocking
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── Stock Movement History ───────────────────────────────────────── */}
+      <section className="mt-2">
+        <h2 className="text-base font-semibold text-slate-800 mb-4">
+          Stock Movement History
+        </h2>
+
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                {[
+                  { label: "Product", w: "w-[35%]" },
+                  { label: "Qty Changed", w: "w-[18%]" },
+                  { label: "Stock After", w: "w-[18%]" },
+                  { label: "Type", w: "w-[14%]" },
+                  { label: "Timestamp", w: "w-[15%]" },
+                ].map(({ label, w }) => (
+                  <th key={label} className={`${w} px-5 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-500`}>
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
+                    <Loader2 size={18} className="inline-block animate-spin mr-2" />
+                    Loading history...
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
+                    No recent transactions found.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => {
+                  const isIn = log.quantityChanged >= 0;
+                  const qtyLabel = isIn ? `+${log.quantityChanged}` : `${log.quantityChanged}`;
+                  const typeLabel = isIn ? "Stock In" : "Stock Out";
+
+                  const dt = new Date(log.timestamp);
+                  const pad = (n) => String(n).padStart(2, "0");
+                  const formatted = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors duration-100">
+                      <td className="px-5 py-3.5 font-medium text-slate-700 truncate max-w-0">
+                        <span className="truncate block">{log.productName}</span>
+                      </td>
+                      <td className={`px-5 py-3.5 font-semibold tabular-nums ${isIn ? "text-emerald-600" : "text-red-500"}`}>
+                        {qtyLabel}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 tabular-nums">{log.stockAfter}</td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          isIn
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-600"
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isIn ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
                           {typeLabel}
                         </span>
                       </td>
-
-                      {/* Timestamp */}
-                      <td className="px-5 py-3.5 text-slate-400 text-xs tabular-nums">
-                        {formatted}
-                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs tabular-nums">{formatted}</td>
                     </tr>
                   );
                 })
@@ -1524,7 +1404,6 @@ const InventoryStock = () => {
             </tbody>
           </table>
 
-          {/* Footer */}
           {!loading && logs.length > 0 && (
             <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50/50">
               <p className="text-xs text-slate-500">
