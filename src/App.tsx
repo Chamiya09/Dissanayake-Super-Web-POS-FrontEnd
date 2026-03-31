@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
 import { ReorderProvider }   from "./context/ReorderContext";
 import { ToastProvider } from "./context/GlobalToastContext";
+import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
@@ -56,10 +57,11 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ToastProvider>
-      <TooltipProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <Routes>
+      <ConfirmDialogProvider>
+        <TooltipProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <Routes>
             {/* ── Public ── */}
             <Route path="/login" element={<Login />} />
 
@@ -88,10 +90,11 @@ const App = () => (
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-      </TooltipProvider>
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+        </TooltipProvider>
+      </ConfirmDialogProvider>
     </ToastProvider>
   </QueryClientProvider>
 );

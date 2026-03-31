@@ -10,9 +10,9 @@ import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } fro
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
-import Swal from "sweetalert2";
 import { PaymentMethodModal } from "./PaymentMethodModal";
 import type { PaymentMethodOption } from "./PaymentMethodModal";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -183,6 +183,7 @@ function SwipeableItem({
 
 /*  CartPanel  */
 export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
+  const { confirm } = useConfirmDialog();
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -233,38 +234,15 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   /*  Core checkout executor — called after payment method is confirmed  */
   const proceedWithCheckout = useCallback(async (method: string) => {
-    // ── Swal confirmation ────────────────────────────────────────────────────
-    const result = await Swal.fire({
-      icon: "question",
+    const isConfirmed = await confirm({
       title: "Confirm Sale",
-      html: `
-        <div style="font-size:13.5px;color:#475569;line-height:1.6">
-          Are you sure you want to complete this sale?<br/>
-          <div style="margin-top:10px;display:flex;justify-content:space-between;background:#f1f5f9;border-radius:10px;padding:10px 14px;font-weight:600;color:#1e293b">
-            <span>Total</span>
-            <span style="color:#4f46e5">${formatCurrency(finalTotal)}</span>
-          </div>
-          <div style="margin-top:6px;font-size:12px;color:#94a3b8">
-            Payment via&nbsp;<strong style="color:#1e293b">${method}</strong>
-          </div>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: "Confirm Sale",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#059669",
-      cancelButtonColor:  "#64748b",
-      reverseButtons: true,
-      focusConfirm: false,
-      customClass: {
-        popup:          "!rounded-2xl !shadow-2xl",
-        title:          "!text-[17px] !font-bold !text-slate-900",
-        confirmButton:  "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
-        cancelButton:   "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
-        actions:        "!gap-2",
-      },
+      message: `Complete this sale for ${formatCurrency(finalTotal)} using ${method}?`,
+      confirmText: "Confirm Sale",
+      cancelText: "Cancel",
+      tone: "default",
     });
 
-    if (!result.isConfirmed) return;
+    if (!isConfirmed) return;
 
     // ── Execute checkout ─────────────────────────────────────────────────────
     setProcessing(true);
@@ -278,7 +256,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     } finally {
       setProcessing(false);
     }
-  }, [finalTotal, onCheckout]);
+  }, [confirm, finalTotal, onCheckout]);
 
   /*  Payment handler — opens selection modal if no method set, else proceeds  */
   const handlePayment = useCallback(async () => {

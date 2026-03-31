@@ -3,6 +3,7 @@ import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const API = "/api/sales";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
 
 export default function SalesManagement() {
   const { showToast } = useToast();
+  const { confirm } = useConfirmDialog();
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -138,9 +140,13 @@ export default function SalesManagement() {
   const handleVoid = async (id) => {
     const sale = sales.find((s) => s.id === id);
     const label = sale?.receiptNo ?? `#${id}`;
-    const confirmed = window.confirm(
-      `Void sale ${label}?\n\nThis action cannot be undone.`
-    );
+    const confirmed = await confirm({
+      title: "Void this sale?",
+      message: `Sale ${label} will be marked as Voided. This action cannot be undone.`,
+      confirmText: "Void Sale",
+      cancelText: "Cancel",
+      tone: "destructive",
+    });
     if (!confirmed) return;
 
     try {
@@ -183,9 +189,11 @@ export default function SalesManagement() {
 
     setReturningId(returnSale.id);
     try {
-      const response = await api.post(`${API}/${returnSale.id}/return-items`, payload);
-      const updated = response.data;
-      setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      await api.post(`${API}/${returnSale.id}/return-items`, payload);
+
+      // Always refresh from server so totalAmount/status are guaranteed current.
+      await fetchSales();
+
       showToast(`Return processed for sale ${returnSale.receiptNo}.`, "success");
       setIsReturnModalOpen(false);
       setReturnSale(null);
