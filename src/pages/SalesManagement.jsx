@@ -161,8 +161,14 @@ export default function SalesManagement() {
     return data?.detail || data?.message || data?.error || fallback;
   };
 
-  const openReturnModal = (sale) => {
-    setReturnSale(sale);
+  const openReturnModal = async (sale) => {
+    try {
+      const response = await api.get(`${API}/${sale.id}`);
+      setReturnSale(response.data);
+    } catch (err) {
+      console.error("Failed to load latest sale details for return:", err);
+      setReturnSale(sale);
+    }
     setIsReturnModalOpen(true);
   };
 
@@ -493,7 +499,11 @@ export default function SalesManagement() {
                               )}
                             >
                               <RotateCcw className={cn("h-3.5 w-3.5", returningId === sale.id && "animate-spin")} />
-                              {isReturned ? "Returned" : returningId === sale.id ? "Returning..." : "Return Items"}
+                              {isReturned
+                                ? "Returned"
+                                : returningId === sale.id
+                                ? "Returning..."
+                                : "Return Items"}
                             </Button>
                           </div>
                         </td>

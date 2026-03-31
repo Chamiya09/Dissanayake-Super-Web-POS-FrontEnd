@@ -42,6 +42,11 @@ export default function ReturnSaleItemsModal({
     [items]
   );
 
+  const returnableRows = useMemo(
+    () => itemRows.filter((row) => row.saleItemId != null && row.remainingQty > 0),
+    [itemRows]
+  );
+
   useEffect(() => {
     if (isOpen) {
       setReturnInputs({});
@@ -62,7 +67,7 @@ export default function ReturnSaleItemsModal({
 
   if (!isOpen || !saleData) return null;
 
-  const hasReturnableItems = itemRows.some((row) => row.remainingQty > 0 && row.saleItemId != null);
+  const hasReturnableItems = returnableRows.length > 0;
 
   const handleQtyChange = (saleItemId, value) => {
     setReturnInputs((prev) => ({ ...prev, [saleItemId]: value }));
@@ -72,8 +77,7 @@ export default function ReturnSaleItemsModal({
   const handleSubmit = () => {
     const selectedItems = [];
 
-    for (const row of itemRows) {
-      if (row.saleItemId == null) continue;
+    for (const row of returnableRows) {
       const raw = returnInputs[row.saleItemId];
       if (raw === "" || raw == null) continue;
 
@@ -156,10 +160,9 @@ export default function ReturnSaleItemsModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {itemRows.map((row) => {
-                    const disabled = row.remainingQty <= 0 || row.saleItemId == null;
+                  {returnableRows.map((row) => {
                     return (
-                      <tr key={row.key} className={cn("transition-colors", !disabled && "hover:bg-slate-50") }>
+                      <tr key={row.key} className={cn("transition-colors hover:bg-slate-50")}>
                         <td className="px-4 py-3 font-medium text-slate-900">{row.productName}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600">{row.soldQty}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600">{row.returnedQty}</td>
@@ -171,11 +174,11 @@ export default function ReturnSaleItemsModal({
                             min={0}
                             step={0.001}
                             max={row.remainingQty}
-                            disabled={disabled || isSubmitting}
+                            disabled={isSubmitting}
                             value={returnInputs[row.saleItemId] ?? ""}
                             onChange={(e) => handleQtyChange(row.saleItemId, e.target.value)}
                             className="h-9 text-right tabular-nums"
-                            placeholder={disabled ? "N/A" : "0"}
+                            placeholder="0"
                           />
                         </td>
                       </tr>
