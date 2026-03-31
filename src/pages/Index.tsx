@@ -76,6 +76,7 @@ function FlyingDot({
 
 const Index = () => {
   const { showToast } = useToast();
+  const [keyboardScope, setKeyboardScope] = useState<"grid" | "cart">("grid");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -234,21 +235,58 @@ const Index = () => {
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
-  // [Esc] → clear basket when not focused inside an input
+  // Global POS shortcuts: F2 focus scanner input, Alt+1/Alt+2 switch keyboard scope.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (
-        e.key === "Escape" &&
-        !(e.target instanceof HTMLInputElement) &&
-        !(e.target instanceof HTMLTextAreaElement) &&
-        cart.length > 0
-      ) {
-        setCart([]);
+      const isInInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+
+      if (e.key === "F2") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        skuInputRef.current?.select();
+        return;
+      }
+
+      if (e.altKey && e.key === "1") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        return;
+      }
+
+      if (e.altKey && e.key === "2") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        return;
+      }
+
+      // [Esc] closes overlays first; otherwise clears basket when not typing.
+      if (e.key === "Escape") {
+        if (showSuccessPopup) {
+          e.preventDefault();
+          setShowSuccessPopup(false);
+          return;
+        }
+
+        if (cartOpen) {
+          e.preventDefault();
+          setCartOpen(false);
+          return;
+        }
+
+        if (!isInInput && cart.length > 0) {
+          e.preventDefault();
+          setCart([]);
+        }
       }
     };
+
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [cart.length]);
+  }, [cart.length, cartOpen, showSuccessPopup]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -289,12 +327,19 @@ const Index = () => {
             )}
           </div>
 
-          <ProductGrid onAddToCart={addToCart} products={posProducts} />
+          <div onPointerDown={() => setKeyboardScope("grid")}>
+            <ProductGrid
+              onAddToCart={addToCart}
+              products={posProducts}
+              keyboardActive={keyboardScope === "grid"}
+            />
+          </div>
         </div>
 
         {/* Cart Panel — desktop sidebar; ref used for flying dot target */}
         <div
           ref={cartIconRef}
+          onPointerDown={() => setKeyboardScope("cart")}
           className="hidden md:flex h-full w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-card p-4 items-stretch"
         >
           <CartPanel
@@ -304,6 +349,7 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}
+            keyboardActive={keyboardScope === "cart"}
           />
         </div>
       </div>
@@ -311,7 +357,10 @@ const Index = () => {
       {/* Mobile — sticky cart bar at bottom */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-30 px-3 pb-3 pt-2 bg-background/90 backdrop-blur-md border-t border-border">
         <button
-          onClick={() => setCartOpen(true)}
+          onClick={() => {
+            setKeyboardScope("cart");
+            setCartOpen(true);
+          }}
           className="flex w-full items-center justify-between rounded-xl bg-primary px-4 py-3 text-white shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-2.5">
@@ -344,6 +393,7 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             onCheckout={handleCheckout}
+            keyboardActive={keyboardScope === "cart"}
           />
         </SheetContent>
       </Sheet>

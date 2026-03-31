@@ -22,6 +22,8 @@ interface CartPanelProps {
   highlightId?: string | null;
   /** Called with the final charged amount after a successful checkout */
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
+  /** Enables cart keyboard shortcuts only when cart area is active. */
+  keyboardActive?: boolean;
 }
 
 /*  Tier badge  */
@@ -182,7 +184,7 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout, keyboardActive = true }: CartPanelProps) {
   const { confirm } = useConfirmDialog();
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -284,6 +286,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   /* [Space] -> trigger charge when not typing */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!keyboardActive || paymentModalOpen) return;
+
       if (
         e.code === "Space" &&
         !(e.target instanceof HTMLInputElement) &&
@@ -297,11 +301,13 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [items.length, processing, handlePayment]);
+  }, [items.length, processing, handlePayment, keyboardActive, paymentModalOpen]);
 
   /* Cart keyboard navigation: Alt+Up/Down move, -/+ qty, Delete remove */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!keyboardActive || paymentModalOpen) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
@@ -330,7 +336,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onUpdateQuantity, onRemoveItem]);
+  }, [onUpdateQuantity, onRemoveItem, keyboardActive, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
     "Fruits": "🍎",

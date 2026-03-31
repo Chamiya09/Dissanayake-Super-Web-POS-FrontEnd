@@ -14,9 +14,11 @@ interface ProductGridProps {
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
   /** Override the hard-coded product list with data from localStorage */
   products?: Product[];
+  /** Enables keyboard navigation only when the product area is active. */
+  keyboardActive?: boolean;
 }
 
-export function ProductGrid({ onAddToCart, products: externalProducts }: ProductGridProps) {
+export function ProductGrid({ onAddToCart, products: externalProducts, keyboardActive = true }: ProductGridProps) {
   const productList = externalProducts ?? staticProducts;
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -111,6 +113,8 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   // Keyboard handler: F1 search · arrows navigate · Enter add
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!keyboardActive) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
@@ -164,7 +168,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onAddToCart]);
+  }, [onAddToCart, keyboardActive]);
 
   return (
     <div className="flex flex-col gap-4">
