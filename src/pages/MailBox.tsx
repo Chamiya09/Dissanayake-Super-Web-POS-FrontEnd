@@ -33,8 +33,10 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/GlobalToastContext";
 import { fetchInbox, fetchSent, sendMailboxEmail, type MailboxMessage } from "@/api/mailboxApi";
+import { getHistory } from "@/api/reorderApi";
 
 type MailCategory = "Inbox" | "Sent" | "Archive";
+type ReorderStatus = "Pending" | "Confirmed" | "Cancelled" | "Received";
 
 const FOLDERS: Array<{ key: MailCategory; label: string; icon: React.ElementType }> = [
   { key: "Inbox", label: "Inbox", icon: Inbox },
@@ -151,9 +153,50 @@ type ParsedPurchaseOrderMessage = {
   placedBy: string;
   placedByRole: string;
   totalLkr: string;
-  status: string;
+  status: "Pending" | "Confirmed" | "Cancelled" | "Received";
   infoText: string;
 };
+
+function detectReorderStatusFromMail(subject: string, body: string): ParsedPurchaseOrderMessage["status"] {
+  const text = `${decodeEntities(subject)} ${decodeEntities(body)}`.toLowerCase();
+
+  if (/\breceived\b/.test(text) || /\bmarked as received\b/.test(text)) {
+    return "Received";
+  }
+  if (/\bcancelled\b/.test(text)) {
+    return "Cancelled";
+  }
+  if (/supplier confirmed order/.test(text) || /\bconfirmed\b/.test(text) || /\baccepted\b/.test(text) || /\blocked\b/.test(text)) {
+    return "Confirmed";
+  }
+  return "Pending";
+}
+
+function resolveStatusForOrderRef(
+  orderRef: string,
+  allMails: MailboxMessage[],
+  fallback: ParsedPurchaseOrderMessage["status"],
+  orderStatusByRef: Record<string, ReorderStatus>
+): ParsedPurchaseOrderMessage["status"] {
+  if (!orderRef || !allMails.length) return fallback;
+
+  const mapped = orderStatusByRef[orderRef];
+  if (mapped) return mapped;
+
+  const related = allMails.filter((m) => {
+    const combined = `${m.subject || ""} ${m.body || ""} ${m.preview || ""}`.toLowerCase();
+    return combined.includes(orderRef.toLowerCase());
+  });
+
+  if (!related.length) return fallback;
+
+  const statuses = related.map((m) => detectReorderStatusFromMail(m.subject || "", m.body || m.preview || ""));
+
+  if (statuses.includes("Received")) return "Received";
+  if (statuses.includes("Cancelled")) return "Cancelled";
+  if (statuses.includes("Confirmed")) return "Confirmed";
+  return "Pending";
+}
 
 function parsePurchaseOrderMessage(subject: string, message: string): ParsedPurchaseOrderMessage | null {
   const text = decodeEntities(message);
@@ -210,8 +253,10 @@ function parsePurchaseOrderMessage(subject: string, message: string): ParsedPurc
     text.match(/Info\s+(.+?)\s+Order\s+Reference/i)?.[1]?.trim() ??
     "A purchase order has been created and supplier has been notified.";
 
-  let status = "Pending";
-  if (/\bconfirmed\b/i.test(text)) {
+  let status: ParsedPurchaseOrderMessage["status"] = "Pending";
+  if (/\breceived\b/i.test(text) || /\bmarked as received\b/i.test(text)) {
+    status = "Received";
+  } else if (/\bconfirmed\b/i.test(text) || /\baccepted\b/i.test(text) || /\blocked\b/i.test(text)) {
     status = "Confirmed";
   } else if (/\bcancelled\b/i.test(text)) {
     status = "Cancelled";
@@ -245,19 +290,33 @@ function parsePurchaseOrderMessage(subject: string, message: string): ParsedPurc
 function MessageContentCard({
   subject,
   message,
+  allMails,
+  orderStatusByRef,
 }: {
   subject: string;
   message: string;
+  allMails: MailboxMessage[];
+  orderStatusByRef: Record<string, ReorderStatus>;
 }) {
   const parsedPurchaseOrder = parsePurchaseOrderMessage(subject, message);
 
   if (parsedPurchaseOrder) {
+    const effectiveStatus = resolveStatusForOrderRef(
+      parsedPurchaseOrder.orderRef,
+      allMails,
+      parsedPurchaseOrder.status,
+      orderStatusByRef
+    );
+
+    const reorderStatusStyles: Record<ParsedPurchaseOrderMessage["status"], string> = {
+      Pending: "bg-amber-50 text-amber-700 border-amber-200",
+      Confirmed: "bg-blue-50 text-blue-700 border-blue-200",
+      Received: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      Cancelled: "bg-red-50 text-red-600 border-red-200",
+    };
+
     const statusColor =
-      parsedPurchaseOrder.status === "Confirmed"
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-        : parsedPurchaseOrder.status === "Cancelled"
-        ? "bg-red-50 text-red-700 border-red-200"
-        : "bg-amber-50 text-amber-700 border-amber-200";
+      reorderStatusStyles[effectiveStatus] ?? "bg-slate-50 text-slate-700 border-slate-200";
 
     return (
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -296,7 +355,7 @@ function MessageContentCard({
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Status
               </div>
-              <p className="mt-1 text-sm font-semibold">{parsedPurchaseOrder.status}</p>
+              <p className="mt-1 text-sm font-semibold">{effectiveStatus}</p>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
@@ -392,6 +451,7 @@ function formatMailTime(iso: string): string {
 export default function MailBox() {
   const { showToast } = useToast();
   const [mails, setMails] = useState<MailboxMessage[]>([]);
+  const [orderStatusByRef, setOrderStatusByRef] = useState<Record<string, ReorderStatus>>({});
   const [activeFolder, setActiveFolder] = useState<MailCategory>("Inbox");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeMailId, setActiveMailId] = useState<number | null>(null);
@@ -439,7 +499,32 @@ export default function MailBox() {
       }
       setLoadError(null);
       try {
-        const [inbox, sent] = await Promise.all([fetchInbox(INITIAL_MAIL_LIMIT), fetchSent(INITIAL_MAIL_LIMIT)]);
+        const [inboxResult, sentResult, historyResult] = await Promise.allSettled([
+          fetchInbox(INITIAL_MAIL_LIMIT),
+          fetchSent(INITIAL_MAIL_LIMIT),
+          getHistory([]),
+        ]);
+
+        if (inboxResult.status !== "fulfilled" || sentResult.status !== "fulfilled") {
+          throw new Error("Failed to fetch mailbox messages");
+        }
+
+        const inbox = inboxResult.value;
+        const sent = sentResult.value;
+
+        if (historyResult.status === "fulfilled") {
+          const statusMap: Record<string, ReorderStatus> = {};
+          for (const order of historyResult.value || []) {
+            const ref = (order?.orderRef || "").trim();
+            const status = (order?.status || "").trim();
+            if (!ref) continue;
+            if (status === "Pending" || status === "Confirmed" || status === "Cancelled" || status === "Received") {
+              statusMap[ref] = status;
+            }
+          }
+          setOrderStatusByRef(statusMap);
+        }
+
         if (!mounted) return;
 
         const normalized = [...inbox, ...sent]
@@ -859,6 +944,8 @@ export default function MailBox() {
                         <MessageContentCard
                           subject={activeMail.subject || "No Subject"}
                           message={activeMailText || "No message body available"}
+                          allMails={mails}
+                          orderStatusByRef={orderStatusByRef}
                         />
                       </div>
                     </div>
