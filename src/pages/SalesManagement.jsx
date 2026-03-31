@@ -3,7 +3,6 @@ import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
-import Swal from "sweetalert2";
 
 const API = "/api/sales";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
+import ReturnSaleItemsModal from "@/components/Sales/ReturnSaleItemsModal";
 
 
 const formatDateTime = (iso) => {
@@ -31,14 +31,23 @@ const formatDateTime = (iso) => {
 function StatusBadge({ status }) {
   const completed = status === "Completed";
   const returned  = status === "Returned";
+  const partiallyReturned = status === "Partially Returned";
 
   const colorCls = completed
     ? "bg-emerald-500/10 text-emerald-700 border-emerald-200"
+    : partiallyReturned
+    ? "bg-orange-500/10 text-orange-700 border-orange-200"
     : returned
     ? "bg-amber-500/10 text-amber-700 border-amber-200"
     : "bg-red-500/10 text-red-700 border-red-200";
 
-  const dotCls = completed ? "bg-emerald-500" : returned ? "bg-amber-500" : "bg-red-500";
+  const dotCls = completed
+    ? "bg-emerald-500"
+    : partiallyReturned
+    ? "bg-orange-500"
+    : returned
+    ? "bg-amber-500"
+    : "bg-red-500";
 
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap", colorCls)}>
@@ -94,6 +103,8 @@ export default function SalesManagement() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [returningId, setReturningId] = useState(null); // tracks in-flight return request
+  const [returnSale, setReturnSale] = useState(null);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
@@ -143,35 +154,33 @@ export default function SalesManagement() {
     }
   };
 
-  /* ── Return handler ── */
-  const handleReturn = async (id) => {
-    const sale = sales.find((s) => s.id === id);
-    const label = sale?.receiptNo ?? `#${id}`;
+  /* ── Return handlers ── */
+  const openReturnModal = (sale) => {
+    setReturnSale(sale);
+    setIsReturnModalOpen(true);
+  };
 
-    const result = await Swal.fire({
-      title: "Return this sale?",
-      html: `<p class="text-sm text-gray-500">Sale <strong>${label}</strong> will be marked as <strong>Returned</strong> and all items will be restocked to inventory.</p>`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#e11d48",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, return it",
-      cancelButtonText: "Cancel",
-    });
+  const closeReturnModal = () => {
+    if (returningId !== null) return;
+    setIsReturnModalOpen(false);
+    setReturnSale(null);
+  };
 
-    if (!result.isConfirmed) return;
+  const handleReturnItems = async (payload) => {
+    if (!returnSale?.id) return;
 
-    setReturningId(id);
+    setReturningId(returnSale.id);
     try {
-      await api.post(`${API}/${id}/return`);
-      setSales((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: "Returned" } : s))
-      );
-      showToast(`Sale ${label} has been returned and inventory restocked.`, "success");
+      const response = await api.post(`${API}/${returnSale.id}/return-items`, payload);
+      const updated = response.data;
+      setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      showToast(`Return processed for sale ${returnSale.receiptNo}.`, "success");
+      setIsReturnModalOpen(false);
+      setReturnSale(null);
     } catch (err) {
       const msg = err.response?.data?.message ?? "Failed to process return. Please try again.";
       showToast(msg, "error");
-      console.error("Failed to return sale:", err);
+      console.error("Failed to return selected items:", err);
     } finally {
       setReturningId(null);
     }
@@ -276,6 +285,7 @@ export default function SalesManagement() {
                   <SelectContent>
                     <SelectItem value="All">All Statuses</SelectItem>
                     <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Partially Returned">Partially Returned</SelectItem>
                     <SelectItem value="Voided">Voided</SelectItem>
                     <SelectItem value="Returned">Returned</SelectItem>
                   </SelectContent>
@@ -357,8 +367,10 @@ export default function SalesManagement() {
                     const { date, time } = formatDateTime(sale?.saleDate || new Date().toISOString());
                     const isVoid     = (sale?.status ?? "") === "Voided";
                     const isReturned = (sale?.status ?? "") === "Returned";
+                    const isPartiallyReturned = (sale?.status ?? "") === "Partially Returned";
                     const isInactive = isVoid || isReturned;
                     const isCompleted = (sale?.status ?? "") === "Completed";
+                    const canReturn = isCompleted || isPartiallyReturned;
                     return (
                       <tr
                         key={sale.id}
@@ -436,17 +448,17 @@ export default function SalesManagement() {
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={!isCompleted || returningId === sale.id}
-                              onClick={() => handleReturn(sale.id)}
+                              disabled={!canReturn || returningId === sale.id}
+                              onClick={() => openReturnModal(sale)}
                               className={cn(
                                 "h-8 gap-1.5 px-3 text-[12px] font-medium border-slate-200 shadow-sm",
-                                isCompleted && returningId !== sale.id
+                                canReturn && returningId !== sale.id
                                   ? "text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-colors"
                                   : "opacity-40 text-slate-400 border-slate-100"
                               )}
                             >
                               <RotateCcw className={cn("h-3.5 w-3.5", returningId === sale.id && "animate-spin")} />
-                              {isReturned ? "Returned" : returningId === sale.id ? "Returning…" : "Return"}
+                              {isReturned ? "Returned" : returningId === sale.id ? "Returning..." : "Return Items"}
                             </Button>
                           </div>
                         </td>
@@ -483,6 +495,14 @@ export default function SalesManagement() {
         isOpen={isViewOpen}
         onClose={() => { setIsViewOpen(false); setViewSale(null); }}
         saleData={viewSale}
+      />
+
+      <ReturnSaleItemsModal
+        isOpen={isReturnModalOpen}
+        onClose={closeReturnModal}
+        saleData={returnSale}
+        onConfirm={handleReturnItems}
+        isSubmitting={returningId !== null}
       />
     </div>
   );
