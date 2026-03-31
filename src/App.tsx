@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import InventoryStock from "./pages/InventoryStock";
 import ReorderManagement from "./pages/ReorderManagement";
 import LowStockAlerts   from "./pages/LowStockAlerts";
+import MailBox from "./pages/MailBox";
 
 const queryClient = new QueryClient();
 
@@ -56,7 +57,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ToastProvider>
       <TooltipProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <Routes>
             {/* ── Public ── */}
@@ -79,6 +80,7 @@ const App = () => (
                   <Route path="/low-stock"  element={<LowStockAlerts />} />
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
+                  <Route path="/mailbox"    element={<MailBox />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                   <Route path="/users"      element={<UserManagement />} />
                 </Route>
