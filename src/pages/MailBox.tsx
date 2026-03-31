@@ -72,7 +72,9 @@ function isWebPosMailFrontend(mail: MailboxMessage): boolean {
     subject.includes("updated purchase order") ||
     subject.includes("new purchase order") ||
     subject.includes("outgoing mail") ||
-    subject.includes("admin alert");
+    subject.includes("admin alert") ||
+    subject.includes("supplier confirmed order") ||
+    subject.includes("purchase order confirmed");
 
   const emailLooksPos = senderEmail.includes("dissanayake") || senderEmail.includes("orders");
 
