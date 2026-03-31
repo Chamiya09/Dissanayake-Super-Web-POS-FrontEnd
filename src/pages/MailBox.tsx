@@ -46,6 +46,32 @@ interface ComposeState {
   body: string;
 }
 
+function normalizeDash(value: string): string {
+  return value.replace(/[\u2013\u2014]/g, "-").toLowerCase();
+}
+
+function isWebPosMailFrontend(mail: MailboxMessage): boolean {
+  const sender = normalizeDash((mail.from || "").trim());
+  const senderEmail = (mail.fromEmail || "").trim().toLowerCase();
+  const subject = (mail.subject || "").toLowerCase();
+
+  const senderLooksPos =
+    sender.includes("dissanayake super - orders") ||
+    sender.includes("dissanayake super") ||
+    sender.includes("orders");
+
+  const subjectLooksPos =
+    subject.includes("purchase order") ||
+    subject.includes("updated purchase order") ||
+    subject.includes("new purchase order") ||
+    subject.includes("outgoing mail") ||
+    subject.includes("admin alert");
+
+  const emailLooksPos = senderEmail.includes("dissanayake") || senderEmail.includes("orders");
+
+  return senderLooksPos || (subjectLooksPos && emailLooksPos);
+}
+
 type ParsedPurchaseOrderMessage = {
   orderRef: string;
   datePlaced: string;
@@ -285,11 +311,13 @@ export default function MailBox() {
         const [inbox, sent] = await Promise.all([fetchInbox(30), fetchSent(30)]);
         if (!mounted) return;
 
-        const normalized = [...inbox, ...sent].map((mail) => ({
-          ...mail,
-          category: (mail.category || "Inbox") as MailCategory,
-          tags: Array.isArray(mail.tags) ? mail.tags : [],
-        }));
+        const normalized = [...inbox, ...sent]
+          .map((mail) => ({
+            ...mail,
+            category: (mail.category || "Inbox") as MailCategory,
+            tags: Array.isArray(mail.tags) ? mail.tags : [],
+          }))
+          .filter(isWebPosMailFrontend);
 
         setMails(normalized);
 
