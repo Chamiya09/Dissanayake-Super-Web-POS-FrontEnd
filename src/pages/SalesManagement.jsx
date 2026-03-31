@@ -155,6 +155,12 @@ export default function SalesManagement() {
   };
 
   /* ── Return handlers ── */
+  const extractApiErrorMessage = (err, fallback) => {
+    const data = err?.response?.data;
+    if (typeof data === "string" && data.trim()) return data;
+    return data?.detail || data?.message || data?.error || fallback;
+  };
+
   const openReturnModal = (sale) => {
     setReturnSale(sale);
     setIsReturnModalOpen(true);
@@ -178,7 +184,36 @@ export default function SalesManagement() {
       setIsReturnModalOpen(false);
       setReturnSale(null);
     } catch (err) {
-      const msg = err.response?.data?.message ?? "Failed to process return. Please try again.";
+      const status = err?.response?.status;
+      const msg = extractApiErrorMessage(err, "Failed to process return. Please try again.");
+
+      // Backward compatibility: older backend may not have /return-items yet.
+      if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
+        const proceedFullReturn = window.confirm(
+          "Your backend does not support item-level return yet.\n\nDo you want to process a full sale return instead?"
+        );
+
+        if (proceedFullReturn) {
+          try {
+            const fallbackResponse = await api.post(`${API}/${returnSale.id}/return`);
+            const updated = fallbackResponse.data;
+            setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+            showToast(`Full return processed for sale ${returnSale.receiptNo}.`, "success");
+            setIsReturnModalOpen(false);
+            setReturnSale(null);
+            return;
+          } catch (fallbackErr) {
+            const fallbackMsg = extractApiErrorMessage(
+              fallbackErr,
+              "Failed to process fallback full return."
+            );
+            showToast(fallbackMsg, "error");
+            console.error("Fallback full return failed:", fallbackErr);
+            return;
+          }
+        }
+      }
+
       showToast(msg, "error");
       console.error("Failed to return selected items:", err);
     } finally {

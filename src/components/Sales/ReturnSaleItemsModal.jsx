@@ -6,6 +6,15 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 
+const RETURN_UNITS = [
+  { value: "", label: "Auto" },
+  { value: "kg", label: "kg" },
+  { value: "g", label: "g" },
+  { value: "l", label: "l" },
+  { value: "ml", label: "ml" },
+  { value: "pcs", label: "pcs" },
+];
+
 function toNumber(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
@@ -19,6 +28,7 @@ export default function ReturnSaleItemsModal({
   isSubmitting,
 }) {
   const [returnInputs, setReturnInputs] = useState({});
+  const [returnUnits, setReturnUnits] = useState({});
   const [error, setError] = useState("");
 
   const items = useMemo(() => saleData?.items ?? [], [saleData]);
@@ -45,6 +55,7 @@ export default function ReturnSaleItemsModal({
   useEffect(() => {
     if (isOpen) {
       setReturnInputs({});
+      setReturnUnits({});
       setError("");
     }
   }, [isOpen, saleData]);
@@ -66,6 +77,11 @@ export default function ReturnSaleItemsModal({
 
   const handleQtyChange = (saleItemId, value) => {
     setReturnInputs((prev) => ({ ...prev, [saleItemId]: value }));
+    if (error) setError("");
+  };
+
+  const handleUnitChange = (saleItemId, value) => {
+    setReturnUnits((prev) => ({ ...prev, [saleItemId]: value }));
     if (error) setError("");
   };
 
@@ -91,6 +107,7 @@ export default function ReturnSaleItemsModal({
       selectedItems.push({
         saleItemId: row.saleItemId,
         quantity: qty,
+        unit: returnUnits[row.saleItemId] || null,
       });
     }
 
@@ -153,6 +170,7 @@ export default function ReturnSaleItemsModal({
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Remaining</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Unit Price</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Return Qty</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Return Unit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -177,6 +195,20 @@ export default function ReturnSaleItemsModal({
                             className="h-9 text-right tabular-nums"
                             placeholder={disabled ? "N/A" : "0"}
                           />
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={returnUnits[row.saleItemId] ?? ""}
+                            onChange={(e) => handleUnitChange(row.saleItemId, e.target.value)}
+                            disabled={disabled || isSubmitting}
+                            className="h-9 w-full rounded-md border border-input bg-background px-2 text-right text-sm"
+                          >
+                            {RETURN_UNITS.map((option) => (
+                              <option key={option.value || "auto"} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                       </tr>
                     );
