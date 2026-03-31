@@ -72,6 +72,58 @@ function isWebPosMailFrontend(mail: MailboxMessage): boolean {
   return senderLooksPos || (subjectLooksPos && emailLooksPos);
 }
 
+function toMailSignature(mail: MailboxMessage): string {
+  const normalize = (value: string) =>
+    decodeEntities(value || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const subject = normalize(mail.subject || "");
+  const from = normalize(mail.from || "");
+  const fromEmail = normalize(mail.fromEmail || "");
+  const bodyOrPreview = normalize(mail.body || mail.preview || "").slice(0, 240);
+  const sentMinute = (() => {
+    if (!mail.sentAt) return "";
+    const d = new Date(mail.sentAt);
+    if (Number.isNaN(d.getTime())) return "";
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  })();
+
+  return `${subject}|${from}|${fromEmail}|${bodyOrPreview}|${sentMinute}`;
+}
+
+function deduplicateMails(mails: MailboxMessage[]): MailboxMessage[] {
+  const bySignature = new Map<string, MailboxMessage>();
+
+  for (const mail of mails) {
+    const key = toMailSignature(mail);
+    const existing = bySignature.get(key);
+    if (!existing) {
+      bySignature.set(key, mail);
+      continue;
+    }
+
+    const existingTime = existing.sentAt ? new Date(existing.sentAt).getTime() : 0;
+    const incomingTime = mail.sentAt ? new Date(mail.sentAt).getTime() : 0;
+
+    const shouldReplace =
+      incomingTime > existingTime ||
+      (incomingTime === existingTime && existing.category !== "Inbox" && mail.category === "Inbox");
+
+    if (shouldReplace) {
+      bySignature.set(key, mail);
+    }
+  }
+
+  return Array.from(bySignature.values()).sort((a, b) => {
+    const at = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+    const bt = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+    return bt - at;
+  });
+}
+
 type ParsedPurchaseOrderMessage = {
   orderRef: string;
   datePlaced: string;
@@ -319,10 +371,12 @@ export default function MailBox() {
           }))
           .filter(isWebPosMailFrontend);
 
-        setMails(normalized);
+        const uniqueMails = deduplicateMails(normalized);
 
-        const firstInbox = normalized.find((m) => m.category === "Inbox");
-        const fallback = normalized[0] ?? null;
+        setMails(uniqueMails);
+
+        const firstInbox = uniqueMails.find((m) => m.category === "Inbox");
+        const fallback = uniqueMails[0] ?? null;
         setActiveMailId((firstInbox ?? fallback)?.id ?? null);
       } catch (error: any) {
         if (!mounted) return;
@@ -406,7 +460,7 @@ export default function MailBox() {
         tags: ["Manual"],
       };
 
-      setMails((prev) => [optimisticSent, ...prev]);
+      setMails((prev) => deduplicateMails([optimisticSent, ...prev]));
       setActiveFolder("Sent");
       setActiveMailId(optimisticSent.id);
       setCompose({ to: "", subject: "", body: "" });
