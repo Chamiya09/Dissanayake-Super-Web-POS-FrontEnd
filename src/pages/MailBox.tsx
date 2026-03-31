@@ -26,6 +26,8 @@ import {
   Building2,
   CircleDollarSign,
   ShieldCheck,
+  Hash,
+  Tag,
 } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { cn } from "@/lib/utils";
@@ -354,17 +356,17 @@ function MessageContentCard({
 function decodeEntities(input: string): string {
   if (!input) return "";
   return input
-    .replaceAll("&mdash;", "-")
-    .replaceAll("&nbsp;", " ")
-    .replaceAll("&middot;", "·")
-    .replaceAll("&#x23F3;", "Pending")
-    .replaceAll("&#x2139;&#xFE0F;", "Info")
-    .replaceAll("&#x2713;", "Confirmed")
-    .replaceAll("&#39;", "'")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&amp;", "&")
+    .replace(/&mdash;/g, "-")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&middot;/g, "·")
+    .replace(/&#x23F3;/g, "Pending")
+    .replace(/&#x2139;&#xFE0F;/g, "Info")
+    .replace(/&#x2713;/g, "Confirmed")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -824,6 +826,33 @@ export default function MailBox() {
                               Status
                             </div>
                             <p className="mt-1.5 text-sm font-semibold text-slate-900">{activeMail.unread ? "Unread" : "Read"}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-5">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                              <Hash className="h-3.5 w-3.5" />
+                              Message ID
+                            </div>
+                            <p className="mt-1.5 text-sm font-semibold text-slate-900">{activeMail.id}</p>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                              <Tag className="h-3.5 w-3.5" />
+                              Real Mail States
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {(activeMail.tags?.length ? activeMail.tags : [activeMail.category, activeMail.unread ? "Unread" : "Read", activeMail.starred ? "Starred" : "Unstarred"]).map((stateTag, idx) => (
+                                <span
+                                  key={`${stateTag}-${idx}`}
+                                  className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                                >
+                                  {stateTag}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
