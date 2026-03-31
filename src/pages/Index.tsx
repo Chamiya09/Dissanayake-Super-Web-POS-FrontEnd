@@ -340,7 +340,7 @@ const Index = () => {
         <div
           ref={cartIconRef}
           onPointerDown={() => setKeyboardScope("cart")}
-          className="hidden md:flex h-full w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-card p-4 items-stretch"
+          className="hidden md:flex h-full w-[360px] lg:w-[410px] xl:w-[460px] shrink-0 border-l border-border bg-card p-4 items-stretch"
         >
           <CartPanel
             items={cart}

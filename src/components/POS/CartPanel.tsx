@@ -286,7 +286,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   /* [Space] -> trigger charge when not typing */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!keyboardActive || paymentModalOpen) return;
+      if (paymentModalOpen) return;
 
       if (
         e.code === "Space" &&
@@ -301,12 +301,12 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [items.length, processing, handlePayment, keyboardActive, paymentModalOpen]);
+  }, [items.length, processing, handlePayment, paymentModalOpen]);
 
   /* Cart keyboard navigation: Alt+Up/Down move, -/+ qty, Delete remove */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!keyboardActive || paymentModalOpen) return;
+      if (paymentModalOpen) return;
 
       const isInInput =
         e.target instanceof HTMLInputElement ||
@@ -336,7 +336,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onUpdateQuantity, onRemoveItem, keyboardActive, paymentModalOpen]);
+  }, [onUpdateQuantity, onRemoveItem, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
     "Fruits": "🍎",
@@ -364,14 +364,14 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     <div className="flex h-full w-full flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ShoppingBag className="h-3.5 w-3.5" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ShoppingBag className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-[13px] font-bold leading-none text-foreground">Active Basket</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <h2 className="text-[14px] font-bold leading-none text-foreground">Active Basket</h2>
+            <p className="mt-0.5 text-[11.5px] text-muted-foreground">
               {items.length === 0 ? "No items yet" : `${items.length} item${items.length !== 1 ? "s" : ""}`}
             </p>
           </div>
@@ -379,7 +379,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
         {items.length > 0 && (
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
+              <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground shadow-md shadow-primary/30">
                 {items.length}
               </span>
               <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/60 select-none">
@@ -401,7 +401,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
       </div>
 
       {/* Items list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5">
         {items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 py-12">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/8 to-secondary shadow-inner">
