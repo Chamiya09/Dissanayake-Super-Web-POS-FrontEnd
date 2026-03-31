@@ -61,6 +61,7 @@ function isWebPosMailFrontend(mail: MailboxMessage): boolean {
   const sender = normalizeDash((mail.from || "").trim());
   const senderEmail = (mail.fromEmail || "").trim().toLowerCase();
   const subject = (mail.subject || "").toLowerCase();
+  const body = `${mail.body || ""} ${mail.preview || ""}`.toLowerCase();
 
   const senderLooksPos =
     sender.includes("dissanayake super - orders") ||
@@ -78,7 +79,14 @@ function isWebPosMailFrontend(mail: MailboxMessage): boolean {
 
   const emailLooksPos = senderEmail.includes("dissanayake") || senderEmail.includes("orders");
 
-  return senderLooksPos || (subjectLooksPos && emailLooksPos);
+  const bodyLooksPos =
+    body.includes("dissanayake super inventory system") ||
+    body.includes("this email was sent by the dissanayake super mailbox service") ||
+    body.includes("supplier action required") ||
+    body.includes("purchase order confirmation received") ||
+    body.includes("internal confirmation notice");
+
+  return senderLooksPos || (subjectLooksPos && emailLooksPos) || (emailLooksPos && bodyLooksPos);
 }
 
 function toMailSignature(mail: MailboxMessage): string {
