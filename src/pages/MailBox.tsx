@@ -108,16 +108,30 @@ function deduplicateMails(mails: MailboxMessage[]): MailboxMessage[] {
       continue;
     }
 
+    const bestBody = (mail.body || "").length >= (existing.body || "").length ? mail.body : existing.body;
+    const bestPreview = (mail.preview || "").length >= (existing.preview || "").length ? mail.preview : existing.preview;
+    const bestFromEmail = (existing.fromEmail || "").length >= (mail.fromEmail || "").length ? existing.fromEmail : mail.fromEmail;
+    const bestFrom = (existing.from || "").length >= (mail.from || "").length ? existing.from : mail.from;
+
     const existingTime = existing.sentAt ? new Date(existing.sentAt).getTime() : 0;
     const incomingTime = mail.sentAt ? new Date(mail.sentAt).getTime() : 0;
+    const primary = incomingTime > existingTime ? mail : existing;
+    const secondary = primary === mail ? existing : mail;
 
-    const shouldReplace =
-      incomingTime > existingTime ||
-      (incomingTime === existingTime && existing.category !== "Inbox" && mail.category === "Inbox");
-
-    if (shouldReplace) {
-      bySignature.set(key, mail);
-    }
+    bySignature.set(key, {
+      ...primary,
+      body: bestBody || primary.body || secondary.body,
+      preview: bestPreview || primary.preview || secondary.preview,
+      from: bestFrom || primary.from || secondary.from,
+      fromEmail: bestFromEmail || primary.fromEmail || secondary.fromEmail,
+      unread: primary.unread || secondary.unread,
+      starred: primary.starred || secondary.starred,
+      category:
+        primary.category === "Inbox" || secondary.category === "Inbox"
+          ? "Inbox"
+          : primary.category,
+      tags: Array.from(new Set([...(primary.tags || []), ...(secondary.tags || [])])),
+    });
   }
 
   return Array.from(bySignature.values()).sort((a, b) => {
@@ -152,17 +166,43 @@ function parsePurchaseOrderMessage(subject: string, message: string): ParsedPurc
     text.match(/\bPO-\d{6,}\b/i)?.[0] ??
     "";
 
-  const datePlaced = text.match(/Date\s+Placed\s+(\d{4}-\d{2}-\d{2})/i)?.[1] ?? "";
+  const datePlaced =
+    text.match(/Date\s+Placed\s*:?\s*(\d{4}-\d{2}-\d{2})/i)?.[1] ??
+    text.match(/Date\s*:?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i)?.[1] ??
+    text.match(/(\d{4}-\d{2}-\d{2})/)?.[1] ??
+    "";
+
+  const supplierBlock = text.match(/Supplier\s+([\s\S]*?)\s+Placed\s+By/i)?.[1] ?? "";
+  const supplierEmailFromBlock =
+    supplierBlock.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)?.[0] ?? "";
+  const supplierNameFromBlock = supplierBlock
+    .replace(supplierEmailFromBlock, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const supplierSection = text.match(
     /Supplier\s+(.+?)\s+([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i
   );
 
+  const supplierEmailFromTo =
+    text.match(/\bTo\s*:?\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i)?.[1] ?? "";
+
+  const supplierNameFromGreeting =
+    text.match(/\bDear\s+([^,]+),/i)?.[1]?.trim() ?? "";
+
   const placedBySection = text.match(
     /Placed\s+By\s+(.+?)\s+(Purchasing\s+Manager|Manager|Owner|Staff)/i
   );
 
-  const totalLkr = text.match(/Order\s+Total\s+LKR\s*([\d,.]+(?:\.\d{1,2})?)/i)?.[1] ?? "";
+  const authorisedBy =
+    text.match(/Authori[sz]ed\s+by\s*:?\s*(.+?)\s+Purchasing\s+Department/i)?.[1]?.trim() ??
+    text.match(/Authori[sz]ed\s+by\s*:?\s*(.+)/i)?.[1]?.trim() ??
+    "";
+
+  const totalLkr =
+    text.match(/Order\s+Total\s+LKR\s*([\d,.]+(?:\.\d{1,2})?)/i)?.[1] ??
+    text.match(/LKR\s*([\d,.]+(?:\.\d{1,2})?)/i)?.[1] ??
+    "";
 
   const infoText =
     text.match(/Info\s+(.+?)\s+Order\s+Reference/i)?.[1]?.trim() ??
@@ -182,10 +222,18 @@ function parsePurchaseOrderMessage(subject: string, message: string): ParsedPurc
   return {
     orderRef: orderRef || "N/A",
     datePlaced: datePlaced || "N/A",
-    supplierName: supplierSection?.[1]?.trim() ?? "Supplier",
-    supplierEmail: supplierSection?.[2]?.trim() ?? "N/A",
-    placedBy: placedBySection?.[1]?.trim() ?? "N/A",
-    placedByRole: placedBySection?.[2]?.trim() ?? "N/A",
+    supplierName:
+      supplierNameFromBlock ||
+      supplierNameFromGreeting ||
+      supplierSection?.[1]?.trim() ||
+      "Supplier",
+    supplierEmail:
+      supplierEmailFromBlock ||
+      supplierEmailFromTo ||
+      supplierSection?.[2]?.trim() ||
+      "N/A",
+    placedBy: placedBySection?.[1]?.trim() || authorisedBy || "N/A",
+    placedByRole: placedBySection?.[2]?.trim() || (authorisedBy ? "Purchasing Department" : "N/A"),
     totalLkr: totalLkr || "0.00",
     status,
     infoText,
