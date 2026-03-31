@@ -40,6 +40,9 @@ const FOLDERS: Array<{ key: MailCategory; label: string; icon: React.ElementType
   { key: "Archive", label: "Archive", icon: Archive },
 ];
 
+const MAILBOX_CACHE_KEY = "webpos_mailbox_cache_v2";
+const INITIAL_MAIL_LIMIT = 15;
+
 interface ComposeState {
   to: string;
   subject: string;
@@ -356,11 +359,37 @@ export default function MailBox() {
   useEffect(() => {
     let mounted = true;
 
+    const applyCachedMailbox = () => {
+      try {
+        const raw = sessionStorage.getItem(MAILBOX_CACHE_KEY);
+        if (!raw) return false;
+
+        const cached = JSON.parse(raw) as MailboxMessage[];
+        if (!Array.isArray(cached) || cached.length === 0) return false;
+
+        const cachedUnique = deduplicateMails(cached).filter(isWebPosMailFrontend);
+        if (!cachedUnique.length) return false;
+
+        setMails(cachedUnique);
+        const firstInbox = cachedUnique.find((m) => m.category === "Inbox");
+        const fallback = cachedUnique[0] ?? null;
+        setActiveMailId((firstInbox ?? fallback)?.id ?? null);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const hasCachedData = applyCachedMailbox();
+    setIsLoading(!hasCachedData);
+
     const loadMailbox = async () => {
-      setIsLoading(true);
+      if (!hasCachedData) {
+        setIsLoading(true);
+      }
       setLoadError(null);
       try {
-        const [inbox, sent] = await Promise.all([fetchInbox(30), fetchSent(30)]);
+        const [inbox, sent] = await Promise.all([fetchInbox(INITIAL_MAIL_LIMIT), fetchSent(INITIAL_MAIL_LIMIT)]);
         if (!mounted) return;
 
         const normalized = [...inbox, ...sent]
@@ -374,6 +403,7 @@ export default function MailBox() {
         const uniqueMails = deduplicateMails(normalized);
 
         setMails(uniqueMails);
+        sessionStorage.setItem(MAILBOX_CACHE_KEY, JSON.stringify(uniqueMails));
 
         const firstInbox = uniqueMails.find((m) => m.category === "Inbox");
         const fallback = uniqueMails[0] ?? null;
