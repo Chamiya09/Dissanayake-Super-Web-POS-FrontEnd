@@ -193,34 +193,14 @@ export default function SalesManagement() {
       const status = err?.response?.status;
       const msg = extractApiErrorMessage(err, "Failed to process return. Please try again.");
 
-      // Backward compatibility: older backend may not have /return-items yet.
       if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
-        const proceedFullReturn = window.confirm(
-          "Your backend does not support item-level return yet.\n\nDo you want to process a full sale return instead?"
+        showToast(
+          "Partial return endpoint is not available on backend. Please restart/update backend and try again.",
+          "error"
         );
-
-        if (proceedFullReturn) {
-          try {
-            const fallbackResponse = await api.post(`${API}/${returnSale.id}/return`);
-            const updated = fallbackResponse.data;
-            setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-            showToast(`Full return processed for sale ${returnSale.receiptNo}.`, "success");
-            setIsReturnModalOpen(false);
-            setReturnSale(null);
-            return;
-          } catch (fallbackErr) {
-            const fallbackMsg = extractApiErrorMessage(
-              fallbackErr,
-              "Failed to process fallback full return."
-            );
-            showToast(fallbackMsg, "error");
-            console.error("Fallback full return failed:", fallbackErr);
-            return;
-          }
-        }
+      } else {
+        showToast(msg, "error");
       }
-
-      showToast(msg, "error");
       console.error("Failed to return selected items:", err);
     } finally {
       setReturningId(null);
