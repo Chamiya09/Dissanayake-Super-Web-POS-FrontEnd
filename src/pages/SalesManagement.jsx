@@ -9,7 +9,9 @@ const API = "/api/sales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw, TrendingUp, CheckCircle, SlidersHorizontal } from "lucide-react";
+import { ReceiptText, Search, Eye, Ban, Banknote, CreditCard, RotateCcw, TrendingUp, CheckCircle, SlidersHorizontal, CalendarDays } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -52,6 +54,24 @@ const toDateKey = (value) => {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+};
+
+const parseDateKey = (value) => {
+  if (!value) return undefined;
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+
+const formatDateLabel = (value, placeholder) => {
+  if (!value) return placeholder;
+  const date = parseDateKey(value);
+  if (!date) return placeholder;
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const getStatusSortPriority = (status) => {
@@ -163,15 +183,29 @@ export default function SalesManagement() {
   const [viewSale, setViewSale] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
 
+  const handleFromDateChange = (value) => {
+    setFromDate(value);
+    if (toDate && value && value > toDate) {
+      setToDate(value);
+    }
+  };
+
+  const handleToDateChange = (value) => {
+    setToDate(value);
+    if (fromDate && value && value < fromDate) {
+      setFromDate(value);
+    }
+  };
+
   /* ── Filtering ── */
   const filtered = (sales ?? []).filter((s) => {
     const q = search.toLowerCase();
     const matchSearch = !q || (s?.receiptNo ?? "").toLowerCase().includes(q) || (s?.paymentMethod ?? "").toLowerCase().includes(q);
     const matchStatus = filterStatus === "All" || (s?.status ?? "") === filterStatus;
     const saleDateKey = toDateKey(s?.saleDate);
-    const matchFrom = !fromDate || (saleDateKey && saleDateKey >= fromDate);
-    const matchTo = !toDate || (saleDateKey && saleDateKey <= toDate);
-    return matchSearch && matchStatus && matchFrom && matchTo;
+    const hasCompleteDateRange = !!fromDate && !!toDate;
+    const matchDateRange = !hasCompleteDateRange || (saleDateKey && saleDateKey >= fromDate && saleDateKey <= toDate);
+    return matchSearch && matchStatus && matchDateRange;
   });
 
   const tableRows = [...filtered].sort((a, b) => {
@@ -366,20 +400,67 @@ export default function SalesManagement() {
                     <SelectItem value="Returned">Returned</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="h-10 w-40 text-sm bg-white border-slate-200 rounded-xl"
-                  aria-label="From date"
-                />
-                <Input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="h-10 w-40 text-sm bg-white border-slate-200 rounded-xl"
-                  aria-label="To date"
-                />
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-10 w-44 justify-start rounded-xl border-slate-200 bg-white text-sm font-normal",
+                        !fromDate && "text-slate-400"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {formatDateLabel(fromDate, "Start date")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={parseDateKey(fromDate)}
+                      onSelect={(date) => handleFromDateChange(date ? toDateKey(date) : "")}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-10 w-44 justify-start rounded-xl border-slate-200 bg-white text-sm font-normal",
+                        !toDate && "text-slate-400"
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {formatDateLabel(toDate, "End date")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={parseDateKey(toDate)}
+                      onSelect={(date) => handleToDateChange(date ? toDateKey(date) : "")}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 px-3 text-xs font-medium text-slate-500 hover:text-slate-700 rounded-xl"
+                  onClick={() => {
+                    setFromDate("");
+                    setToDate("");
+                  }}
+                >
+                  Reset Dates
+                </Button>
               </div>
 
               {hasActiveFilters && (
