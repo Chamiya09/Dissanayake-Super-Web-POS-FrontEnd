@@ -29,6 +29,39 @@ const formatDateTime = (iso) => {
   };
 };
 
+const getSaleDisplayTotal = (sale) => {
+  if (!Array.isArray(sale?.items) || sale.items.length === 0) {
+    return Number(sale?.totalAmount || 0);
+  }
+
+  const remainingTotal = sale.items.reduce((sum, item) => {
+    const qty = Number(item?.quantity ?? 0);
+    const returned = Number(item?.returnedQuantity ?? 0);
+    const unitPrice = Number(item?.unitPrice ?? 0);
+    const remainingQty = Math.max(0, qty - returned);
+    return sum + remainingQty * unitPrice;
+  }, 0);
+
+  return Number(remainingTotal.toFixed(2));
+};
+
+const toDateKey = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const getStatusSortPriority = (status) => {
+  if (status === "Completed") return 0;
+  if (status === "Partially Returned") return 1;
+  if (status === "Returned") return 2;
+  if (status === "Voided") return 3;
+  return 4;
+};
+
 function StatusBadge({ status }) {
   const completed = status === "Completed";
   const returned  = status === "Returned";
@@ -104,6 +137,8 @@ export default function SalesManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [returningId, setReturningId] = useState(null); // tracks in-flight return request
   const [returnSale, setReturnSale] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
@@ -133,7 +168,19 @@ export default function SalesManagement() {
     const q = search.toLowerCase();
     const matchSearch = !q || (s?.receiptNo ?? "").toLowerCase().includes(q) || (s?.paymentMethod ?? "").toLowerCase().includes(q);
     const matchStatus = filterStatus === "All" || (s?.status ?? "") === filterStatus;
-    return matchSearch && matchStatus;
+    const saleDateKey = toDateKey(s?.saleDate);
+    const matchFrom = !fromDate || (saleDateKey && saleDateKey >= fromDate);
+    const matchTo = !toDate || (saleDateKey && saleDateKey <= toDate);
+    return matchSearch && matchStatus && matchFrom && matchTo;
+  });
+
+  const tableRows = [...filtered].sort((a, b) => {
+    const statusDiff = getStatusSortPriority(a?.status ?? "") - getStatusSortPriority(b?.status ?? "");
+    if (statusDiff !== 0) return statusDiff;
+
+    const dateA = new Date(a?.saleDate ?? 0).getTime();
+    const dateB = new Date(b?.saleDate ?? 0).getTime();
+    return dateB - dateA;
   });
 
   /* ── Void handler ── */
@@ -220,7 +267,7 @@ export default function SalesManagement() {
   const totalRevenue = completedSales.reduce((sum, s) => sum + s.totalAmount, 0);
   const cashCount = completedSales.filter((s) => s.paymentMethod === "Cash").length;
   const cardCount = completedSales.filter((s) => s.paymentMethod === "Card").length;
-  const hasActiveFilters = search !== "" || filterStatus !== "All";
+  const hasActiveFilters = search !== "" || filterStatus !== "All" || fromDate !== "" || toDate !== "";
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -319,6 +366,20 @@ export default function SalesManagement() {
                     <SelectItem value="Returned">Returned</SelectItem>
                   </SelectContent>
                 </Select>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-10 w-40 text-sm bg-white border-slate-200 rounded-xl"
+                  aria-label="From date"
+                />
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-10 w-40 text-sm bg-white border-slate-200 rounded-xl"
+                  aria-label="To date"
+                />
               </div>
 
               {hasActiveFilters && (
@@ -329,6 +390,8 @@ export default function SalesManagement() {
                   onClick={() => {
                     setSearch("");
                     setFilterStatus("All");
+                    setFromDate("");
+                    setToDate("");
                   }}
                 >
                   Clear
@@ -385,14 +448,14 @@ export default function SalesManagement() {
                       No sales data available.
                     </td>
                   </tr>
-                ) : filtered.length === 0 ? (
+                ) : tableRows.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-20 text-center text-sm text-muted-foreground">
                       No transactions match your search.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((sale) => {
+                  tableRows.map((sale) => {
                     const { date, time } = formatDateTime(sale?.saleDate || new Date().toISOString());
                     const isVoid     = (sale?.status ?? "") === "Voided";
                     const isReturned = (sale?.status ?? "") === "Returned";
@@ -400,6 +463,7 @@ export default function SalesManagement() {
                     const isInactive = isVoid || isReturned;
                     const isCompleted = (sale?.status ?? "") === "Completed";
                     const canReturn = isCompleted || isPartiallyReturned;
+                    const displayTotal = getSaleDisplayTotal(sale);
                     return (
                       <tr
                         key={sale.id}
@@ -424,7 +488,7 @@ export default function SalesManagement() {
                         {/* Total Amount � right-aligned */}
                         <td className="px-6 py-4 text-right">
                           <span className="text-[13px] font-semibold tabular-nums text-foreground">
-                            {formatCurrency(sale?.totalAmount || 0)}
+                            {formatCurrency(displayTotal)}
                           </span>
                         </td>
 
