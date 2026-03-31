@@ -155,8 +155,9 @@ export default function Suppliers() {
       await fetchSuppliers();
       showToast("Supplier deleted successfully!", "success");
     } catch (err) {
-      showToast("Something went wrong. Please try again.", "error");
-      throw new Error(extractApiError(err));
+      const message = extractApiError(err);
+      showToast(message, "error");
+      throw new Error(message);
     }
   }, [deleteTarget, fetchSuppliers]);
 
