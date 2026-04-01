@@ -464,14 +464,6 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
   );
 }
 
-// ─── Fallback data ────────────────────────────────────────────────────────────
-
-const DUMMY_ALERTS = [
-  { inventoryId: -1, productId: -1, productName: "Basmati Rice (5 kg)",           sku: "RCE-001", category: "Dry Goods",   stockQuantity: 4,  reorderLevel: 20, unit: "bags",    stockStatus: "LOW_STOCK",    sellingPrice: 1250 },
-  { inventoryId: -2, productId: -2, productName: "Sunflower Cooking Oil (1 L)",    sku: "OIL-002", category: "Oils & Fats",  stockQuantity: 0,  reorderLevel: 15, unit: "bottles", stockStatus: "OUT_OF_STOCK", sellingPrice: 480  },
-  { inventoryId: -3, productId: -3, productName: "Full Cream Milk Powder (400 g)", sku: "MLK-003", category: "Dairy",        stockQuantity: 7,  reorderLevel: 25, unit: "tins",    stockStatus: "LOW_STOCK",    sellingPrice: 890  },
-];
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LowStockAlerts() {
@@ -508,14 +500,12 @@ export default function LowStockAlerts() {
     (sum, i) => sum + Math.max(0, i.reorderLevel - i.stockQuantity) * i.sellingPrice, 0
   );
 
-  // Source priority: API endpoint → context alerts → dummy data
+  // Source priority: API endpoint → context alerts
   const alertSource = useMemo(() => {
     if (apiAlerts.length   > 0) return apiAlerts;
     if (contextAlerts.length > 0) return contextAlerts;
-    return DUMMY_ALERTS;
+    return [];
   }, [apiAlerts, contextAlerts]);
-
-  const isDummy = alertSource === DUMMY_ALERTS;
 
   const visibleAlerts = useMemo(() => {
     return alertSource
@@ -805,26 +795,18 @@ export default function LowStockAlerts() {
           {!isLoading && visibleAlerts.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
               <p className="text-xs text-slate-500">
-                {isDummy ? "Showing sample data — live inventory not yet available." : (
-                  <>Showing{" "}
-                    <span className="font-semibold text-slate-700">{visibleAlerts.length}</span>
-                    {" "}of{" "}
-                    <span className="font-semibold text-slate-700">{alertSource.length}</span>
-                    {" "}alert{alertSource.length !== 1 ? "s" : ""}
-                  </>
-                )}
+                <>Showing{" "}
+                  <span className="font-semibold text-slate-700">{visibleAlerts.length}</span>
+                  {" "}of{" "}
+                  <span className="font-semibold text-slate-700">{alertSource.length}</span>
+                  {" "}alert{alertSource.length !== 1 ? "s" : ""}
+                </>
               </p>
             </div>
           )}
         </div>
         </div>
 
-        {/* Row count / source note — keep as spacing only when no footer shown */}
-        {!isLoading && visibleAlerts.length === 0 && (
-          <p className="text-[12px] text-slate-400">
-            {isDummy ? "Showing sample data — live inventory not yet available." : ""}
-          </p>
-        )}
         </div>
 
       </main>
