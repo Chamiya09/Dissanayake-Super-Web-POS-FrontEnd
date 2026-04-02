@@ -23,7 +23,6 @@ import { useToast } from "@/context/GlobalToastContext";
 import { fetchInbox, fetchSent, sendMailboxEmail, type MailboxMessage } from "@/api/mailboxApi";
 
 type MailCategory = "Inbox" | "Sent" | "Archive";
-type DetailTemplate = "previous" | "themed";
 
 const FOLDERS: Array<{ key: MailCategory; label: string; icon: React.ElementType }> = [
   { key: "Inbox", label: "Inbox", icon: Inbox },
@@ -246,6 +245,18 @@ function extractKeyValueFacts(text: string): GenericFact[] {
 function classifyMailTheme(mail: MailboxMessage, text: string): MailThemeVariant {
   const source = `${mail.subject || ""} ${text}`.toLowerCase();
 
+  if (/(admin alerts|new purchase order placed|saved to db|reorder management|admin notification)/.test(source)) {
+    return {
+      title: "Admin Purchase Order Alert",
+      subtitle: "A new purchase order was created and supplier notification has been sent.",
+      badge: "PO ALERT",
+      shellClass: "bg-indigo-700",
+      badgeClass: "bg-indigo-100 text-indigo-800",
+      panelClass: "border-indigo-200 bg-indigo-50 text-indigo-800",
+      highlightClass: "border-indigo-200 bg-indigo-50",
+    };
+  }
+
   if (/(purchase order|po-\d{8,}|supplier action required|order total|authorised by|inventory system)/.test(source)) {
     return {
       title: "Supplier Purchase Order",
@@ -464,49 +475,118 @@ function GenericMailDetailCard({
   ).slice(0, 8);
   const theme = classifyMailTheme(mail, text);
 
-  if (theme.badge === "PO MAIL") {
+  if (theme.badge === "PO ALERT") {
     const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
+    const placedAt = facts.find((f) => /date\s*placed/i.test(f.label))?.value || "-";
     const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
 
     return (
-      <div className="overflow-hidden rounded-3xl border border-cyan-100 bg-white shadow-[0_16px_50px_-24px_rgba(8,145,178,0.45)]">
-        <div className="relative overflow-hidden px-6 py-6 text-white bg-gradient-to-br from-cyan-800 via-sky-700 to-teal-700">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
-          <div className="pointer-events-none absolute -left-8 -bottom-10 h-28 w-28 rounded-full bg-cyan-300/25 blur-2xl" />
-
-          <div className="relative flex flex-wrap items-start justify-between gap-3">
+      <div className="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
+        <div className="px-6 py-5 text-white bg-indigo-700">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">Dissanayake Super - Purchasing Department</p>
-              <h3 className="mt-2 text-2xl font-black tracking-tight">Supplier Purchase Order</h3>
-              <p className="mt-1 text-sm text-cyan-100/95">{mail.subject || "Purchase order notice"}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-100">Dissanayake Super - Admin Alerts</p>
+              <h3 className="mt-2 text-xl font-extrabold tracking-tight">New Purchase Order Placed</h3>
+              <p className="mt-1 text-sm text-indigo-100">{mail.subject || "Purchase order alert"}</p>
             </div>
-            <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-bold tracking-wide">ACTION REQUIRED</span>
+            <span className="rounded-full border border-indigo-300 bg-indigo-600 px-3 py-1 text-[11px] font-bold tracking-wide">PENDING</span>
           </div>
 
-          <div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/25 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Reference</p>
-              <p className="mt-1 text-base font-extrabold text-white break-all">{orderRef}</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Order Ref</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{orderRef}</p>
             </div>
-            <div className="rounded-xl border border-white/25 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Total (LKR)</p>
-              <p className="mt-1 text-base font-extrabold text-white break-all">{total}</p>
+            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Date Placed</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{placedAt}</p>
+            </div>
+            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Order Total</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{total}</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-b border-cyan-100 bg-gradient-to-r from-cyan-50 to-white text-sm text-cyan-900">
-          Please review this purchase order and use the supplier action link in the message body to confirm.
+        <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50 text-sm text-indigo-900">
+          Log in to Reorder Management to review, confirm, or cancel this order.
         </div>
 
         <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
             <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
             <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
+              <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-semibold text-indigo-800">{formatMailTime(mail.sentAt) || "-"}</span>
+            </div>
+          </div>
+
+          {facts.map((fact) => (
+            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
+          </div>
+          <div className="px-4 py-4">
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (theme.badge === "PO MAIL") {
+    const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
+    const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
+
+    return (
+      <div className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm">
+        <div className="px-6 py-5 text-white bg-cyan-700">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Dissanayake Super - Purchasing Department</p>
+              <h3 className="mt-2 text-xl font-extrabold tracking-tight">Supplier Purchase Order</h3>
+              <p className="mt-1 text-sm text-cyan-100">{mail.subject || "Purchase order notice"}</p>
+            </div>
+            <span className="rounded-full border border-cyan-100 bg-cyan-600 px-3 py-1 text-[11px] font-bold tracking-wide">ACTION REQUIRED</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-cyan-500 bg-cyan-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Reference</p>
+              <p className="mt-1 text-base font-bold text-white break-all">{orderRef}</p>
+            </div>
+            <div className="rounded-lg border border-cyan-500 bg-cyan-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Total (LKR)</p>
+              <p className="mt-1 text-base font-bold text-white break-all">{total}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-b border-cyan-100 bg-cyan-50 text-sm text-cyan-900">
+          Please review this purchase order and use the supplier action link in the message body to confirm.
+        </div>
+
+        <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
+            <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
+            <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
@@ -515,14 +595,14 @@ function GenericMailDetailCard({
           </div>
 
           {facts.map((fact) => (
-            <div key={`${fact.label}-${fact.value}`} className="rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4">
+            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-cyan-100 bg-cyan-50 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
               <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mx-6 mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
           </div>
@@ -601,46 +681,12 @@ function GenericMailDetailCard({
   );
 }
 
-function PreviousMailDetailCard({
-  mail,
-  text,
-}: {
-  mail: MailboxMessage;
-  text: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">{mail.category}</span>
-        {mail.unread && (
-          <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Unread</span>
-        )}
-        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">{formatMailTime(mail.sentAt) || "-"}</span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-4">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Name</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{mail.from || "Unknown"}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Email</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900 break-all">{mail.fromEmail || "-"}</p>
-        </div>
-      </div>
-
-      <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
-    </div>
-  );
-}
-
 export default function MailBox() {
   const { showToast } = useToast();
   const [folderMails, setFolderMails] = useState<FolderMessages>(EMPTY_FOLDERS);
   const [folderLoaded, setFolderLoaded] = useState<FolderState>(EMPTY_FOLDER_STATE);
   const [folderLoading, setFolderLoading] = useState<FolderState>(EMPTY_FOLDER_STATE);
   const [activeFolder, setActiveFolder] = useState<MailCategory>("Inbox");
-  const [detailTemplate, setDetailTemplate] = useState<DetailTemplate>("themed");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeMailId, setActiveMailId] = useState<number | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -1003,29 +1049,6 @@ export default function MailBox() {
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100"
                 />
               </div>
-
-              <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-                <button
-                  type="button"
-                  onClick={() => setDetailTemplate("previous")}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                    detailTemplate === "previous" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  Previous Template
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDetailTemplate("themed")}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                    detailTemplate === "themed" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  Themed Template
-                </button>
-              </div>
             </div>
           </div>
 
@@ -1155,11 +1178,7 @@ export default function MailBox() {
                           </span>
                         </div>
 
-                        {detailTemplate === "previous" ? (
-                          <PreviousMailDetailCard mail={activeMail} text={activeMailText} />
-                        ) : (
-                          <GenericMailDetailCard mail={activeMail} text={activeMailText} />
-                        )}
+                        <GenericMailDetailCard mail={activeMail} text={activeMailText} />
                       </div>
                     </div>
                   </div>
