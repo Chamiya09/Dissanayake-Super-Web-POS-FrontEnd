@@ -378,6 +378,18 @@ function formatMailTime(iso: string): string {
   return date.toLocaleDateString([], { day: "2-digit", month: "short" });
 }
 
+function formatConfirmedMailBody(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\s+(Order\s+Reference)\b/gi, "\n$1")
+    .replace(/\s+(Supplier\s+Email)\b/gi, "\n$1")
+    .replace(/\s+(Confirmed\s+At)\b/gi, "\n$1")
+    .replace(/\s+(Order\s+Total)\b/gi, "\n$1")
+    .replace(/\s+(Status\s+CONFIRMED)\b/gi, "\n$1")
+    .replace(/\s+(Internal\s+confirmation\s+notice)\b/gi, "\n\n$1")
+    .trim();
+}
+
 function PurchaseOrderEmailCard({ data }: { data: PurchaseOrderEmailData }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -516,6 +528,7 @@ function GenericMailDetailCard({
     const status = facts.find((f) => /status/i.test(f.label))?.value || "CONFIRMED";
 
     const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total", "Status"]);
+    const formattedBody = formatConfirmedMailBody(text);
 
     return (
       <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
@@ -572,12 +585,15 @@ function GenericMailDetailCard({
           ))}
         </div>
 
-        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-white">
+          <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
           </div>
-          <div className="px-4 py-4">
-            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
+          <div className="px-4 py-4 space-y-3">
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+              Supplier confirmed this purchase order. Confirmation is recorded and visible in mailbox logs.
+            </div>
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{formattedBody || "No message body available"}</p>
           </div>
         </div>
       </div>
