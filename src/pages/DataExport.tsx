@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import axios from "axios";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
 import api from "@/lib/axiosInstance";
@@ -28,6 +29,11 @@ type PendingExportAction =
   | { mode: "all" };
 
 const AUTH_LS_KEY = "pos_auth_user";
+
+const authVerifyClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? "",
+  headers: { "Content-Type": "application/json" },
+});
 
 const EXPORTS: ExportConfig[] = [
   {
@@ -268,6 +274,41 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function toNonEmptyString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const text = String(value).trim();
+  return text;
+}
+
+function resolveSaleItemName(item: Record<string, unknown>): string {
+  const direct = [
+    item.productName,
+    item.name,
+    item.itemName,
+    item.product_name,
+    item.product_title,
+  ];
+
+  for (const candidate of direct) {
+    const value = toNonEmptyString(candidate);
+    if (value) return value;
+  }
+
+  const nestedProduct = item.product as Record<string, unknown> | undefined;
+  if (nestedProduct && typeof nestedProduct === "object") {
+    const nested = [nestedProduct.productName, nestedProduct.name, nestedProduct.title];
+    for (const candidate of nested) {
+      const value = toNonEmptyString(candidate);
+      if (value) return value;
+    }
+  }
+
+  const fallbackSku = toNonEmptyString(item.sku ?? item.itemSku);
+  if (fallbackSku) return `Item (${fallbackSku})`;
+
+  return "Unnamed Item";
+}
+
 function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Record<string, string>> {
   const rows: Array<Record<string, string>> = [];
 
@@ -306,6 +347,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
       const unitPrice = toNumber(item.unitPrice);
       const returnedQuantity = toNumber(item.returnedQuantity);
       const lineTotal = quantity * unitPrice;
+      const itemName = resolveSaleItemName(item);
 
       rows.push({
         saleId,
@@ -316,7 +358,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
         cashier,
         saleTotal: saleTotal.toFixed(2),
         itemNo: String(index + 1),
-        itemName: String(item.productName ?? item.name ?? ""),
+        itemName,
         itemSku: String(item.sku ?? ""),
         itemQuantity: String(quantity),
         itemUnitPrice: unitPrice.toFixed(2),
@@ -426,7 +468,7 @@ export default function DataExport() {
     setAuthError("");
 
     try {
-      await api.post("/api/auth/login", {
+      await authVerifyClient.post("/api/auth/login", {
         username,
         password: authPassword.trim(),
       });
@@ -441,7 +483,7 @@ export default function DataExport() {
     } catch (error: any) {
       const msg =
         error?.response?.status === 401
-          ? "Invalid password."
+          ? "Password is wrong."
           : error?.response?.data?.message || "Credential verification failed.";
       setAuthError(msg);
     } finally {
