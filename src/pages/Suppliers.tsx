@@ -64,6 +64,49 @@ function extractApiError(err: unknown): string {
   return err instanceof Error ? err.message : "An unexpected error occurred.";
 }
 
+function buildSupplierDeleteError(err: unknown): { title: string; message: string } {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    const data = err.response?.data;
+    const raw = String(data?.message ?? data?.detail ?? "").toLowerCase();
+
+    if (status === 404) {
+      return {
+        title: "Supplier Not Found",
+        message: "This supplier was not found. Refresh and try again.",
+      };
+    }
+
+    if (status === 409 || status === 400) {
+      if (raw.includes("assigned") || raw.includes("product")) {
+        return {
+          title: "Delete Blocked",
+          message: "This supplier has assigned products. Unassign them first, then delete.",
+        };
+      }
+
+      if (raw.includes("stock") || raw.includes("inventory")) {
+        return {
+          title: "Delete Blocked",
+          message: "This supplier still has active inventory or stock references. Clear them first, then delete.",
+        };
+      }
+    }
+
+    if (status === 500) {
+      return {
+        title: "Server Error",
+        message: "Could not delete supplier right now. Please try again in a moment.",
+      };
+    }
+  }
+
+  return {
+    title: "Delete Failed",
+    message: extractApiError(err),
+  };
+}
+
 export default function Suppliers() {
   const { showToast } = useToast();
   /* ── Supplier list & async state ── */
@@ -155,8 +198,8 @@ export default function Suppliers() {
       await fetchSuppliers();
       showToast("Supplier deleted successfully!", "success");
     } catch (err) {
-      const message = extractApiError(err);
-      showToast(message, "error");
+      const { title, message } = buildSupplierDeleteError(err);
+      showToast({ type: "error", title, message });
       throw new Error(message);
     }
   }, [deleteTarget, fetchSuppliers]);

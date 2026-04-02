@@ -93,6 +93,9 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const PH = doc.internal.pageSize.getHeight();
+  const PAGE_MARGIN = 14;
+  const CONTENT_W = W - PAGE_MARGIN * 2;
+  const FOOTER_H = 14;
   const options = arguments[2] ?? {};
   const productIndex = buildProductIndex(options.products ?? []);
 
@@ -105,6 +108,16 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   const supplierEmail =
     order.supplierEmail ??
     "orders@" + order.supplierName.toLowerCase().replace(/\s+/g, "") + ".lk";
+
+  const ensureSpace = (requiredHeight) => {
+    if (requiredHeight <= 0) return;
+    const nextY = (doc.lastAutoTable?.finalY ?? 0) + requiredHeight;
+    if (nextY > PH - FOOTER_H - PAGE_MARGIN) {
+      doc.addPage();
+      return true;
+    }
+    return false;
+  };
 
   // ── Branded top bar ───────────────────────────────────────────────────────
   doc.setFillColor(...THEME.slate950);
@@ -128,36 +141,48 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...THEME.white);
-  doc.text("PURCHASE ORDER", W - 14, 16, { align: "right" });
+  doc.text("PURCHASE ORDER", W - PAGE_MARGIN, 16, { align: "right" });
 
   // ── Metadata block ────────────────────────────────────────────────────────
   let y = 38;
+  const supplierCardX = PAGE_MARGIN;
+  const supplierCardY = y - 5;
+  const supplierCardW = 104;
+  const supplierCardH = 20;
+  const metaCardW = 72;
+  const metaCardX = W - PAGE_MARGIN - metaCardW;
+  const metaCardY = y - 7;
+  const metaCardH = 27;
 
   // Supplier card
   doc.setFillColor(...THEME.slate50);
   doc.setDrawColor(...THEME.slate200);
-  doc.roundedRect(14, y - 5, 86, 20, 2, 2, "FD");
+  doc.roundedRect(supplierCardX, supplierCardY, supplierCardW, supplierCardH, 2, 2, "FD");
 
   // Meta card
-  doc.roundedRect(W - 80, y - 7, 66, 27, 2, 2, "FD");
+  doc.roundedRect(metaCardX, metaCardY, metaCardW, metaCardH, 2, 2, "FD");
 
   // Left: Supplier info
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...THEME.slate500);
-  doc.text("SUPPLIER", 14, y);
+  doc.text("SUPPLIER", supplierCardX + 2, y);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...THEME.slate950);
-  doc.text(order.supplierName ?? "—", 14, y + 6);
+  const supplierNameLines = doc.splitTextToSize(order.supplierName ?? "—", supplierCardW - 6);
+  doc.text(supplierNameLines, supplierCardX + 2, y + 6);
 
   doc.setFontSize(8.5);
   doc.setTextColor(...THEME.slate600);
-  doc.text(supplierEmail, 14, y + 12);
+  const supplierEmailLines = doc.splitTextToSize(supplierEmail, supplierCardW - 6);
+  doc.text(supplierEmailLines, supplierCardX + 2, y + 12);
 
   // Right: Order metadata
-  const metaX = W - 14;
+  const metaLabelX = metaCardX + 3;
+  const metaValueX = metaCardX + metaCardW - 3;
+  const metaBaseY = y;
   const metaRows = [
     ["Order ID",   order.id],
     ["Order Date", dateStr],
@@ -167,23 +192,24 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
 
   metaRows.forEach(function (row, i) {
     var label = row[0];
-    var value = row[1];
+    var value = toText(row[1], "-");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(...THEME.slate500);
-    doc.text(label + ":", metaX - 55, y + i * 7);
+    doc.text(label + ":", metaLabelX, metaBaseY + i * 6);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(...THEME.slate950);
-    doc.text(String(value ?? ""), metaX, y + i * 7, { align: "right" });
+    const truncated = value.length > 20 ? `${value.slice(0, 17)}...` : value;
+    doc.text(truncated, metaValueX, metaBaseY + i * 6, { align: "right" });
   });
 
   // ── Divider ───────────────────────────────────────────────────────────────
   y += 30;
   doc.setDrawColor(...THEME.slate300);
   doc.setLineWidth(0.4);
-  doc.line(14, y, W - 14, y);
+  doc.line(PAGE_MARGIN, y, W - PAGE_MARGIN, y);
   y += 8;
 
   // ── Items table ───────────────────────────────────────────────────────────
@@ -214,7 +240,7 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
 
   autoTable(doc, {
     startY: y,
-    margin: { left: 14, right: 14 },
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     head: [["#", "Product Name", "SKU", "Quantity", "Unit Price (LKR)", "Total (LKR)"]],
     body: tableRows,
     headStyles: {
@@ -227,12 +253,13 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
     alternateRowStyles: { fillColor: THEME.slate50 },
     columnStyles: {
       0: { cellWidth: 10 },
-      1: { cellWidth: "auto" },
-      2: { cellWidth: 26 },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 32 },
-      5: { cellWidth: 32 },
+      1: { cellWidth: 54 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 26 },
+      4: { cellWidth: 34 },
+      5: { cellWidth: 34 },
     },
+    styles: { valign: "middle", overflow: "linebreak", cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 } },
     tableLineColor: THEME.slate200,
     tableLineWidth: 0.3,
   });
@@ -242,44 +269,52 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   if (grandTotal != null) {
     doc.setFillColor(...THEME.slate50);
     doc.setDrawColor(...THEME.slate200);
-    doc.roundedRect(W - 85, tableEndY - 6, 71, 8, 2, 2, "FD");
+    doc.roundedRect(W - 91, tableEndY - 6, 77, 8, 2, 2, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...THEME.cyan700);
-    doc.text(`Grand Total (LKR): ${lkrFmt.format(grandTotal)}`, W - 14, tableEndY, { align: "right" });
+    doc.text(`Grand Total (LKR): ${lkrFmt.format(grandTotal)}`, W - PAGE_MARGIN, tableEndY, { align: "right" });
     tableEndY += 8;
+  }
+
+  if (ensureSpace(42)) {
+    tableEndY = PAGE_MARGIN + 8;
   }
 
   // ── Notes ─────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...THEME.slate500);
-  doc.text("NOTES", 14, tableEndY);
+  doc.text("NOTES", PAGE_MARGIN, tableEndY);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...THEME.slate600);
-  doc.text(
+  const notesLines = doc.splitTextToSize(
     "Please confirm receipt of this Purchase Order and advise on expected delivery date.",
-    14,
+    CONTENT_W
+  );
+  doc.text(
+    notesLines,
+    PAGE_MARGIN,
     tableEndY + 6,
-    { maxWidth: W - 28 }
+    { maxWidth: CONTENT_W }
   );
 
   // ── Signature block ───────────────────────────────────────────────────────
-  var sigY = tableEndY + 28;
+  var sigY = tableEndY + 10 + notesLines.length * 4;
   doc.setDrawColor(...THEME.slate600);
   doc.setLineWidth(0.4);
-  doc.line(14, sigY, 80, sigY);
-  doc.line(W - 80, sigY, W - 14, sigY);
+  doc.line(PAGE_MARGIN, sigY, PAGE_MARGIN + 66, sigY);
+  doc.line(W - PAGE_MARGIN - 66, sigY, W - PAGE_MARGIN, sigY);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...THEME.slate500);
-  doc.text("Authorized Signature", 14, sigY + 5);
-  doc.text(managerName, W - 14, sigY + 5, { align: "right" });
+  doc.text("Authorized Signature", PAGE_MARGIN, sigY + 5);
+  doc.text(managerName, W - PAGE_MARGIN, sigY + 5, { align: "right" });
   doc.setFontSize(7.5);
-  doc.text("Purchasing Department", W - 14, sigY + 10, { align: "right" });
+  doc.text("Purchasing Department", W - PAGE_MARGIN, sigY + 10, { align: "right" });
 
   // ── Footer strip ──────────────────────────────────────────────────────────
   doc.setFillColor(...THEME.slate50);
