@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
-import { generatePurchaseOrderPDF, generateReorderAccountingPDF } from "@/utils/generatePurchaseOrderPDF";
+import { generatePurchaseOrderPDF, generateReorderAccountingPDF, generateReorderDetailedBatchPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
 import { useToast } from "@/context/GlobalToastContext";
@@ -656,7 +656,9 @@ export default function ReorderManagement() {
   }, [reorders]);
 
   const selectedFilteredCount = filteredReorders.filter((o) => selectedOrderIds.has(o.id)).length;
-  const allFilteredSelected = filteredReorders.length > 0 && selectedFilteredCount === filteredReorders.length;
+  const confirmedFilteredOrders = filteredReorders.filter((o) => o.status === "Confirmed");
+  const selectedConfirmedCount = confirmedFilteredOrders.filter((o) => selectedOrderIds.has(o.id)).length;
+  const allFilteredSelected = confirmedFilteredOrders.length > 0 && selectedConfirmedCount === confirmedFilteredOrders.length;
 
   function toggleOrderSelection(orderId) {
     setSelectedOrderIds((prev) => {
@@ -671,9 +673,9 @@ export default function ReorderManagement() {
     setSelectedOrderIds((prev) => {
       const next = new Set(prev);
       if (allFilteredSelected) {
-        filteredReorders.forEach((o) => next.delete(o.id));
+        confirmedFilteredOrders.forEach((o) => next.delete(o.id));
       } else {
-        filteredReorders.forEach((o) => next.add(o.id));
+        confirmedFilteredOrders.forEach((o) => next.add(o.id));
       }
       return next;
     });
@@ -687,17 +689,34 @@ export default function ReorderManagement() {
   }
 
   function requestBulkPdfExport() {
-    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id));
+    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id) && o.status === "Confirmed");
     if (!selectedOrders.length) {
       showToast({
         type: "warning",
         title: "No Orders Selected",
-        message: "Select one or more reorders, then export the accounting PDF.",
+        message: "Select one or more Confirmed orders, then export the accounting PDF.",
       });
       return;
     }
 
-    setPendingPdfPayload({ mode: "bulk", orders: selectedOrders });
+    setPendingPdfPayload({ mode: "bulk-summary", orders: selectedOrders });
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  function requestBulkDetailedPdfExport() {
+    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id) && o.status === "Confirmed");
+    if (!selectedOrders.length) {
+      showToast({
+        type: "warning",
+        title: "No Orders Selected",
+        message: "Select one or more Confirmed orders, then export the detailed PDF.",
+      });
+      return;
+    }
+
+    setPendingPdfPayload({ mode: "bulk-detailed", orders: selectedOrders });
     setPdfPassword("");
     setPdfAccessError("");
     setPdfAccessOpen(true);
@@ -736,6 +755,8 @@ export default function ReorderManagement() {
       setPdfAccessOpen(false);
       if (pendingPdfPayload.mode === "single") {
         generatePurchaseOrderPDF(pendingPdfPayload.order, managerName, { products: productsCatalog });
+      } else if (pendingPdfPayload.mode === "bulk-detailed") {
+        generateReorderDetailedBatchPDF(pendingPdfPayload.orders, managerName, { products: productsCatalog });
       } else {
         generateReorderAccountingPDF(pendingPdfPayload.orders, managerName, { products: productsCatalog });
       }
@@ -1014,14 +1035,22 @@ export default function ReorderManagement() {
                     <h2 className="text-lg font-bold text-slate-900">Purchase Order History</h2>
                     <p className="text-sm text-slate-500 mt-1">All orders placed through this system</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     <button
                       type="button"
                       onClick={requestBulkPdfExport}
                       className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
                     >
                       <CheckSquare className="h-3.5 w-3.5" />
-                      Export Selected PDF ({selectedFilteredCount})
+                      Export Accounting PDF ({selectedConfirmedCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={requestBulkDetailedPdfExport}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      Export Full Details PDF
                     </button>
                     <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 font-semibold text-slate-700">
                       {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
@@ -1098,8 +1127,9 @@ export default function ReorderManagement() {
                           type="checkbox"
                           checked={allFilteredSelected}
                           onChange={toggleSelectAllFiltered}
+                          disabled={confirmedFilteredOrders.length === 0}
                           className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                          title="Select all filtered orders"
+                          title="Select all filtered confirmed orders"
                         />
                       </th>
                       {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", ""].map((h, i) => (
@@ -1123,8 +1153,9 @@ export default function ReorderManagement() {
                             type="checkbox"
                             checked={selectedOrderIds.has(order.id)}
                             onChange={() => toggleOrderSelection(order.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                            title={`Select ${order.id}`}
+                            disabled={order.status !== "Confirmed"}
+                            className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 disabled:opacity-40"
+                            title={order.status === "Confirmed" ? `Select ${order.id}` : "Only confirmed orders can be selected"}
                           />
                         </td>
                         <td className="px-6 py-6 font-mono text-xs text-slate-500 whitespace-nowrap">
