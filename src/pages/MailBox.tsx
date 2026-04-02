@@ -148,6 +148,27 @@ type MailThemeVariant = {
   highlightClass: string;
 };
 
+function normalizeFactLabel(label: string): string {
+  return label.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function dedupeFactsByLabel(facts: GenericFact[]): GenericFact[] {
+  const seen = new Set<string>();
+  const output: GenericFact[] = [];
+  for (const fact of facts) {
+    const key = normalizeFactLabel(fact.label);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    output.push(fact);
+  }
+  return output;
+}
+
+function filterFactsByExcludedLabels(facts: GenericFact[], excludedLabels: string[]): GenericFact[] {
+  const excluded = new Set(excludedLabels.map(normalizeFactLabel));
+  return facts.filter((fact) => !excluded.has(normalizeFactLabel(fact.label)));
+}
+
 function parsePurchaseOrderEmail(body: string): PurchaseOrderEmailData | null {
   const text = decodeEntities(body);
   if (!/new purchase order/i.test(text)) return null;
@@ -244,6 +265,18 @@ function extractKeyValueFacts(text: string): GenericFact[] {
 
 function classifyMailTheme(mail: MailboxMessage, text: string): MailThemeVariant {
   const source = `${mail.subject || ""} ${text}`.toLowerCase();
+
+  if (/(supplier confirmed order|purchase order confirmed|confirmation received|status\s+confirmed)/.test(source)) {
+    return {
+      title: "Supplier Confirmation",
+      subtitle: "This purchase order has already been confirmed by the supplier.",
+      badge: "PO CONFIRMED",
+      shellClass: "bg-emerald-700",
+      badgeClass: "bg-emerald-100 text-emerald-800",
+      panelClass: "border-emerald-200 bg-emerald-50 text-emerald-800",
+      highlightClass: "border-emerald-200 bg-emerald-50",
+    };
+  }
 
   if (/(admin alerts|new purchase order placed|saved to db|reorder management|admin notification)/.test(source)) {
     return {
@@ -470,15 +503,93 @@ function GenericMailDetailCard({
 }) {
   const primaryFacts = extractGenericFacts(text);
   const keyValueFacts = extractKeyValueFacts(text);
-  const facts = [...primaryFacts, ...keyValueFacts].filter(
-    (fact, idx, arr) => arr.findIndex((f) => f.label.toLowerCase() === fact.label.toLowerCase() && f.value.toLowerCase() === fact.value.toLowerCase()) === idx
+  const facts = dedupeFactsByLabel(
+    [...primaryFacts, ...keyValueFacts].filter(
+      (fact, idx, arr) => arr.findIndex((f) => f.label.toLowerCase() === fact.label.toLowerCase() && f.value.toLowerCase() === fact.value.toLowerCase()) === idx
+    )
   ).slice(0, 8);
   const theme = classifyMailTheme(mail, text);
+
+  if (theme.badge === "PO CONFIRMED") {
+    const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
+    const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
+    const status = facts.find((f) => /status/i.test(f.label))?.value || "CONFIRMED";
+
+    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total", "Status"]);
+
+    return (
+      <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+        <div className="px-6 py-5 text-white bg-emerald-700">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-100">Dissanayake Super - Purchasing Department</p>
+              <h3 className="mt-2 text-xl font-extrabold tracking-tight">Supplier Purchase Order Confirmed</h3>
+              <p className="mt-1 text-sm text-emerald-100">{mail.subject || "Confirmation received"}</p>
+            </div>
+            <span className="rounded-full border border-emerald-300 bg-emerald-600 px-3 py-1 text-[11px] font-bold tracking-wide">CONFIRMED</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Order Ref</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{orderRef}</p>
+            </div>
+            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Order Total</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{total}</p>
+            </div>
+            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Status</p>
+              <p className="mt-1 text-sm font-bold text-white break-all">{status}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-b border-emerald-100 bg-emerald-50 text-sm text-emerald-900">
+          Supplier confirmation has been received and this order is now locked for revision.
+        </div>
+
+        <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
+            <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
+            <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">{formatMailTime(mail.sentAt) || "-"}</span>
+            </div>
+          </div>
+
+          {detailFacts.map((fact) => (
+            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
+          </div>
+          <div className="px-4 py-4">
+            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (theme.badge === "PO ALERT") {
     const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
     const placedAt = facts.find((f) => /date\s*placed/i.test(f.label))?.value || "-";
     const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
+
+    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Date Placed", "Order Total"]);
 
     return (
       <div className="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
@@ -527,7 +638,7 @@ function GenericMailDetailCard({
             </div>
           </div>
 
-          {facts.map((fact) => (
+          {detailFacts.map((fact) => (
             <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
               <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
@@ -550,6 +661,8 @@ function GenericMailDetailCard({
   if (theme.badge === "PO MAIL") {
     const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
     const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
+
+    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total"]);
 
     return (
       <div className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm">
@@ -594,7 +707,7 @@ function GenericMailDetailCard({
             </div>
           </div>
 
-          {facts.map((fact) => (
+          {detailFacts.map((fact) => (
             <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-cyan-100 bg-cyan-50 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
               <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
@@ -656,10 +769,10 @@ function GenericMailDetailCard({
         </div>
       </div>
 
-      {facts.length > 0 && (
+      {filterFactsByExcludedLabels(facts, ["Name", "From Email", "Received Time"]).length > 0 && (
         <div className="px-5 pb-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {facts.map((fact) => (
+            {filterFactsByExcludedLabels(facts, ["Name", "From Email", "Received Time"]).map((fact) => (
               <div key={`${fact.label}-${fact.value}`} className={cn("rounded-xl border p-4", theme.highlightClass)}>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
                 <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
