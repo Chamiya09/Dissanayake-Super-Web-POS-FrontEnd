@@ -20,44 +20,135 @@ const EXPORTS: ExportConfig[] = [
     title: "Sales Data",
     description: "All sales records, statuses, and totals.",
     endpoint: "/api/sales",
-    filenamePrefix: "sales-data",
+    filenamePrefix: "pos-sales-item-report",
   },
   {
     key: "products",
     title: "Products Data",
     description: "Product catalog with pricing and metadata.",
     endpoint: "/api/products",
-    filenamePrefix: "products-data",
+    filenamePrefix: "pos-products-catalog",
   },
   {
     key: "inventory",
     title: "Inventory Data",
     description: "Live stock status and inventory levels.",
     endpoint: "/api/inventory/status",
-    filenamePrefix: "inventory-data",
+    filenamePrefix: "pos-inventory-status",
   },
   {
     key: "suppliers",
     title: "Suppliers Data",
     description: "Supplier profile and assignment details.",
     endpoint: "/api/suppliers",
-    filenamePrefix: "suppliers-data",
+    filenamePrefix: "pos-suppliers-master",
   },
   {
     key: "users",
     title: "Users Data",
     description: "User accounts, roles, and active status.",
     endpoint: "/api/users",
-    filenamePrefix: "users-data",
+    filenamePrefix: "pos-users-directory",
   },
   {
     key: "reorder",
     title: "Reorder History",
     description: "Purchase order history and reorder events.",
     endpoint: "/api/v1/reorder/history",
-    filenamePrefix: "reorder-history",
+    filenamePrefix: "pos-reorder-history",
   },
 ];
+
+const COLUMN_ORDER: Record<ExportKey, string[]> = {
+  sales: [
+    "saleId",
+    "receiptNo",
+    "saleDate",
+    "paymentMethod",
+    "status",
+    "cashier",
+    "saleTotal",
+    "itemNo",
+    "itemName",
+    "itemSku",
+    "itemQuantity",
+    "itemUnitPrice",
+    "itemLineTotal",
+    "itemReturnedQuantity",
+  ],
+  products: [
+    "id",
+    "name",
+    "productName",
+    "sku",
+    "barcode",
+    "category",
+    "brand",
+    "unit",
+    "buyingPrice",
+    "costPrice",
+    "sellingPrice",
+    "price",
+    "currentStock",
+    "stock",
+    "reorderLevel",
+    "supplierId",
+    "supplierName",
+    "supplierEmail",
+    "active",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  inventory: [
+    "inventoryId",
+    "productId",
+    "productName",
+    "sku",
+    "category",
+    "currentStock",
+    "reorderLevel",
+    "unit",
+    "sellingPrice",
+    "supplierName",
+    "supplierEmail",
+    "lastUpdated",
+  ],
+  suppliers: [
+    "id",
+    "companyName",
+    "contactPerson",
+    "email",
+    "phone",
+    "leadTimeDays",
+    "notes",
+    "active",
+    "createdAt",
+    "updatedAt",
+  ],
+  users: [
+    "id",
+    "username",
+    "fullName",
+    "email",
+    "role",
+    "active",
+    "emailNotifications",
+    "createdAt",
+    "updatedAt",
+  ],
+  reorder: [
+    "id",
+    "orderRef",
+    "status",
+    "createdAt",
+    "updatedAt",
+    "supplierName",
+    "supplierEmail",
+    "totalAmount",
+    "items",
+  ],
+};
 
 function flattenRecord(input: unknown, parentKey = ""): Record<string, string> {
   if (input === null || input === undefined) {
@@ -104,15 +195,23 @@ function escapeCsv(value: string): string {
   return value;
 }
 
-function toCsv(rows: Array<Record<string, string>>): string {
-  if (!rows.length) return "";
-
-  const headers = Array.from(
+function buildOrderedHeaders(rows: Array<Record<string, string>>, preferredOrder: string[]): string[] {
+  const detected = Array.from(
     rows.reduce((set, row) => {
       Object.keys(row).forEach((h) => set.add(h));
       return set;
     }, new Set<string>())
   );
+
+  const preferred = preferredOrder.filter((h) => detected.includes(h));
+  const remaining = detected.filter((h) => !preferred.includes(h)).sort((a, b) => a.localeCompare(b));
+  return [...preferred, ...remaining];
+}
+
+function toCsv(rows: Array<Record<string, string>>, preferredOrder: string[] = []): string {
+  if (!rows.length) return "";
+
+  const headers = buildOrderedHeaders(rows, preferredOrder);
 
   const headerRow = headers.map(escapeCsv).join(",");
   const bodyRows = rows.map((row) => headers.map((h) => escapeCsv(row[h] ?? "")).join(","));
@@ -237,7 +336,7 @@ export default function DataExport() {
         cfg.key === "sales"
           ? buildSalesItemRows(records)
           : records.map((r) => flattenRecord(r));
-      const csv = toCsv(flattened);
+      const csv = toCsv(flattened, COLUMN_ORDER[cfg.key]);
 
       if (!csv) {
         showToast({ type: "warning", title: "No Data", message: `No rows returned for ${cfg.title}.` });
