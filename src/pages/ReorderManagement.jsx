@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
@@ -35,6 +36,12 @@ import {
 
 
 const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
+const AUTH_LS_KEY = "pos_auth_user";
+
+const authVerifyClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? "",
+  headers: { "Content-Type": "application/json" },
+});
 
 const normalizeEmail = (value) => (value ?? "").trim().toLowerCase();
 
@@ -548,6 +555,7 @@ export default function ReorderManagement() {
   const [suppliers,        setSuppliers]        = useState([]);
   const [suppliersLoading, setSuppliersLoading] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [productsCatalog, setProductsCatalog] = useState([]);
 
   const fetchSuppliers = useCallback(() => {
     setSuppliersLoading(true);
@@ -574,6 +582,17 @@ export default function ReorderManagement() {
   }, []);
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
+
+  useEffect(() => {
+    api.get("/api/products")
+      .then((r) => {
+        const rows = Array.isArray(r?.data) ? r.data : [];
+        setProductsCatalog(rows);
+      })
+      .catch(() => {
+        setProductsCatalog([]);
+      });
+  }, []);
 
   // Fetch order history once (after component mounts); re-uses supplier list
   // for display-name resolution once suppliers have loaded.
@@ -613,8 +632,65 @@ export default function ReorderManagement() {
   // ── Edit order modal (null | order)
   const [editOrderModal, setEditOrderModal] = useState(null);
 
+  // ── PDF access gate
+  const [pdfAccessOpen, setPdfAccessOpen] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [pdfAccessError, setPdfAccessError] = useState("");
+  const [pdfChecking, setPdfChecking] = useState(false);
+  const [pendingPdfOrder, setPendingPdfOrder] = useState(null);
+
   // ── Update overlay
   const [updateOverlay, setUpdateOverlay] = useState(false);
+
+  function requestPdfExport(order) {
+    setPendingPdfOrder(order);
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  async function handleVerifyAndDownloadPdf() {
+    if (!pendingPdfOrder) return;
+
+    if (!pdfPassword.trim()) {
+      setPdfAccessError("Password is required.");
+      return;
+    }
+
+    let username = "";
+    try {
+      const raw = localStorage.getItem(AUTH_LS_KEY);
+      username = raw ? JSON.parse(raw)?.username ?? "" : "";
+    } catch {
+      username = "";
+    }
+
+    if (!username) {
+      setPdfAccessError("Session username not found. Please login again.");
+      return;
+    }
+
+    setPdfChecking(true);
+    setPdfAccessError("");
+
+    try {
+      await authVerifyClient.post("/api/auth/login", {
+        username,
+        password: pdfPassword.trim(),
+      });
+
+      setPdfAccessOpen(false);
+      generatePurchaseOrderPDF(pendingPdfOrder, managerName, { products: productsCatalog });
+    } catch (error) {
+      const msg =
+        error?.response?.status === 401
+          ? "Password is wrong."
+          : error?.response?.data?.message || "Credential verification failed.";
+      setPdfAccessError(msg);
+    } finally {
+      setPdfChecking(false);
+    }
+  }
 
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
@@ -1017,7 +1093,7 @@ export default function ReorderManagement() {
                               </button>
                               {/* Download PDF */}
                               <button
-                                onClick={() => generatePurchaseOrderPDF(order, managerName)}
+                                onClick={() => requestPdfExport(order)}
                                 title="Download Purchase Order PDF"
                                 className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                               >
@@ -1098,6 +1174,49 @@ export default function ReorderManagement() {
 
       {/* Cancellation Overlay */}
       {cancelOverlay && <CancelOverlay />}
+
+      {pdfAccessOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-900/70" onClick={() => !pdfChecking && setPdfAccessOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900">Export Access Required</h3>
+            <p className="mt-1 text-sm text-slate-600">Enter your account password to download the purchase order PDF.</p>
+
+            <div className="mt-4 space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
+              <input
+                type="password"
+                value={pdfPassword}
+                onChange={(e) => setPdfPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={pdfChecking}
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              />
+              {pdfAccessError && <p className="text-xs font-medium text-red-600">{pdfAccessError}</p>}
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPdfAccessOpen(false)}
+                disabled={pdfChecking}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyAndDownloadPdf}
+                disabled={pdfChecking}
+                className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
+              >
+                {pdfChecking && <Loader2 className="h-4 w-4 animate-spin" />}
+                Verify & Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Update Overlay */}
       {updateOverlay && <UpdateOverlay />}

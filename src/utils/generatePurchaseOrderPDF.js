@@ -3,6 +3,73 @@ import autoTable from "jspdf-autotable";
 
 const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toNullableNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toText(value, fallback = "") {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function buildProductIndex(products = []) {
+  const index = new Map();
+  products.forEach((p) => {
+    const key = toText(p?.productName).toLowerCase();
+    if (key) index.set(key, p);
+  });
+  return index;
+}
+
+function buildPdfItems(order, productIndex) {
+  const rawItems = Array.isArray(order?.items) ? order.items : [];
+
+  if (!rawItems.length) {
+    const fallbackName = toText(order?.productName, "Unnamed Item");
+    const fallbackQty = toNumber(order?.quantity);
+    const fallbackUnit = toText(order?.unit, "units");
+    const fallbackUnitPrice = toNullableNumber(order?.unitPrice);
+    const fallbackSku = toText(order?.sku, "N/A");
+
+    return [{
+      productName: fallbackName,
+      sku: fallbackSku,
+      quantity: fallbackQty,
+      unit: fallbackUnit,
+      unitPrice: fallbackUnitPrice,
+      lineTotal: fallbackUnitPrice === null ? null : fallbackUnitPrice * fallbackQty,
+    }];
+  }
+
+  return rawItems.map((item) => {
+    const itemName = toText(item?.productName ?? item?.name, "Unnamed Item");
+    const productMeta = productIndex.get(itemName.toLowerCase());
+
+    const quantity = toNumber(item?.quantity);
+    const unit = toText(item?.unit ?? order?.unit ?? productMeta?.unit, "units");
+    const unitPrice = toNullableNumber(item?.unitPrice ?? item?.price ?? order?.unitPrice);
+    const sku = toText(item?.sku ?? order?.sku ?? productMeta?.sku, "N/A");
+    const lineTotal = toNullableNumber(item?.lineTotal);
+
+    return {
+      productName: itemName,
+      sku,
+      quantity,
+      unit,
+      unitPrice,
+      lineTotal: lineTotal === null && unitPrice !== null ? unitPrice * quantity : lineTotal,
+    };
+  });
+}
+
 /**
  * Generates and downloads a professional Purchase Order PDF.
  * @param {object} order       - The order object from ReorderContext
@@ -12,6 +79,8 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const PH = doc.internal.pageSize.getHeight();
+  const options = arguments[2] ?? {};
+  const productIndex = buildProductIndex(options.products ?? []);
 
   const dateStr = new Date(order.orderDate).toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -94,27 +163,36 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   y += 8;
 
   // ── Items table ───────────────────────────────────────────────────────────
-  var qtyLabel = String(order.quantity) + " " + (order.unit ?? "units");
+  const pdfItems = buildPdfItems(order, productIndex);
   var lkrFmt = new Intl.NumberFormat("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  var unitPriceVal =
-    order.unitPrice != null ? lkrFmt.format(order.unitPrice) : "___________";
-  var totalVal =
-    order.unitPrice != null
-      ? lkrFmt.format(order.unitPrice * order.quantity)
-      : "___________";
+  const tableRows = pdfItems.map((item, index) => {
+    const qtyLabel = `${item.quantity} ${item.unit}`;
+    const unitPriceVal = item.unitPrice == null ? "N/A" : lkrFmt.format(item.unitPrice);
+    const totalVal = item.lineTotal == null ? "N/A" : lkrFmt.format(item.lineTotal);
+
+    return [
+      String(index + 1),
+      item.productName,
+      item.sku,
+      qtyLabel,
+      unitPriceVal,
+      totalVal,
+    ];
+  });
+
+  const computedGrandTotal = pdfItems.reduce((sum, item) => {
+    if (item.lineTotal != null) return sum + item.lineTotal;
+    if (item.unitPrice != null) return sum + item.unitPrice * item.quantity;
+    return sum;
+  }, 0);
+  const fallbackGrandTotal = toNullableNumber(order?.totalAmount);
+  const grandTotal = computedGrandTotal > 0 ? computedGrandTotal : fallbackGrandTotal;
 
   autoTable(doc, {
     startY: y,
     margin: { left: 14, right: 14 },
     head: [["#", "Product Name", "SKU", "Quantity", "Unit Price (LKR)", "Total (LKR)"]],
-    body: [[
-      "1",
-      order.productName ?? "",
-      order.sku ?? "—",
-      qtyLabel,
-      unitPriceVal,
-      totalVal,
-    ]],
+    body: tableRows,
     headStyles: {
       fillColor: [30, 27, 75],
       textColor: [255, 255, 255],
@@ -136,6 +214,14 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   });
 
   var tableEndY = doc.lastAutoTable.finalY + 10;
+
+  if (grandTotal != null) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Grand Total (LKR): ${lkrFmt.format(grandTotal)}`, W - 14, tableEndY, { align: "right" });
+    tableEndY += 8;
+  }
 
   // ── Notes ─────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
