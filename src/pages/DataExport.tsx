@@ -3,6 +3,15 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
 import api from "@/lib/axiosInstance";
 import { Database, Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ExportKey = "sales" | "products" | "inventory" | "suppliers" | "users" | "reorder";
 
@@ -13,6 +22,12 @@ type ExportConfig = {
   endpoint: string;
   filenamePrefix: string;
 };
+
+type PendingExportAction =
+  | { mode: "single"; config: ExportConfig }
+  | { mode: "all" };
+
+const AUTH_LS_KEY = "pos_auth_user";
 
 const EXPORTS: ExportConfig[] = [
   {
@@ -326,6 +341,11 @@ export default function DataExport() {
   });
 
   const anyLoading = useMemo(() => Object.values(loading).some(Boolean), [loading]);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authChecking, setAuthChecking] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingExportAction | null>(null);
 
   const runExport = async (cfg: ExportConfig) => {
     setLoading((prev) => ({ ...prev, [cfg.key]: true }));
@@ -367,6 +387,68 @@ export default function DataExport() {
     }
   };
 
+  const requestSingleExport = (cfg: ExportConfig) => {
+    setPendingAction({ mode: "single", config: cfg });
+    setAuthPassword("");
+    setAuthError("");
+    setAuthOpen(true);
+  };
+
+  const requestExportAll = () => {
+    setPendingAction({ mode: "all" });
+    setAuthPassword("");
+    setAuthError("");
+    setAuthOpen(true);
+  };
+
+  const verifyAndExport = async () => {
+    if (!pendingAction) return;
+
+    if (!authPassword.trim()) {
+      setAuthError("Password is required.");
+      return;
+    }
+
+    let username = "";
+    try {
+      const raw = localStorage.getItem(AUTH_LS_KEY);
+      username = raw ? JSON.parse(raw)?.username ?? "" : "";
+    } catch {
+      username = "";
+    }
+
+    if (!username) {
+      setAuthError("Session username not found. Please login again.");
+      return;
+    }
+
+    setAuthChecking(true);
+    setAuthError("");
+
+    try {
+      await api.post("/api/auth/login", {
+        username,
+        password: authPassword.trim(),
+      });
+
+      setAuthOpen(false);
+
+      if (pendingAction.mode === "single") {
+        await runExport(pendingAction.config);
+      } else {
+        await exportAll();
+      }
+    } catch (error: any) {
+      const msg =
+        error?.response?.status === 401
+          ? "Invalid password."
+          : error?.response?.data?.message || "Credential verification failed.";
+      setAuthError(msg);
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
@@ -387,7 +469,7 @@ export default function DataExport() {
 
               <button
                 type="button"
-                onClick={exportAll}
+                onClick={requestExportAll}
                 disabled={anyLoading}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
               >
@@ -412,7 +494,7 @@ export default function DataExport() {
 
                 <button
                   type="button"
-                  onClick={() => runExport(cfg)}
+                  onClick={() => requestSingleExport(cfg)}
                   disabled={loading[cfg.key]}
                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
@@ -424,6 +506,50 @@ export default function DataExport() {
           </div>
         </div>
       </div>
+
+      <Dialog open={authOpen} onOpenChange={(open) => !authChecking && setAuthOpen(open)}>
+        <DialogContent className="rounded-2xl border-slate-200 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Export Access Required</DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Enter your account password to continue exporting data files.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
+            <Input
+              type="password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              placeholder="Enter your password"
+              disabled={authChecking}
+              className="h-11 rounded-xl border-slate-200"
+            />
+            {authError && <p className="text-xs font-medium text-red-600">{authError}</p>}
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setAuthOpen(false)}
+              disabled={authChecking}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={verifyAndExport}
+              disabled={authChecking}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
+            >
+              {authChecking && <Loader2 className="h-4 w-4 animate-spin" />}
+              Verify & Export
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
