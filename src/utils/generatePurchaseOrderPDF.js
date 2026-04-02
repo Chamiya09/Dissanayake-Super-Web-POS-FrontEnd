@@ -2,6 +2,20 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
+const THEME = {
+  slate950: [15, 23, 42],
+  slate800: [30, 41, 59],
+  slate600: [71, 85, 105],
+  slate500: [100, 116, 139],
+  slate300: [203, 213, 225],
+  slate200: [226, 232, 240],
+  slate100: [241, 245, 249],
+  slate50: [248, 250, 252],
+  cyan700: [14, 116, 144],
+  cyan600: [8, 145, 178],
+  cyan100: [207, 250, 254],
+  white: [255, 255, 255],
+};
 
 function toNumber(value) {
   const n = Number(value);
@@ -93,43 +107,53 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
     "orders@" + order.supplierName.toLowerCase().replace(/\s+/g, "") + ".lk";
 
   // ── Branded top bar ───────────────────────────────────────────────────────
-  doc.setFillColor(30, 27, 75); // indigo-950
+  doc.setFillColor(...THEME.slate950);
   doc.rect(0, 0, W, 28, "F");
+  doc.setFillColor(...THEME.cyan600);
+  doc.rect(0, 24.5, W, 3.5, "F");
 
   // Store name (left)
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...THEME.white);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text("Dissanayake Super", 14, 12);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(199, 210, 254); // indigo-200
+  doc.setTextColor(...THEME.cyan100);
   doc.text("No. 45, Main Street, Colombo 03, Sri Lanka", 14, 18);
   doc.text("From: " + SYSTEM_SENDER_EMAIL, 14, 23);
 
   // PO label (right)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...THEME.white);
   doc.text("PURCHASE ORDER", W - 14, 16, { align: "right" });
 
   // ── Metadata block ────────────────────────────────────────────────────────
   let y = 38;
 
+  // Supplier card
+  doc.setFillColor(...THEME.slate50);
+  doc.setDrawColor(...THEME.slate200);
+  doc.roundedRect(14, y - 5, 86, 20, 2, 2, "FD");
+
+  // Meta card
+  doc.roundedRect(W - 80, y - 7, 66, 27, 2, 2, "FD");
+
   // Left: Supplier info
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139); // slate-500
+  doc.setTextColor(...THEME.slate500);
   doc.text("SUPPLIER", 14, y);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42); // slate-950
+  doc.setTextColor(...THEME.slate950);
   doc.text(order.supplierName ?? "—", 14, y + 6);
 
   doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105); // slate-600
+  doc.setTextColor(...THEME.slate600);
   doc.text(supplierEmail, 14, y + 12);
 
   // Right: Order metadata
@@ -146,18 +170,18 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
     var value = row[1];
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(...THEME.slate500);
     doc.text(label + ":", metaX - 55, y + i * 7);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(...THEME.slate950);
     doc.text(String(value ?? ""), metaX, y + i * 7, { align: "right" });
   });
 
   // ── Divider ───────────────────────────────────────────────────────────────
   y += 30;
-  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.setDrawColor(...THEME.slate300);
   doc.setLineWidth(0.4);
   doc.line(14, y, W - 14, y);
   y += 8;
@@ -194,13 +218,13 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
     head: [["#", "Product Name", "SKU", "Quantity", "Unit Price (LKR)", "Total (LKR)"]],
     body: tableRows,
     headStyles: {
-      fillColor: [30, 27, 75],
-      textColor: [255, 255, 255],
+      fillColor: THEME.cyan700,
+      textColor: THEME.white,
       fontStyle: "bold",
       fontSize: 8,
     },
-    bodyStyles: { fontSize: 9, textColor: [15, 23, 42] },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+    bodyStyles: { fontSize: 9, textColor: THEME.slate950 },
+    alternateRowStyles: { fillColor: THEME.slate50 },
     columnStyles: {
       0: { cellWidth: 10 },
       1: { cellWidth: "auto" },
@@ -209,16 +233,19 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
       4: { cellWidth: 32 },
       5: { cellWidth: 32 },
     },
-    tableLineColor: [226, 232, 240],
+    tableLineColor: THEME.slate200,
     tableLineWidth: 0.3,
   });
 
   var tableEndY = doc.lastAutoTable.finalY + 10;
 
   if (grandTotal != null) {
+    doc.setFillColor(...THEME.slate50);
+    doc.setDrawColor(...THEME.slate200);
+    doc.roundedRect(W - 85, tableEndY - 6, 71, 8, 2, 2, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(...THEME.cyan700);
     doc.text(`Grand Total (LKR): ${lkrFmt.format(grandTotal)}`, W - 14, tableEndY, { align: "right" });
     tableEndY += 8;
   }
@@ -226,12 +253,12 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
   // ── Notes ─────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(...THEME.slate500);
   doc.text("NOTES", 14, tableEndY);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(...THEME.slate600);
   doc.text(
     "Please confirm receipt of this Purchase Order and advise on expected delivery date.",
     14,
@@ -241,29 +268,29 @@ export function generatePurchaseOrderPDF(order, managerName = "Store Manager") {
 
   // ── Signature block ───────────────────────────────────────────────────────
   var sigY = tableEndY + 28;
-  doc.setDrawColor(71, 85, 105);
+  doc.setDrawColor(...THEME.slate600);
   doc.setLineWidth(0.4);
   doc.line(14, sigY, 80, sigY);
   doc.line(W - 80, sigY, W - 14, sigY);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(...THEME.slate500);
   doc.text("Authorized Signature", 14, sigY + 5);
   doc.text(managerName, W - 14, sigY + 5, { align: "right" });
   doc.setFontSize(7.5);
   doc.text("Purchasing Department", W - 14, sigY + 10, { align: "right" });
 
   // ── Footer strip ──────────────────────────────────────────────────────────
-  doc.setFillColor(248, 250, 252);
+  doc.setFillColor(...THEME.slate50);
   doc.rect(0, PH - 14, W, 14, "F");
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(...THEME.slate200);
   doc.setLineWidth(0.3);
   doc.line(0, PH - 14, W, PH - 14);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184); // slate-400
+  doc.setTextColor(...THEME.slate500);
   doc.text(
     "Generated by Dissanayake Super Inventory System",
     W / 2,
