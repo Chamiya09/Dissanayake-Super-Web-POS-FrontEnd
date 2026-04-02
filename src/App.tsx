@@ -24,6 +24,7 @@ import InventoryStock from "./pages/InventoryStock";
 import ReorderManagement from "./pages/ReorderManagement";
 import LowStockAlerts   from "./pages/LowStockAlerts";
 import MailBox from "./pages/MailBox";
+import DataExport from "./pages/DataExport";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
                   <Route path="/mailbox"    element={<MailBox />} />
+                  <Route path="/data-export" element={<DataExport />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                   <Route path="/users"      element={<UserManagement />} />
                 </Route>
