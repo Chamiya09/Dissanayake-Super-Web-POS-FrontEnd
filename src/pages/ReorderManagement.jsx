@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
-import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
+import { generatePurchaseOrderPDF, generateReorderAccountingPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
 import { useToast } from "@/context/GlobalToastContext";
@@ -30,6 +30,7 @@ import {
   Search,
   FileDown,
   SlidersHorizontal,
+  CheckSquare,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -628,6 +629,7 @@ export default function ReorderManagement() {
 
   // ── Inline cancel confirmation: which order.id is awaiting confirm
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState(() => new Set());
 
   // ── Edit order modal (null | order)
   const [editOrderModal, setEditOrderModal] = useState(null);
@@ -637,20 +639,72 @@ export default function ReorderManagement() {
   const [pdfPassword, setPdfPassword] = useState("");
   const [pdfAccessError, setPdfAccessError] = useState("");
   const [pdfChecking, setPdfChecking] = useState(false);
-  const [pendingPdfOrder, setPendingPdfOrder] = useState(null);
+  const [pendingPdfPayload, setPendingPdfPayload] = useState(null);
 
   // ── Update overlay
   const [updateOverlay, setUpdateOverlay] = useState(false);
 
+  useEffect(() => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set();
+      const existing = new Set(reorders.map((o) => o.id));
+      prev.forEach((id) => {
+        if (existing.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [reorders]);
+
+  const selectedFilteredCount = filteredReorders.filter((o) => selectedOrderIds.has(o.id)).length;
+  const allFilteredSelected = filteredReorders.length > 0 && selectedFilteredCount === filteredReorders.length;
+
+  function toggleOrderSelection(orderId) {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }
+
+  function toggleSelectAllFiltered() {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredReorders.forEach((o) => next.delete(o.id));
+      } else {
+        filteredReorders.forEach((o) => next.add(o.id));
+      }
+      return next;
+    });
+  }
+
   function requestPdfExport(order) {
-    setPendingPdfOrder(order);
+    setPendingPdfPayload({ mode: "single", order });
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  function requestBulkPdfExport() {
+    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id));
+    if (!selectedOrders.length) {
+      showToast({
+        type: "warning",
+        title: "No Orders Selected",
+        message: "Select one or more reorders, then export the accounting PDF.",
+      });
+      return;
+    }
+
+    setPendingPdfPayload({ mode: "bulk", orders: selectedOrders });
     setPdfPassword("");
     setPdfAccessError("");
     setPdfAccessOpen(true);
   }
 
   async function handleVerifyAndDownloadPdf() {
-    if (!pendingPdfOrder) return;
+    if (!pendingPdfPayload) return;
 
     if (!pdfPassword.trim()) {
       setPdfAccessError("Password is required.");
@@ -680,7 +734,11 @@ export default function ReorderManagement() {
       });
 
       setPdfAccessOpen(false);
-      generatePurchaseOrderPDF(pendingPdfOrder, managerName, { products: productsCatalog });
+      if (pendingPdfPayload.mode === "single") {
+        generatePurchaseOrderPDF(pendingPdfPayload.order, managerName, { products: productsCatalog });
+      } else {
+        generateReorderAccountingPDF(pendingPdfPayload.orders, managerName, { products: productsCatalog });
+      }
     } catch (error) {
       const msg =
         error?.response?.status === 401
@@ -956,9 +1014,19 @@ export default function ReorderManagement() {
                     <h2 className="text-lg font-bold text-slate-900">Purchase Order History</h2>
                     <p className="text-sm text-slate-500 mt-1">All orders placed through this system</p>
                   </div>
-                  <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 font-semibold text-slate-700">
-                    {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={requestBulkPdfExport}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                      Export Selected PDF ({selectedFilteredCount})
+                    </button>
+                    <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 font-semibold text-slate-700">
+                      {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
+                    </span>
+                  </div>
                 </div>
 
                 {/* Search + filter controls */}
@@ -1025,6 +1093,15 @@ export default function ReorderManagement() {
                 <table className="w-full text-sm text-left">
                   <thead>
                     <tr className="border-b border-slate-100">
+                      <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                        <input
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={toggleSelectAllFiltered}
+                          className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                          title="Select all filtered orders"
+                        />
+                      </th>
                       {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", ""].map((h, i) => (
                         <th
                           key={h}
@@ -1041,6 +1118,15 @@ export default function ReorderManagement() {
                         key={order.id}
                         className="group transition-colors duration-150 hover:bg-slate-50/60"
                       >
+                        <td className="px-4 py-6 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedOrderIds.has(order.id)}
+                            onChange={() => toggleOrderSelection(order.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            title={`Select ${order.id}`}
+                          />
+                        </td>
                         <td className="px-6 py-6 font-mono text-xs text-slate-500 whitespace-nowrap">
                           {order.id}
                         </td>
