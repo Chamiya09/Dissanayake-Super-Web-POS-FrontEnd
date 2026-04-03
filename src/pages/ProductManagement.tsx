@@ -4,7 +4,8 @@ import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
-import { Package, Plus, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
+import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
+import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
@@ -51,6 +52,7 @@ function SummaryCard({
    ───────────────────────────────────────────────────────────────────────── */
 export default function ProductManagement() {
   const { showToast } = useToast();
+
   /* ── Server state ── */
   const [products,  setProducts]  = useState<Product[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -58,6 +60,7 @@ export default function ProductManagement() {
 
   /* ── Modal state ── */
   const [isAddOpen,    setIsAddOpen]    = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editTarget,   setEditTarget]   = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -123,6 +126,45 @@ export default function ProductManagement() {
     }
   }, [deleteTarget]);
 
+  const handleCsvImport = useCallback(async (rows: Omit<Product, "id">[]) => {
+    try {
+      const result = await productApi.bulkImport(rows);
+
+      if (result.importedProducts.length > 0) {
+        setProducts((prev) => {
+          const byId = new Map(prev.map((product) => [product.id, product]));
+          result.importedProducts.forEach((product) => byId.set(product.id, product));
+          return Array.from(byId.values());
+        });
+      }
+
+      if (result.failedCount === 0) {
+        showToast(
+          `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"} successfully!`,
+          "success"
+        );
+      } else if (result.importedCount > 0) {
+        showToast(
+          `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"}. ${result.failedCount} row${result.failedCount === 1 ? "" : "s"} failed.`,
+          "warning"
+        );
+      } else {
+        showToast("No products were imported. Please review failed rows.", "error");
+      }
+
+      return result;
+    } catch (error) {
+      const message = (error as any)?.response?.data?.message;
+      showToast(
+        typeof message === "string" && message.trim()
+          ? message
+          : "CSV import failed. Please try again.",
+        "error"
+      );
+      throw error;
+    }
+  }, [showToast]);
+
   /* ── Derived stats ── */
   const avgMargin =
     products.length === 0
@@ -160,14 +202,25 @@ export default function ProductManagement() {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsAddOpen(true)}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            Add New Product
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportOpen(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              <Upload size={15} strokeWidth={2.5} />
+              Import CSV
+            </button>
+
+            <button
+              onClick={() => setIsAddOpen(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Add New Product
+            </button>
+          </div>
         </div>
 
         {/* ── Stats strip ── */}
@@ -256,6 +309,11 @@ export default function ProductManagement() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSave={handleAdd}
+      />
+      <ImportProductsCsvModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleCsvImport}
       />
       <EditProductModal
         isOpen={isEditOpen}
