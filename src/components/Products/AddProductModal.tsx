@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Package, X, Tag, Hash, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
+  ScanLine, Wifi, CheckCircle2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,17 +134,40 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
   const [form,          setForm]        = useState<FormFields>(EMPTY_FORM);
   const [errors,        setErrors]      = useState<Partial<FormFields>>({});
   const [saving,        setSaving]      = useState(false);
-  const firstRef   = useRef<HTMLInputElement>(null);
+  const [barcodeInput,  setBarcodeInput] = useState("");
+  const [scanStatus,    setScanStatus]   = useState<"idle" | "scanning" | "captured">("idle");
+  const barcodeRef = useRef<HTMLInputElement>(null);
 
-  /* Reset form and focus first field on every open */
+  /* Reset form and focus scanner field on every open */
   useEffect(() => {
     if (isOpen) {
       setForm(EMPTY_FORM);
       setErrors({});
       setSaving(false);
-      setTimeout(() => firstRef.current?.focus(), 80);
+      setBarcodeInput("");
+      setScanStatus("idle");
+      setTimeout(() => barcodeRef.current?.focus(), 80);
     }
   }, [isOpen]);
+
+  const applyScannedBarcode = useCallback((rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+    setForm((prev) => ({ ...prev, sku: code }));
+    setErrors((prev) => ({ ...prev, sku: undefined }));
+    setScanStatus("captured");
+  }, []);
+
+  /* Auto-capture scanner input when typing pauses */
+  useEffect(() => {
+    if (!barcodeInput.trim()) {
+      setScanStatus("idle");
+      return;
+    }
+    setScanStatus("scanning");
+    const timer = setTimeout(() => applyScannedBarcode(barcodeInput), 220);
+    return () => clearTimeout(timer);
+  }, [barcodeInput, applyScannedBarcode]);
 
   /* Close on Escape */
   useEffect(() => {
@@ -235,12 +259,70 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
         {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
+          {/* Barcode Scan */}
+          <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                <ScanLine className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[13px] font-semibold text-slate-800">Scan Barcode</span>
+              <span className="ml-auto text-[11px] text-muted-foreground">Auto-fills Product ID</span>
+            </div>
+
+            <div className="relative">
+              <ScanLine
+                className={cn(
+                  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
+                  scanStatus === "scanning" ? "text-violet-600 animate-pulse" : "text-muted-foreground"
+                )}
+              />
+              {scanStatus === "scanning" && (
+                <Wifi className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
+              )}
+              <input
+                ref={barcodeRef}
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyScannedBarcode(barcodeInput);
+                  }
+                }}
+                placeholder="Scan barcode and press Enter"
+                autoComplete="off"
+                className={cn(
+                  "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-[13px] font-mono pl-9 pr-9",
+                  "placeholder:text-slate-400",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  scanStatus === "scanning" && "border-primary/60",
+                  scanStatus === "captured" && "border-emerald-500 focus-visible:ring-emerald-400",
+                  scanStatus === "idle" && "border-input"
+                )}
+              />
+            </div>
+
+            {scanStatus === "scanning" && (
+              <div className="flex items-center gap-2 rounded-lg bg-violet-50/50 border border-violet-200 px-3 py-2">
+                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+                <span className="text-[12px] text-primary font-medium">Reading barcode…</span>
+              </div>
+            )}
+            {scanStatus === "captured" && (
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50/50 border border-emerald-500/20 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span className="text-[12px] text-emerald-700 font-medium">
+                  Barcode captured. Product ID has been auto-filled below.
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Product ID + Product Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="productId" label="Product ID" icon={Hash} error={errors.sku}>
               <Input
                 id="productId"
-                ref={firstRef}
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
                 placeholder="e.g. PI00001"
