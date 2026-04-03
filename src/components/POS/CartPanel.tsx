@@ -339,8 +339,31 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   }, [onUpdateQuantity, onRemoveItem, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
+    "Auto Care": "🚗",
+    "Avurudu Kade": "🎉",
+    "Baby Products": "👶",
+    "Bakery": "🍞",
+    "Beverages": "🧃",
+    "Cooking Essentials": "🍳",
+    "Dairy": "🥛",
+    "Desserts & Ingredients": "🍰",
+    "Food Cupboard": "🥫",
+    "Frozen Food": "🧊",
     "Fruits": "🍎",
+    "Health & Beauty": "🧴",
+    "Household": "🏠",
+    "Meats": "🥩",
+    "Party Shop": "🎈",
+    "Pet Products": "🐾",
+    "Rice": "🌾",
+    "Seafood": "🐟",
+    "Seeds & Spices": "🌶️",
+    "Snacks & Confectionery": "🍫",
+    "Stationery": "📝",
+    "Tea & Coffee": "☕",
     "Vegetables": "🥦",
+
+    // Backward-compatible legacy categories
     "Rice & Grains": "🌾",
     "Dhal & Pulses": "🫘",
     "Flour & Baking": "🌾",
@@ -350,11 +373,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     "Eggs & Meat": "🥩",
     "Instant Food": "🍜",
     "Snacks": "🍿",
-    "Beverages": "🧃",
-    "Tea & Coffee": "☕",
     "Frozen Foods": "🧊",
     "Canned Foods": "🥫",
-    "Baby Products": "👶",
     "Personal Care": "🧴",
     "Cleaning Products": "🧹",
     "Household Items": "🏠",
@@ -422,7 +442,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
                 focused={cartFocusedIdx === idx}
-                emoji={categoryEmoji[item.product.category] ?? ""}
+                emoji={categoryEmoji[item.product.category] ?? "📦"}
               />
             </div>
           ))

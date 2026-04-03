@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pencil, Trash2, Search, ChevronDown, X,
   Package, Apple, Milk, Coffee, SlidersHorizontal,
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { Input } from "@/components/ui/input";
+import { CATEGORIES as ADD_FORM_CATEGORIES } from "@/components/Products/AddProductModal";
 
 /* ── Category icon map ── */
 const categoryIcon: Record<string, React.ElementType> = {
@@ -30,33 +31,6 @@ const categoryBg: Record<string, string> = {
   Meat:       "bg-red-50     text-red-600",
   Vegetables: "bg-green-50   text-green-600",
 };
-
-/* ── Profit-margin badge (mirrors LeadTimeBadge palette logic) ── */
-function ProfitBadge({ buying, selling }: { buying: number; selling: number }) {
-  const margin = buying > 0 ? ((selling - buying) / buying) * 100 : 0;
-  const high   = margin >= 40;
-  const mid    = margin >= 20 && margin < 40;
-
-  const colour = high
-    ? "bg-emerald-500/10 text-emerald-700 border-emerald-200"
-    : mid
-    ? "bg-amber-500/10  text-amber-700  border-amber-200"
-    : "bg-red-500/10    text-red-700    border-red-200";
-
-  const dot = high ? "bg-emerald-500" : mid ? "bg-amber-500" : "bg-red-500";
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
-        colour
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
-      {margin.toFixed(1)}%
-    </span>
-  );
-}
 
 /* ── Category chip ── */
 function CategoryChip({ category }: { category: string }) {
@@ -98,32 +72,28 @@ interface ProductTableProps {
   onDelete: (product: Product) => void;
 }
 
-export const CATEGORIES = [
-  "All",
-  "Fruits",
-  "Vegetables",
-  "Rice & Grains",
-  "Dhal & Pulses",
-  "Flour & Baking",
-  "Cooking Oil",
-  "Spices & Condiments",
-  "Dairy Products",
-  "Eggs & Meat",
-  "Instant Food",
-  "Snacks",
-  "Beverages",
-  "Tea & Coffee",
-  "Frozen Foods",
-  "Canned Foods",
-  "Baby Products",
-  "Personal Care",
-  "Cleaning Products",
-  "Household Items",
-] as const;
-
 export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
   const [search,         setSearch]         = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
+
+  const categoryOptions = useMemo(() => {
+    const combined: string[] = [...ADD_FORM_CATEGORIES];
+    const dataCategories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+
+    dataCategories.forEach((category) => {
+      if (!combined.includes(category)) {
+        combined.push(category);
+      }
+    });
+
+    return ["All", ...combined];
+  }, [products]);
+
+  useEffect(() => {
+    if (!categoryOptions.includes(filterCategory)) {
+      setFilterCategory("All");
+    }
+  }, [categoryOptions, filterCategory]);
 
   /* ── Client-side filtering ── */
   const filtered = products.filter((p) => {
@@ -133,7 +103,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       p.productName.toLowerCase().includes(q) ||
       p.sku.toLowerCase().includes(q) ||
       p.category.toLowerCase().includes(q) ||
-      String(p.id).toLowerCase().includes(q);
+      (p.unit ?? "").toLowerCase().includes(q);
 
     const matchesCategory =
       filterCategory === "All" || p.category === filterCategory;
@@ -164,7 +134,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           )}
           <Input
             type="text"
-            placeholder="Search by name, SKU or category…"
+            placeholder="Search by Product Name, Product ID or Category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
@@ -180,7 +150,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               onChange={(e) => setFilterCategory(e.target.value)}
               className="h-10 w-full appearance-none bg-white border border-slate-200 rounded-xl pl-4 pr-10 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer transition-all"
             >
-              {CATEGORIES.map((c) => (
+              {categoryOptions.map((c) => (
                 <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
               ))}
             </select>
@@ -206,13 +176,12 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           <thead>
             <tr className="border-b border-slate-100">
               {[
-                { label: "Product",       align: "text-left" },
-                { label: "SKU",            align: "text-left" },
+                { label: "Product ID",     align: "text-left" },
+                { label: "Product Name",   align: "text-left" },
                 { label: "Category",       align: "text-left" },
-                { label: "Unit",           align: "text-left" },
+                { label: "Pricing Unit",   align: "text-left" },
                 { label: "Buying Price",   align: "text-right" },
                 { label: "Selling Price",  align: "text-right" },
-                { label: "Margin",         align: "text-left" },
                 { label: "Actions",        align: "text-right" },
               ].map(({ label, align }) => (
                 <th
@@ -227,7 +196,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                   No products matched your search.
                 </td>
               </tr>
@@ -237,7 +206,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 key={product.id}
                 className="group transition-colors duration-150 hover:bg-slate-50/60"
               >
-                {/* Product name + ID */}
+                {/* Product ID */}
+                <td className="px-6 py-6">
+                  <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
+                    {product.sku}
+                  </span>
+                </td>
+
+                {/* Product name */}
                 <td className="px-6 py-6">
                   <div className="flex items-center gap-3">
                     <ProductAvatar name={product.productName} />
@@ -245,16 +221,8 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                       <p className="font-semibold text-slate-900 whitespace-nowrap">
                         {product.productName}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5 whitespace-nowrap">#{product.id}</p>
                     </div>
                   </div>
-                </td>
-
-                {/* SKU */}
-                <td className="px-6 py-6">
-                  <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-                    {product.sku}
-                  </span>
                 </td>
 
                 {/* Category */}
@@ -281,11 +249,6 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 {/* Selling price */}
                 <td className="px-6 py-6 text-right tabular-nums text-slate-900 font-semibold whitespace-nowrap">
                   {fmt(product.sellingPrice)}
-                </td>
-
-                {/* Margin */}
-                <td className="px-6 py-6 whitespace-nowrap">
-                  <ProfitBadge buying={product.buyingPrice} selling={product.sellingPrice} />
                 </td>
 
                 {/* Actions */}
@@ -324,22 +287,20 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 <ProductAvatar name={product.productName} />
                 <div>
                   <p className="font-semibold text-slate-900 leading-tight">{product.productName}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">#{product.id}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
                 <CategoryChip category={product.category} />
-                <ProfitBadge buying={product.buyingPrice} selling={product.sellingPrice} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">SKU</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Product ID</p>
                 <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku}</span>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Unit</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Pricing Unit</p>
                 <span className="font-mono font-medium text-slate-900 text-[12px]">{product.unit ?? "—"}</span>
               </div>
               <div>

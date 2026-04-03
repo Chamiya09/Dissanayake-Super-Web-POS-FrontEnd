@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
@@ -7,7 +7,7 @@ import {
   Flame, Tag, Sparkles, PackageX,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { categories, products as staticProducts, type Product } from "@/data/products";
+import { categories as staticCategories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
 interface ProductGridProps {
@@ -23,6 +23,22 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const categoryOptions = useMemo(() => {
+    if (externalProducts && externalProducts.length > 0) {
+      const dynamicCategories = [...new Set(externalProducts.map((p) => p.category).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+      return ["All", ...dynamicCategories];
+    }
+
+    return [...staticCategories];
+  }, [externalProducts]);
+
+  useEffect(() => {
+    if (!categoryOptions.includes(activeCategory)) {
+      setActiveCategory("All");
+    }
+  }, [categoryOptions, activeCategory]);
 
   const filtered = productList.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -197,7 +213,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
         )}
       >
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {categories.map((cat) => (
+          {categoryOptions.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
