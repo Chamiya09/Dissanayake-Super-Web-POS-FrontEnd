@@ -130,12 +130,9 @@ export default function ProductManagement() {
     try {
       const result = await productApi.bulkImport(rows);
 
-      if (result.importedProducts.length > 0) {
-        setProducts((prev) => {
-          const byId = new Map(prev.map((product) => [product.id, product]));
-          result.importedProducts.forEach((product) => byId.set(product.id, product));
-          return Array.from(byId.values());
-        });
+      if (result.importedCount > 0) {
+        const refreshed = await productApi.getAll();
+        setProducts(refreshed);
       }
 
       if (result.failedCount === 0) {
