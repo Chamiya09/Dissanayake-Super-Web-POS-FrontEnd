@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Package, X, Tag, Hash, Layers,
-  DollarSign, Loader2, ShoppingBag,
-  Wifi, ScanLine, CheckCircle2, AlertCircle, Ruler,
+  DollarSign, Loader2, ShoppingBag, Ruler,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,57 +20,34 @@ import type { Product } from "@/data/product-management";
    ───────────────────────────────────────────────────────────────────────── */
 
 export const CATEGORIES = [
-  "Fruits",
-  "Vegetables",
-  "Rice & Grains",
-  "Dhal & Pulses",
-  "Flour & Baking",
-  "Cooking Oil",
-  "Spices & Condiments",
-  "Dairy Products",
-  "Eggs & Meat",
-  "Instant Food",
-  "Snacks",
-  "Beverages",
-  "Tea & Coffee",
-  "Frozen Foods",
-  "Canned Foods",
+  "Auto Care",
+  "Avurudu Kade",
   "Baby Products",
-  "Personal Care",
-  "Cleaning Products",
-  "Household Items",
+  "Bakery",
+  "Beverages",
+  "Cooking Essentials",
+  "Dairy",
+  "Desserts & Ingredients",
+  "Food Cupboard",
+  "Frozen Food",
+  "Fruits",
+  "Health & Beauty",
+  "Household",
+  "Meats",
+  "Party Shop",
+  "Pet Products",
+  "Rice",
+  "Seafood",
+  "Seeds & Spices",
+  "Snacks & Confectionery",
+  "Stationery",
+  "Tea & Coffee",
+  "Vegetables",
 ] as const;
 
 export const UNITS = [
-  "kg", "g", "L", "ml", "pieces", "bottles", "packets", "box",
+  "g", "kg", "Pack", "Unit",
 ] as const;
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Barcode lookup database — maps barcode → product defaults
-   In a real app this would hit a backend/Open Food Facts API.
-   ───────────────────────────────────────────────────────────────────────── */
-type BarcodeEntry = {
-  sku:          string;
-  productName:  string;
-  category:     string;
-  buyingPrice:  number;
-  sellingPrice: number;
-};
-
-const BARCODE_DB: Record<string, BarcodeEntry> = {
-  "4011":  { sku: "4011",  productName: "Organic Bananas",       category: "Fruits",     buyingPrice: 0.80, sellingPrice: 1.29 },
-  "7001":  { sku: "7001",  productName: "Whole Milk 1L",         category: "Dairy",      buyingPrice: 2.50, sellingPrice: 3.79 },
-  "8010":  { sku: "8010",  productName: "Orange Juice 1L",       category: "Beverages",  buyingPrice: 2.80, sellingPrice: 4.29 },
-  "9001":  { sku: "9001",  productName: "Sourdough Bread",       category: "Bakery",     buyingPrice: 3.50, sellingPrice: 5.99 },
-  "5001":  { sku: "5001",  productName: "Chicken Breast 1kg",    category: "Meat",       buyingPrice: 6.50, sellingPrice: 9.99 },
-  "1234":  { sku: "1234",  productName: "Cheddar Cheese 250g",   category: "Dairy",      buyingPrice: 3.20, sellingPrice: 5.49 },
-  "5678":  { sku: "5678",  productName: "Apple Juice 500ml",     category: "Beverages",  buyingPrice: 1.10, sellingPrice: 1.99 },
-  "9012":  { sku: "9012",  productName: "Greek Yogurt 200g",     category: "Dairy",      buyingPrice: 1.80, sellingPrice: 2.99 },
-  "3456":  { sku: "3456",  productName: "Sweet Potatoes 500g",   category: "Vegetables", buyingPrice: 1.20, sellingPrice: 2.49 },
-  "7890":  { sku: "7890",  productName: "Potato Chips 150g",     category: "Snacks",     buyingPrice: 0.90, sellingPrice: 1.79 },
-  "2345":  { sku: "2345",  productName: "Whole Wheat Bread",     category: "Bakery",     buyingPrice: 2.10, sellingPrice: 3.49 },
-  "6789":  { sku: "6789",  productName: "Fresh Strawberries",    category: "Fruits",     buyingPrice: 2.60, sellingPrice: 4.29 },
-};
 
 export type FormFields = {
   productName:  string;
@@ -95,8 +70,9 @@ export const EMPTY_FORM: FormFields = {
 export function validateForm(form: FormFields): Partial<FormFields> {
   const err: Partial<FormFields> = {};
   if (!form.productName.trim())  err.productName  = "Product name is required.";
-  if (!form.sku.trim())          err.sku          = "SKU / Barcode is required.";
+  if (!form.sku.trim())          err.sku          = "Product ID is required.";
   if (!form.category)            err.category     = "Please select a category.";
+  if (!form.unit)                err.unit         = "Pricing unit is required.";
   if (!form.buyingPrice.trim()) {
     err.buyingPrice = "Buying price is required.";
   } else if (isNaN(Number(form.buyingPrice)) || Number(form.buyingPrice) < 0) {
@@ -157,55 +133,17 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
   const [form,          setForm]        = useState<FormFields>(EMPTY_FORM);
   const [errors,        setErrors]      = useState<Partial<FormFields>>({});
   const [saving,        setSaving]      = useState(false);
-  const [barcodeInput,  setBarcodeInput] = useState("");
-  const [scanStatus,    setScanStatus]  = useState<"idle" | "found" | "notfound" | "scanning">("idle");
-  const barcodeRef = useRef<HTMLInputElement>(null);
   const firstRef   = useRef<HTMLInputElement>(null);
 
-  /* Reset form and focus barcode input on every open */
+  /* Reset form and focus first field on every open */
   useEffect(() => {
     if (isOpen) {
       setForm(EMPTY_FORM);
       setErrors({});
       setSaving(false);
-      setBarcodeInput("");
-      setScanStatus("idle");
-      setTimeout(() => barcodeRef.current?.focus(), 80);
+      setTimeout(() => firstRef.current?.focus(), 80);
     }
   }, [isOpen]);
-
-  /* Barcode lookup — auto-fills all form fields if found */
-  const handleBarcodeLookup = (code: string) => {
-    const trimmed = code.trim();
-    if (!trimmed) return;
-    const match = BARCODE_DB[trimmed];
-    if (match) {
-      setForm({
-        productName:  match.productName,
-        sku:          match.sku,
-        category:     match.category,
-        buyingPrice:  String(match.buyingPrice),
-        sellingPrice: String(match.sellingPrice),
-        unit:         form.unit,
-      });
-      setErrors({});
-      setScanStatus("found");
-    } else {
-      // Unknown barcode — pre-fill SKU and let user complete the rest
-      setForm((prev) => ({ ...prev, sku: trimmed }));
-      setScanStatus("notfound");
-      setTimeout(() => firstRef.current?.focus(), 50);
-    }
-  };
-
-  /* Debounce auto-lookup: fires 300 ms after scanner stops typing */
-  useEffect(() => {
-    if (!barcodeInput.trim()) return;
-    setScanStatus("scanning");
-    const timer = setTimeout(() => handleBarcodeLookup(barcodeInput), 300);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barcodeInput]);
 
   /* Close on Escape */
   useEffect(() => {
@@ -280,7 +218,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 Add Product
               </h2>
               <p className="text-[12px] text-sm text-slate-500 mt-1">
-                Fill in the details to register a new product.
+                Fill CSV-aligned fields: ProductID, ProductName, Category, PricingUnit, BuyingPrice, SellingPrice.
               </p>
             </div>
           </div>
@@ -297,101 +235,15 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
         {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
-
-          {/* ── Barcode Scan Section ── */}
-          <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
-                <ScanLine className="h-3.5 w-3.5" />
-              </div>
-              <span className="text-[13px] font-semibold text-slate-800">Scan Barcode</span>
-              <span className="ml-auto text-[11px] text-muted-foreground">Point scanner at barcode</span>
-            </div>
-
-            {/* Scanner input — full width, captures scanner keystrokes */}
-            <div className="relative">
-              <ScanLine
-                className={cn(
-                  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
-                  scanStatus === "scanning" ? "text-violet-600 animate-pulse" : "text-muted-foreground"
-                )}
-              />
-              {scanStatus === "scanning" && (
-                <Wifi className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
-              )}
-              <input
-                ref={barcodeRef}
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                placeholder="Ready to scan…"
-                autoComplete="off"
-                className={cn(
-                  "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-[13px] font-mono pl-9 pr-9",
-                  "placeholder:text-slate-400",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  scanStatus === "scanning" && "border-primary/60",
-                  scanStatus === "found"    && "border-emerald-500 focus-visible:ring-emerald-400",
-                  scanStatus === "notfound" && "border-amber-400 focus-visible:ring-amber-400",
-                  scanStatus === "idle"     && "border-input"
-                )}
-              />
-            </div>
-
-            {/* Scan status banners */}
-            {scanStatus === "scanning" && (
-              <div className="flex items-center gap-2 rounded-lg bg-violet-50/50 border border-violet-200 px-3 py-2">
-                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
-                <span className="text-[12px] text-primary font-medium">Scanning…</span>
-              </div>
-            )}
-            {scanStatus === "found" && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-50/50 border border-emerald-500/20 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                <span className="text-[12px] text-emerald-700 font-medium">
-                  Product found — details auto-filled below. Review and save.
-                </span>
-              </div>
-            )}
-            {scanStatus === "notfound" && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-50/50 border border-amber-500/20 px-3 py-2">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                <span className="text-[12px] text-amber-700 font-medium">
-                  Barcode not in database — SKU pre-filled. Complete the remaining fields.
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Product Details</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          {/* Product Name — full width */}
-          <FormRow id="productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
-            <Input
-              id="productName"
-              ref={firstRef}
-              value={form.productName}
-              onChange={(e) => set("productName", e.target.value)}
-              placeholder="e.g. Organic Bananas"
-              className={cn(
-                "h-10 text-[13px]",
-                errors.productName && "border-red-400 focus-visible:ring-red-400"
-              )}
-            />
-          </FormRow>
-
-          {/* SKU  +  Category — side by side on sm+ */}
+          {/* Product ID + Product Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="sku" label="SKU / Barcode" icon={Hash} error={errors.sku}>
+            <FormRow id="productId" label="Product ID" icon={Hash} error={errors.sku}>
               <Input
-                id="sku"
+                id="productId"
+                ref={firstRef}
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. 4011"
+                placeholder="e.g. PI00001"
                 className={cn(
                   "h-10 text-[13px] font-mono",
                   errors.sku && "border-red-400 focus-visible:ring-red-400"
@@ -399,6 +251,22 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
               />
             </FormRow>
 
+            <FormRow id="productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
+              <Input
+                id="productName"
+                value={form.productName}
+                onChange={(e) => set("productName", e.target.value)}
+                placeholder="e.g. Captain Oats Instant - 500g"
+                className={cn(
+                  "h-10 text-[13px]",
+                  errors.productName && "border-red-400 focus-visible:ring-red-400"
+                )}
+              />
+            </FormRow>
+          </div>
+
+          {/* Category + Pricing Unit */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="category" label="Category" icon={Layers} error={errors.category}>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger
@@ -417,9 +285,28 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 </SelectContent>
               </Select>
             </FormRow>
+
+            <FormRow id="pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
+              <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+                <SelectTrigger
+                  id="pricingUnit"
+                  className={cn(
+                    "h-10 text-[13px]",
+                    errors.unit && "border-red-400 focus-visible:ring-red-400"
+                  )}
+                >
+                  <SelectValue placeholder="Select pricing unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
           </div>
 
-          {/* Buying Price  +  Selling Price — side by side on sm+ */}
+          {/* Buying Price + Selling Price */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
@@ -463,20 +350,6 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
               </div>
             </FormRow>
           </div>
-
-          {/* Unit — optional, full width */}
-          <FormRow id="unit" label="Unit (optional)" icon={Ruler}>
-            <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-              <SelectTrigger id="unit" className="h-10 text-[13px]">
-                <SelectValue placeholder="Select unit of measurement" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormRow>
         </div>
 
         {/* ── Footer ── */}

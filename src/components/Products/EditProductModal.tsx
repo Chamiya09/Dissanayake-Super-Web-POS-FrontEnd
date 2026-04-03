@@ -168,14 +168,14 @@ export function EditProductModal({
             />
           </FormRow>
 
-          {/* SKU  +  Category — side by side on sm+ */}
+          {/* Product ID + Category — side by side on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="edit-sku" label="SKU / Barcode" icon={Hash} error={errors.sku}>
+            <FormRow id="edit-productId" label="Product ID" icon={Hash} error={errors.sku}>
               <Input
-                id="edit-sku"
+                id="edit-productId"
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. 4011"
+                placeholder="e.g. PI00001"
                 className={cn(
                   "h-10 text-[13px] font-mono",
                   errors.sku && "border-red-400 focus-visible:ring-red-400"
@@ -248,11 +248,17 @@ export function EditProductModal({
             </FormRow>
           </div>
 
-          {/* Unit — optional, full width */}
-          <FormRow id="edit-unit" label="Unit (optional)" icon={Ruler}>
+          {/* Pricing Unit — full width */}
+          <FormRow id="edit-pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
             <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-              <SelectTrigger id="edit-unit" className="h-10 text-[13px]">
-                <SelectValue placeholder="Select unit of measurement" />
+              <SelectTrigger
+                id="edit-pricingUnit"
+                className={cn(
+                  "h-10 text-[13px]",
+                  errors.unit && "border-red-400 focus-visible:ring-red-400"
+                )}
+              >
+                <SelectValue placeholder="Select pricing unit" />
               </SelectTrigger>
               <SelectContent>
                 {UNITS.map((u) => (

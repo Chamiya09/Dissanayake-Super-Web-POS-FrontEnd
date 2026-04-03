@@ -217,11 +217,15 @@ function parsePurchaseOrderConfirmedEmail(body: string): PurchaseOrderConfirmedE
 
 function extractGenericFacts(text: string): GenericFact[] {
   const patterns: Array<{ label: string; regex: RegExp }> = [
-    { label: "Order Reference", regex: /\b(PO-\d{8,})\b/i },
+    { label: "Order Reference", regex: /(?:Order\s+Reference|\bRef\b)\s*:?\s*(PO-\d{8,})/i },
     { label: "Supplier Email", regex: /([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i },
+    { label: "Recipient", regex: /\bTo\s*:\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i },
+    { label: "Date", regex: /\bDate\s*:\s*([0-9]{1,2}\s+[A-Za-z]+\s+[0-9]{4}|[0-9]{4}-[0-9]{2}-[0-9]{2})/i },
     { label: "Confirmed At", regex: /Confirmed\s+At\s+([0-9]{4}-[0-9]{2}-[0-9]{2}T[^\s]+)/i },
     { label: "Date Placed", regex: /Date\s+Placed\s+([0-9]{4}-[0-9]{2}-[0-9]{2})/i },
     { label: "Order Total", regex: /Order\s+Total\s+LKR\s*([\d,.]+)/i },
+    { label: "Authorised By", regex: /Authori[sz]ed\s+by\s*:\s*([^\n]+?)(?:\s+Purchasing\s+Department|\s+This\s+is\s+an\s+automated|$)/i },
+    { label: "Department", regex: /(Purchasing\s+Department\s*-\s*Dissanayake\s+Super)/i },
     { label: "Status", regex: /Status\s+([A-Z_]+)/i },
   ];
 
@@ -234,6 +238,26 @@ function extractGenericFacts(text: string): GenericFact[] {
   }
 
   return facts;
+}
+
+function formatPurchaseOrderMailBody(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\s+(Purchase\s+Order\s+Reference)\b/gi, "\n$1")
+    .replace(/\s+(Ref\s*:)\b/gi, "\n$1")
+    .replace(/\s+(Date\s*:)\b/gi, "\n$1")
+    .replace(/\s+(To\s*:)\b/gi, "\n$1")
+    .replace(/\s+(Dear\s+)/gi, "\n\n$1")
+    .replace(/\s+(Supplier\s+Action\s+Required)\b/gi, "\n\n$1")
+    .replace(/\s+(Accept\s+Order)\b/gi, "\n$1")
+    .replace(/\s+(#\s+Product\s+Name\s+Qty\s+Unit\s+Price\s+Line\s+Total)\b/gi, "\n\n$1")
+    .replace(/\s+(ORDER\s+TOTAL\s+LKR\s+[\d,.]+)\b/gi, "\n\n$1")
+    .replace(/\s+(Authori[sz]ed\s+by\s*:)\b/gi, "\n\n$1")
+    .replace(/\s+(Purchasing\s+Department\s*-\s*Dissanayake\s+Super)\b/gi, "\n$1")
+    .replace(/\s+(This\s+is\s+an\s+automated\s+message)\b/gi, "\n\n$1")
+    .replace(/\s*·\s*/g, " · ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function extractKeyValueFacts(text: string): GenericFact[] {
@@ -521,290 +545,85 @@ function GenericMailDetailCard({
     )
   ).slice(0, 8);
   const theme = classifyMailTheme(mail, text);
-
-  if (theme.badge === "PO CONFIRMED") {
-    const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
-    const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
-    const status = facts.find((f) => /status/i.test(f.label))?.value || "CONFIRMED";
-
-    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total", "Status"]);
-    const formattedBody = formatConfirmedMailBody(text);
-
-    return (
-      <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
-        <div className="px-6 py-5 text-white bg-emerald-700">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-100">Dissanayake Super - Purchasing Department</p>
-              <h3 className="mt-2 text-xl font-extrabold tracking-tight">Supplier Purchase Order Confirmed</h3>
-              <p className="mt-1 text-sm text-emerald-100">{mail.subject || "Confirmation received"}</p>
-            </div>
-            <span className="rounded-full border border-emerald-300 bg-emerald-600 px-3 py-1 text-[11px] font-bold tracking-wide">CONFIRMED</span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Order Ref</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{orderRef}</p>
-            </div>
-            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Order Total</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{total}</p>
-            </div>
-            <div className="rounded-lg border border-emerald-500 bg-emerald-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100">Status</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{status}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-b border-emerald-100 bg-emerald-50 text-sm text-emerald-900">
-          Supplier confirmation has been received and this order is now locked for revision.
-        </div>
-
-        <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
-            <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
-            <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">{formatMailTime(mail.sentAt) || "-"}</span>
-            </div>
-          </div>
-
-          {detailFacts.map((fact) => (
-            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
-              <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-white">
-          <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
-          </div>
-          <div className="px-4 py-4 space-y-3">
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-              Supplier confirmed this purchase order. Confirmation is recorded and visible in mailbox logs.
-            </div>
-            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{formattedBody || "No message body available"}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (theme.badge === "PO ALERT") {
-    const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
-    const placedAt = facts.find((f) => /date\s*placed/i.test(f.label))?.value || "-";
-    const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
-
-    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Date Placed", "Order Total"]);
-
-    return (
-      <div className="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
-        <div className="px-6 py-5 text-white bg-indigo-700">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-100">Dissanayake Super - Admin Alerts</p>
-              <h3 className="mt-2 text-xl font-extrabold tracking-tight">New Purchase Order Placed</h3>
-              <p className="mt-1 text-sm text-indigo-100">{mail.subject || "Purchase order alert"}</p>
-            </div>
-            <span className="rounded-full border border-indigo-300 bg-indigo-600 px-3 py-1 text-[11px] font-bold tracking-wide">PENDING</span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Order Ref</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{orderRef}</p>
-            </div>
-            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Date Placed</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{placedAt}</p>
-            </div>
-            <div className="rounded-lg border border-indigo-500 bg-indigo-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">Order Total</p>
-              <p className="mt-1 text-sm font-bold text-white break-all">{total}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-b border-indigo-100 bg-indigo-50 text-sm text-indigo-900">
-          Log in to Reorder Management to review, confirm, or cancel this order.
-        </div>
-
-        <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
-            <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
-            <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
-              <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-semibold text-indigo-800">{formatMailTime(mail.sentAt) || "-"}</span>
-            </div>
-          </div>
-
-          {detailFacts.map((fact) => (
-            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
-              <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
-          </div>
-          <div className="px-4 py-4">
-            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (theme.badge === "PO MAIL") {
-    const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || "-";
-    const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
-
-    const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total"]);
-
-    return (
-      <div className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm">
-        <div className="px-6 py-5 text-white bg-cyan-700">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Dissanayake Super - Purchasing Department</p>
-              <h3 className="mt-2 text-xl font-extrabold tracking-tight">Supplier Purchase Order</h3>
-              <p className="mt-1 text-sm text-cyan-100">{mail.subject || "Purchase order notice"}</p>
-            </div>
-            <span className="rounded-full border border-cyan-100 bg-cyan-600 px-3 py-1 text-[11px] font-bold tracking-wide">ACTION REQUIRED</span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-cyan-500 bg-cyan-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Reference</p>
-              <p className="mt-1 text-base font-bold text-white break-all">{orderRef}</p>
-            </div>
-            <div className="rounded-lg border border-cyan-500 bg-cyan-600 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-100">Order Total (LKR)</p>
-              <p className="mt-1 text-base font-bold text-white break-all">{total}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-b border-cyan-100 bg-cyan-50 text-sm text-cyan-900">
-          Please review this purchase order and use the supplier action link in the message body to confirm.
-        </div>
-
-        <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
-            <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
-            <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
-              <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-[11px] font-semibold text-cyan-800">{formatMailTime(mail.sentAt) || "-"}</span>
-            </div>
-          </div>
-
-          {detailFacts.map((fact) => (
-            <div key={`${fact.label}-${fact.value}`} className="rounded-xl border border-cyan-100 bg-cyan-50 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
-              <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
-          </div>
-          <div className="px-4 py-4">
-            <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const orderRef = facts.find((f) => /order\s*reference/i.test(f.label))?.value || (mail.subject.match(/\bPO-\d{8,}\b/i)?.[0] ?? "-");
+  const total = facts.find((f) => /order\s*total/i.test(f.label))?.value || "-";
+  const status = facts.find((f) => /status/i.test(f.label))?.value || theme.badge;
+  const detailFacts = filterFactsByExcludedLabels(facts, ["Order Reference", "Order Total", "Status", "Name", "From Email", "Received Time"]).slice(0, 4);
+  const bodyText =
+    theme.badge === "PO CONFIRMED"
+      ? formatConfirmedMailBody(text)
+      : theme.badge === "PO MAIL"
+      ? formatPurchaseOrderMailBody(text)
+      : text;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className={cn("px-5 py-4 text-white", theme.shellClass)}>
-        <div className="flex items-center justify-between gap-3">
+    <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+      <div className={cn("px-6 py-5 text-white", theme.shellClass)}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/80">Dissanayake Super - Mail Center</p>
-            <h3 className="mt-1 text-lg font-bold">{theme.title}</h3>
-            <p className="mt-1 text-xs text-white/80">{mail.subject || "Message"}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">Dissanayake Super - Purchasing Department</p>
+            <h3 className="mt-2 text-2xl font-extrabold tracking-tight">{theme.title}</h3>
+            <p className="mt-1 text-sm text-white/85">{mail.subject || "Mailbox message"}</p>
           </div>
-          <span className={cn("rounded-full px-3 py-1 text-[11px] font-bold", theme.badgeClass)}>{theme.badge}</span>
+          <span className={cn("rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-bold tracking-wide", theme.badgeClass)}>{status}</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-white/20 bg-white/10 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/75">Order Ref</p>
+            <p className="mt-1 text-sm font-bold text-white break-all">{orderRef}</p>
+          </div>
+          <div className="rounded-lg border border-white/20 bg-white/10 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/75">Order Total</p>
+            <p className="mt-1 text-sm font-bold text-white break-all">{total}</p>
+          </div>
+          <div className="rounded-lg border border-white/20 bg-white/10 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/75">Status</p>
+            <p className="mt-1 text-sm font-bold text-white break-all">{status}</p>
+          </div>
         </div>
       </div>
 
-      <div className={cn("border-l-4 px-5 py-3 text-sm font-medium", theme.panelClass)}>
+      <div className={cn("px-6 py-4 border-b text-sm", theme.panelClass)}>
         {theme.subtitle}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Name</p>
+      <div className="px-6 py-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sender</p>
           <p className="mt-1 text-sm font-bold text-slate-900 break-words">{mail.from || "Unknown"}</p>
+          <p className="mt-1 text-xs text-slate-600 break-all">{mail.fromEmail || "-"}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">From Email</p>
-          <p className="mt-1 text-sm font-bold text-slate-900 break-all">{mail.fromEmail || "-"}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Received Time</p>
-          <p className="mt-1 text-sm font-bold text-slate-900 break-all">{mail.sentAt || "-"}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Labels</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {(mail.tags?.length ? mail.tags : [mail.category]).slice(0, 4).map((tag) => (
-              <span key={tag} className="rounded-md bg-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700">
-                {tag}
-              </span>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Mail Meta</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{mail.category}</span>
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">{formatMailTime(mail.sentAt) || "-"}</span>
+            {(mail.tags?.length ? mail.tags : []).slice(0, 2).map((tag) => (
+              <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">{tag}</span>
             ))}
           </div>
         </div>
-      </div>
 
-      {filterFactsByExcludedLabels(facts, ["Name", "From Email", "Received Time"]).length > 0 && (
-        <div className="px-5 pb-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {filterFactsByExcludedLabels(facts, ["Name", "From Email", "Received Time"]).map((fact) => (
-              <div key={`${fact.label}-${fact.value}`} className={cn("rounded-xl border p-4", theme.highlightClass)}>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
-                <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
-              </div>
-            ))}
+        {detailFacts.map((fact) => (
+          <div key={`${fact.label}-${fact.value}`} className={cn("rounded-xl border p-4", theme.highlightClass)}>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{fact.label}</p>
+            <p className="mt-1 text-sm font-bold text-slate-900 break-all">{fact.value}</p>
           </div>
-        </div>
-      )}
-
-      <div className="mx-5 mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Message Body</p>
-        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-700">{text || "No message body available"}</p>
+        ))}
       </div>
 
-      <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
-        Themed mail detail renderer active for all mailbox message types
+      <div className="mx-6 mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-white">
+        <div className={cn("border-b px-4 py-3", theme.highlightClass)}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Message Body</p>
+        </div>
+        <div className="px-4 py-4 space-y-3">
+          <div className={cn("rounded-lg border px-3 py-2 text-xs font-medium", theme.panelClass)}>
+            {theme.subtitle}
+          </div>
+          <p className="whitespace-pre-line text-sm leading-7 text-slate-700">{bodyText || "No message body available"}</p>
+        </div>
       </div>
     </div>
   );
