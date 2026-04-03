@@ -242,7 +242,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 Add Product
               </h2>
               <p className="text-[12px] text-sm text-slate-500 mt-1">
-                Fill CSV-aligned fields: ProductID, ProductName, Category, PricingUnit, BuyingPrice, SellingPrice.
+                Scan a barcode or enter Product ID manually, then fill the remaining details.
               </p>
             </div>
           </div>
