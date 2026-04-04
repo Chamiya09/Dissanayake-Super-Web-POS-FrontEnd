@@ -44,7 +44,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-// ΓöÇΓöÇΓöÇ Category ΓåÆ icon mapping ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Category -> icon mapping --------------------------------------------------
 const CATEGORY_ICON = {
   peripherals:  { icon: Mouse,      color: "text-violet-500",  bg: "bg-violet-50"  },
   accessories:  { icon: Cable,      color: "text-amber-500",   bg: "bg-amber-50"   },
@@ -65,24 +65,24 @@ const getCategoryMeta = (category = "") => {
   );
 };
 
-// ΓöÇΓöÇΓöÇ Derive status from stock level ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Derive status from stock level ------------------------------------------
 const deriveStatus = (qty, reorder) => {
   if (qty === 0)      return "Out of Stock";
   if (qty <= reorder) return "Low Stock";
   return "In Stock";
 };
 
-// ΓöÇΓöÇΓöÇ Stock Form Empty State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Stock Form Empty State ------------------------------------------------------
 const EMPTY_STOCK_FORM = {
   productId: null,
   qtyToAdd: "",
   reason: "",
 };
 
-// ΓöÇΓöÇΓöÇ Reason presets ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Reason presets ------------------------------------------------------------
 const REASON_PRESETS = ["New Shipment", "Return / Refund", "Stock Correction", "Supplier Restock", "Damaged Replacement"];
 
-// ΓöÇΓöÇΓöÇ Field helper ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Field helper -------------------------------------------------------------
 const Field = ({ label, error, icon: Icon, children }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
@@ -105,31 +105,31 @@ const Field = ({ label, error, icon: Icon, children }) => (
   </div>
 );
 
-// ΓöÇΓöÇΓöÇ Add Inventory Stock Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Add Inventory Stock Modal -----------------------------------------------
 const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUpdated }) => {
   const { showToast } = useToast();
-  // ΓöÇΓöÇ Product selection
+  // -- Product selection
   const [selectedId,   setSelectedId]   = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const comboRef = useRef(null);
 
-  // ΓöÇΓöÇ Current stock resolved from inventoryItems (no extra API call needed)
+  // -- Current stock resolved from inventoryItems (no extra API call needed)
   const [currentStock, setCurrentStock] = useState(null);
   const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
 
-  // ΓöÇΓöÇ Manual quantity input
+  // -- Manual quantity input
   const [qtyToAdd, setQtyToAdd] = useState("");
 
-  // ΓöÇΓöÇ Submission state
+  // -- Submission state
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState(null);
   const [success,    setSuccess]    = useState(false);
 
-  // ΓöÇΓöÇ Validation errors
+  // -- Validation errors
   const [errors, setErrors] = useState({});
 
-  // ΓöÇΓöÇ Close combobox on outside click
+  // -- Close combobox on outside click
   useEffect(() => {
     if (!dropdownOpen) return;
     const handler = (e) => {
@@ -140,7 +140,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
-  // ΓöÇΓöÇ Resolve current stock from inventoryItems when a product is selected
+  // -- Resolve current stock from inventoryItems when a product is selected
   useEffect(() => {
     if (!selectedId) { setCurrentStock(null); return; }
     const tracked = inventoryItems.find((item) => item.productId === selectedId);
@@ -149,7 +149,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   if (!open) return null;
 
-  // ΓöÇΓöÇ Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
+  // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
   const validQty  = !isNaN(qtyNum) && qtyNum !== 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
@@ -161,7 +161,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  // ΓöÇΓöÇ Handlers
+  // -- Handlers
   const selectProduct = (p) => {
     setSelectedId(p.id);
     setProductSearch("");
@@ -228,7 +228,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       {/* Panel */}
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
 
-        {/* ΓöÇΓöÇ Modal Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* -- Modal Header -------------------------------------- */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 flex-shrink-0">
@@ -252,7 +252,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
           </button>
         </div>
 
-        {/* ΓöÇΓöÇ Form ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* -- Form ---------------------------------------------- */}
         <form onSubmit={handleManualStockUpdate} noValidate>
           <div className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
 
@@ -264,7 +264,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               </div>
             )}
 
-            {/* ΓöÇΓöÇ Step 1 ┬╖ Product ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* -- Step 1 ┬╖ Product ------------------------------- */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Product <span className="text-red-500 normal-case tracking-normal">*</span>
@@ -299,7 +299,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   ) : (
                     <span className="flex items-center gap-2 text-slate-400">
                       <Search className="h-4 w-4" />
-                      Search and select a productΓÇª
+                      Search and select a product...
                     </span>
                   )}
                   <ChevronDown
@@ -319,7 +319,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                           type="text"
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
-                          placeholder="Type name or SKUΓÇª"
+                          placeholder="Type name or SKU..."
                           className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 text-[13px] text-slate-900 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/20"
                         />
                       </div>
@@ -385,7 +385,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               )}
             </div>
 
-            {/* ΓöÇΓöÇ Step 2 ┬╖ Current Stock (read-only) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* -- Step 2 ┬╖ Current Stock (read-only) -------------- */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Current Stock
@@ -399,7 +399,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               `}>
                 {!selectedId ? (
                   <span className="text-[13px] text-slate-400 italic">
-                    ΓÇö select a product first ΓÇö
+                    - select a product first -
                   </span>
                 ) : (
                   <span className="text-[13px] font-semibold text-slate-900 flex items-center gap-1.5">
@@ -416,7 +416,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               </div>
             </div>
 
-            {/* ΓöÇΓöÇ Step 3 ┬╖ Quantity to Add ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* -- Step 3 ┬╖ Quantity to Add ------------------------- */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                 Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
@@ -450,7 +450,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               )}
             </div>
 
-            {/* ΓöÇΓöÇ Step 4 ┬╖ New Total Preview ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* -- Step 4 ┬╖ New Total Preview ----------------------- */}
             {(() => {
               // Determine colour theme based on result
               const theme = belowZero
@@ -479,14 +479,14 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     {/* Current */}
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-2xl font-bold tabular-nums text-slate-800">
-                        {currentStock ?? "ΓÇö"}
+                        {currentStock ?? "-"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">Current</span>
                     </div>
 
                     {/* Operator */}
                     <span className="text-xl font-light text-slate-400 pb-3">
-                      {validQty && qtyNum < 0 ? "ΓêÆ" : "+"}
+                      {validQty && qtyNum < 0 ? "-" : "+"}
                     </span>
 
                     {/* Quantity */}
@@ -496,7 +496,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                           ? "text-red-600"
                           : "text-slate-800"
                       }`}>
-                        {validQty ? Math.abs(qtyNum) : "ΓÇö"}
+                        {validQty ? Math.abs(qtyNum) : "-"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">
                         {validQty && qtyNum < 0 ? "Removing" : "Adding"}
@@ -509,7 +509,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     {/* New total */}
                     <div className="flex flex-col items-center gap-0.5">
                       <span className={`text-2xl font-bold tabular-nums ${theme.total}`}>
-                        {newTotal ?? "ΓÇö"}
+                        {newTotal ?? "-"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">New Total</span>
                     </div>
@@ -539,7 +539,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
           </div>
 
-          {/* ΓöÇΓöÇ Footer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+          {/* -- Footer ------------------------------------------- */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
             <button
               type="button"
@@ -569,7 +569,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
               ) : submitting ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  UpdatingΓÇª
+                  Updating...
                 </>
               ) : (
                 <>
@@ -585,7 +585,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   );
 };
 
-// ΓöÇΓöÇΓöÇ Edit Inventory Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Edit Inventory Modal -----------------------------------------------------
 const EditInventoryModal = ({ item, onClose, onSaved }) => {
   const { showToast } = useToast();
   const [reorderLevel, setReorderLevel] = useState("");
@@ -740,7 +740,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                   <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
-                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after auditΓÇª" rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit..." rows={3} maxLength={500} className={`${inputCls} resize-none`} />
                   <div className="flex items-center justify-between">
                     {errors.notes ? (
                       <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
@@ -788,7 +788,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
           </form>
         </div>
 
-        {/* Footer ΓÇö always visible */}
+        {/* Footer - always visible */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 shrink-0 rounded-b-2xl">
           <button type="button" onClick={onClose} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors duration-150">
             Cancel
@@ -809,7 +809,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
             "
           >
             {saving ? (
-              <><Loader2 size={15} className="animate-spin" /> SavingΓÇª</>
+              <><Loader2 size={15} className="animate-spin" /> Saving...</>
             ) : (
               <><CheckCircle2 size={15} /> Update Inventory</>
             )}
@@ -821,7 +821,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
   );
 };
 
-// ΓöÇΓöÇΓöÇ Status Config ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Status Config ------------------------------------------------------------
 const STATUS_CONFIG = {
   "In Stock": {
     pill: "bg-emerald-50 text-emerald-700 border border-emerald-200",
@@ -837,7 +837,7 @@ const STATUS_CONFIG = {
   },
 };
 
-// ΓöÇΓöÇΓöÇ Column Definitions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Column Definitions -------------------------------------------------------
 const COLUMNS = [
   { key: "name", label: "Product Name", sortable: true },
   { key: "category", label: "Category", sortable: true },
@@ -847,7 +847,7 @@ const COLUMNS = [
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
 
-// ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// --- Component ----------------------------------------------------------------
 const InventoryStock = () => {
   const { showToast } = useToast();
   // products   = all products (dropdown list for AddStockModal)
@@ -870,7 +870,7 @@ const InventoryStock = () => {
 
   const { refreshInventory } = useInventory();
 
-  // ΓöÇΓöÇ Fetch all products (for AddStockModal dropdown)
+  // -- Fetch all products (for AddStockModal dropdown)
   const fetchProducts = () =>
     api.get("/api/products").then((res) => {
       setProducts(
@@ -884,7 +884,7 @@ const InventoryStock = () => {
       );
     });
 
-  // ΓöÇΓöÇ Fetch products not yet in inventory (for AddStockModal ΓÇö new entries only)
+  // -- Fetch products not yet in inventory (for AddStockModal - new entries only)
   const fetchAvailableProducts = () =>
     api.get("/api/products/available-for-inventory").then((res) => {
       setAvailableProducts(
@@ -898,11 +898,11 @@ const InventoryStock = () => {
       );
     });
 
-  // ΓöÇΓöÇ Fetch all stock movement logs
+  // -- Fetch all stock movement logs
   const fetchLogs = () =>
     api.get("/api/inventory/logs").then((res) => setLogs(res.data));
 
-  // ΓöÇΓöÇ Fetch tracked inventory items (for the table)
+  // -- Fetch tracked inventory items (for the table)
   const fetchInventory = () =>
     api.get("/api/inventory/status").then((res) => {
       setInventoryItems(
@@ -915,7 +915,7 @@ const InventoryStock = () => {
       );
     });
 
-  // ΓöÇΓöÇ Refresh all (used after any mutation)
+  // -- Refresh all (used after any mutation)
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
@@ -954,10 +954,10 @@ const InventoryStock = () => {
     }
   };
 
-  // ΓöÇΓöÇ Initial load
+  // -- Initial load
   useEffect(() => { refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ΓöÇΓöÇ Delete inventory record (stops tracking; does NOT delete the product)
+  // -- Delete inventory record (stops tracking; does NOT delete the product)
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -973,7 +973,7 @@ const InventoryStock = () => {
     }
   };
 
-  // ΓöÇΓöÇ Sorting
+  // -- Sorting
   const handleSort = (key) => {
     if (!key) return;
     if (sortKey === key) {
@@ -984,10 +984,10 @@ const InventoryStock = () => {
     }
   };
 
-  // ΓöÇΓöÇ Derived category list for the filter dropdown
+  // -- Derived category list for the filter dropdown
   const categoryOptions = [...new Set(inventoryItems.map((i) => i.category).filter(Boolean))].sort();
 
-  // ΓöÇΓöÇ Filtered + Sorted Data (from /api/inventory/status ΓåÆ inventoryItems only)
+  // -- Filtered + Sorted Data (from /api/inventory/status -> inventoryItems only)
   const filtered = inventoryItems
     .filter(({ productName, category, sku }) => {
       const q = search.toLowerCase();
@@ -1006,7 +1006,7 @@ const InventoryStock = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
-  // ΓöÇΓöÇ lowStockCount still used in the table footer badge
+  // -- lowStockCount still used in the table footer badge
   const lowStockCount  = inventoryItems.filter((p) => deriveStatus(p.stockQuantity, p.reorderLevel) !== "In Stock").length;
 
   return (
@@ -1015,9 +1015,9 @@ const InventoryStock = () => {
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
 
-      {/* ΓöÇΓöÇ Scrollable page content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Scrollable page content ------------------------------- */}
 
-      {/* ΓöÇΓöÇ Full-page loading state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Full-page loading state -------------------------- */}
       {loading && (
         <div className="flex flex-1 flex-col items-center justify-center gap-5">
           {/* Layered ring spinner */}
@@ -1030,13 +1030,13 @@ const InventoryStock = () => {
               Loading Inventory
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              Fetching your product stock levelsΓÇª
+              Fetching your product stock levels...
             </p>
           </div>
         </div>
       )}
 
-      {/* ΓöÇΓöÇ Full-page error state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Full-page error state ----------------------------- */}
       {!loading && fetchError && (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
           {/* Icon illustration */}
@@ -1078,7 +1078,7 @@ const InventoryStock = () => {
         </div>
       )}
 
-      {/* ΓöÇΓöÇ Main content (only when loaded successfully) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Main content (only when loaded successfully) ------------ */}
       {!loading && !fetchError && (
       <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
       <AddStockModal
@@ -1098,7 +1098,7 @@ const InventoryStock = () => {
         onClose={() => setEditTarget(null)}
         onSaved={refreshAll}
       />
-      {/* ΓöÇΓöÇ Delete Confirm Dialog ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Delete Confirm Dialog ------------------------------------------------ */}
       {deleteTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1135,7 +1135,7 @@ const InventoryStock = () => {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 transition-all shadow-sm"
               >
                 {deleting
-                  ? <><Loader2 size={14} className="animate-spin" />RemovingΓÇª</>
+                  ? <><Loader2 size={14} className="animate-spin" />Removing...</>
                   : <><Trash2 size={14} />Remove</>}
               </button>
             </div>
@@ -1143,7 +1143,7 @@ const InventoryStock = () => {
         </div>
       )}
 
-      {/* ΓöÇΓöÇ Page Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Page Header ---------------------------------------------------- */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
@@ -1178,12 +1178,12 @@ const InventoryStock = () => {
         </div>
       </div>
 
-      {/* ΓöÇΓöÇ Analytics Cards (from InventoryContext) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Analytics Cards (from InventoryContext) --------------------- */}
       <InventoryAnalyticsCards />
 
-      {/* ΓöÇΓöÇ Table Card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* -- Table Card ----------------------------------------------------- */}
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden min-h-[500px] flex flex-col">
-        {/* ΓöÇΓöÇ Search + Category Filter Row ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* -- Search + Category Filter Row ------------------------------- */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
 
           {/* Search input */}
@@ -1194,7 +1194,7 @@ const InventoryStock = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, SKU or categoryΓÇª"
+              placeholder="Search by name, SKU or category..."
               className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
             />
           </div>
