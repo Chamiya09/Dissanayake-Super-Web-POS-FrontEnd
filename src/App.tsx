@@ -1,9 +1,11 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Layout/AppSidebar";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
 import { ReorderProvider }   from "./context/ReorderContext";
@@ -29,20 +31,42 @@ import DataExport from "./pages/DataExport";
 const queryClient = new QueryClient();
 
 /** Sidebar + main layout — used for all authenticated pages */
-const AppLayout = () => (
-  <InventoryProvider>
-    <ReorderProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <main className="flex-1 overflow-hidden">
-            <Outlet />
-          </main>
-        </div>
-      </SidebarProvider>
-    </ReorderProvider>
-  </InventoryProvider>
-);
+const AppLayout = () => {
+  return (
+    <InventoryProvider>
+      <ReorderProvider>
+        <SidebarProvider>
+          <div className="relative flex min-h-screen w-full">
+            <AppSidebar />
+            <main className="flex-1 overflow-hidden">
+              <Outlet />
+            </main>
+          </div>
+        </SidebarProvider>
+      </ReorderProvider>
+    </InventoryProvider>
+  );
+};
+
+const GlobalRefreshThemeGate = () => {
+  const [showRefreshTheme, setShowRefreshTheme] = useState(false);
+
+  useEffect(() => {
+    const navigationEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const isReload = navigationEntry?.type === "reload";
+
+    if (!isReload) return;
+
+    setShowRefreshTheme(true);
+    const timerId = window.setTimeout(() => {
+      setShowRefreshTheme(false);
+    }, 900);
+
+    return () => window.clearTimeout(timerId);
+  }, []);
+
+  return showRefreshTheme ? <RefreshLoadingTheme /> : null;
+};
 
 /** Generic placeholder for stub pages */
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -62,6 +86,7 @@ const App = () => (
         <TooltipProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
+            <GlobalRefreshThemeGate />
             <Routes>
             {/* ── Public ── */}
             <Route path="/login" element={<Login />} />
