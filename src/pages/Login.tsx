@@ -127,15 +127,15 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label htmlFor="loginId" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Staff / Manager ID
+                  Staff / Manager ID or Admin Username
                 </label>
                 <input
                   id="loginId"
                   type="text"
                   autoComplete="username"
-                  placeholder="Enter your ID (e.g. MGR001 or STF001)"
+                  placeholder="e.g. MGR001, STF001, or admin"
                   value={loginId}
-                  onChange={(e) => setLoginId(e.target.value.toUpperCase())}
+                  onChange={(e) => setLoginId(e.target.value)}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20"
                 />
               </div>
