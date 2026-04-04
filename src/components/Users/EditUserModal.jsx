@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
-import { X, Pencil, User, Mail, ShieldCheck, Info } from "lucide-react";
+import { X, Pencil, User, Mail, ShieldCheck, Info, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +49,13 @@ function FormRow({ id, label, icon: Icon, error, children }) {
 function validateForm(form) {
   const errors = {};
   if (!form.fullName.trim()) errors.fullName = "Full name is required.";
-  if (!form.username.trim()) errors.username = "Username is required.";
+  if (!form.memberId.trim()) {
+    errors.memberId = "Member ID is required.";
+  } else if (form.role === "Manager" && !/^MGR\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Manager ID must follow MGR###.";
+  } else if (form.role === "Staff" && !/^STF\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Staff ID must follow STF###.";
+  }
   if (!form.email.trim()) {
     errors.email = "Email is required.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -62,13 +68,19 @@ function validateForm(form) {
 export default function EditUserModal({ user, onClose, onSave, currentUserRole }) {
   const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
 
-  const [form, setForm] = useState({ fullName: "", username: "", email: "", role: "" });
+  const [form, setForm] = useState({ fullName: "", memberId: "", username: "", email: "", role: "" });
   const [errors, setErrors] = useState({});
   const firstInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
-      setForm({ fullName: user.fullName, username: user.username, email: user.email, role: user.role });
+      setForm({
+        fullName: user.fullName,
+        memberId: user.memberId ?? "",
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      });
       setErrors({});
       setTimeout(() => firstInputRef.current?.focus(), 80);
     }
@@ -149,6 +161,16 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
               <Input id="edit-username" value={form.username}
                 onChange={(e) => handleChange("username", e.target.value)}
                 className={cn("h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300", errors.username && "border-red-400 focus-visible:ring-red-400")} />
+            </FormRow>
+
+            <FormRow id="edit-memberId" label="Staff / Manager ID" icon={Hash} error={errors.memberId}>
+              <Input
+                id="edit-memberId"
+                value={form.memberId}
+                onChange={(e) => handleChange("memberId", e.target.value.toUpperCase())}
+                placeholder={form.role === "Manager" ? "MGR001" : "STF001"}
+                className={cn("h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300", errors.memberId && "border-red-400 focus-visible:ring-red-400")}
+              />
             </FormRow>
 
             <FormRow id="edit-email" label="Email" icon={Mail} error={errors.email}>

@@ -86,30 +86,32 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   /**
-   * login(username, password) — async, calls POST /api/auth/login.
+   * login(loginId, password) — async, calls POST /api/auth/login.
    * Returns { success: true, user } | { success: false, error: string }
    *
-   * Stored user shape: { token, username, name, role }
+   * Stored user shape: { token, username, loginId, name, role }
    *   token    — JWT for API calls (auto-attached by axiosInstance interceptor)
-   *   username — login username   (used for API calls like change-password)
+   *   username — internal username (used for API calls like change-password)
+   *   loginId  — staff/manager ID used at login
    *   name     — full display name (shown in UI, AppHeader, profile cards)
    *   role     — Owner | Manager | Staff
    */
-  const login = useCallback(async (username, password) => {
-    if (!username.trim() || !password.trim()) {
-      return { success: false, error: "Username and password are required." };
+  const login = useCallback(async (loginId, password) => {
+    if (!loginId.trim() || !password.trim()) {
+      return { success: false, error: "Login ID and password are required." };
     }
 
     try {
       const { data } = await api.post("/api/auth/login", {
-        username: username.trim(),
+        loginId: loginId.trim(),
         password: password.trim(),
       });
 
-      // data = { token, username, name, role }
+      // data = { token, username, loginId, name, role }
       const sessionUser = {
         token:    data.token,
         username: data.username,
+        loginId:  data.loginId,
         name:     data.name,
         role:     data.role,
       };
@@ -121,7 +123,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const status = err.response?.status;
       if (status === 401) {
-        return { success: false, error: "Invalid username or password." };
+        return { success: false, error: "Invalid login ID or password." };
       }
       if (status === 403) {
         return { success: false, error: "Your account has been deactivated. Please contact your manager." };

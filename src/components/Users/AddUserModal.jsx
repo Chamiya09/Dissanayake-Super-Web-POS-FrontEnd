@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import {
-  X, UserPlus, User, AtSign, Mail,
+  X, UserPlus, User, AtSign, Mail, Hash,
   Lock, ShieldCheck, Info, Eye, EyeOff, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,23 @@ const ROLE_PILL_STYLES = {
 };
 const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
-const EMPTY_FORM = { fullName: "", username: "", email: "", role: "", password: "" };
+const EMPTY_FORM = { fullName: "", memberId: "", username: "", email: "", role: "", password: "" };
+
+const MEMBER_ID_HELPER = {
+  Manager: "Use format MGR### (example: MGR001)",
+  Staff: "Use format STF### (example: STF001)",
+};
 
 function validateForm(form) {
   const errors = {};
   if (!form.fullName.trim())  errors.fullName  = "Full name is required.";
-  if (!form.username.trim())  errors.username  = "Username is required.";
+  if (!form.memberId.trim()) {
+    errors.memberId = "Member ID is required.";
+  } else if (form.role === "Manager" && !/^MGR\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Manager ID must follow MGR###.";
+  } else if (form.role === "Staff" && !/^STF\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Staff ID must follow STF###.";
+  }
   if (!form.email.trim()) {
     errors.email = "Email is required.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -105,6 +116,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
     try {
       await onAdd({
         fullName: form.fullName.trim(),
+        memberId: form.memberId.trim().toUpperCase(),
         username: form.username.trim(),
         email:    form.email.trim(),
         role:     form.role,
@@ -194,7 +206,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
               <div className="h-px flex-1 bg-slate-100" />
             </div>
 
-            {/* Full Name + Username */}
+            {/* Full Name + Member ID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormRow id="fullName" label="Full Name" icon={User} error={errors.fullName}>
                 <Input
@@ -210,19 +222,36 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                 />
               </FormRow>
 
-              <FormRow id="username" label="Username" icon={AtSign} error={errors.username}>
+              <FormRow id="memberId" label="Staff / Manager ID" icon={Hash} error={errors.memberId}>
                 <Input
-                  id="username"
-                  placeholder="e.g. kamal_p"
-                  value={form.username}
-                  onChange={(e) => handleChange("username", e.target.value)}
+                  id="memberId"
+                  placeholder={form.role === "Manager" ? "e.g. MGR001" : "e.g. STF001"}
+                  value={form.memberId}
+                  onChange={(e) => handleChange("memberId", e.target.value.toUpperCase())}
                   className={cn(
                     "h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300",
-                    errors.username && "border-red-400 focus-visible:ring-red-400",
+                    errors.memberId && "border-red-400 focus-visible:ring-red-400",
                   )}
                 />
+                {form.role && (
+                  <p className="text-[11px] text-slate-500">{MEMBER_ID_HELPER[form.role]}</p>
+                )}
               </FormRow>
             </div>
+
+            {/* Optional Username */}
+            <FormRow id="username" label="Username (Optional)" icon={AtSign} error={errors.username}>
+              <Input
+                id="username"
+                placeholder="Leave blank to auto-use member ID"
+                value={form.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                className={cn(
+                  "h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300",
+                  errors.username && "border-red-400 focus-visible:ring-red-400",
+                )}
+              />
+            </FormRow>
 
             {/* Email + Role */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

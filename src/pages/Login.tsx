@@ -10,7 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [showSplash, setShowSplash] = useState(true);
-  const [username, setUsername] = useState("");
+  const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,12 +30,12 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      showToast("Please enter both username and password.", "error", "Error");
+    if (!loginId.trim() || !password.trim()) {
+      showToast("Please enter both login ID and password.", "error", "Error");
       return;
     }
     setLoading(true);
-    const result = await login(username, password);
+    const result = await login(loginId, password);
     setLoading(false);
     if (!result.success) {
       showToast(result.error ?? "Invalid Credentials", "error", "Login Failed");
@@ -126,16 +126,16 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="username" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Username
+                <label htmlFor="loginId" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Staff / Manager ID
                 </label>
                 <input
-                  id="username"
+                  id="loginId"
                   type="text"
                   autoComplete="username"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your ID (e.g. MGR001 or STF001)"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value.toUpperCase())}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20"
                 />
               </div>

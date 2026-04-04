@@ -151,6 +151,7 @@ export default function UserManagement() {
     const q = search.toLowerCase();
     const matchesSearch =
       u.fullName.toLowerCase().includes(q) ||
+      (u.memberId || "").toLowerCase().includes(q) ||
       u.username.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q);
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
@@ -161,6 +162,7 @@ export default function UserManagement() {
     try {
       const { data: created } = await api.post("/api/users", {
         fullName: formData.fullName,
+        memberId: formData.memberId,
         username: formData.username,
         email: formData.email,
         role: formData.role,
@@ -178,6 +180,7 @@ export default function UserManagement() {
     try {
       const { data: saved } = await api.put(`/api/users/${updated.id}`, {
         fullName: updated.fullName,
+        memberId: updated.memberId,
         username: updated.username,
         email: updated.email,
         role: updated.role,
@@ -374,7 +377,7 @@ export default function UserManagement() {
                                 <p className="font-semibold text-slate-900 leading-tight">
                                   {u.fullName}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-0.5">@{u.username}</p>
+                                <p className="text-xs text-slate-400 mt-0.5 font-mono">{u.memberId || `@${u.username}`}</p>
                               </div>
                             </div>
                           </td>
@@ -445,7 +448,7 @@ export default function UserManagement() {
                           <UserAvatar name={u.fullName} />
                           <div>
                             <p className="font-semibold text-slate-900 leading-tight">{u.fullName}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">@{u.username}</p>
+                            <p className="text-xs text-slate-400 mt-0.5 font-mono">{u.memberId || `@${u.username}`}</p>
                           </div>
                         </div>
                         <RoleBadge role={u.role} />

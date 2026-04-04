@@ -94,7 +94,7 @@ export default function DeleteUserModal({ user, onClose, onConfirm }) {
             <UserAvatar name={user.fullName} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{user.fullName}</p>
-              <p className="truncate text-xs text-slate-500 font-mono mt-0.5">@{user.username}</p>
+              <p className="truncate text-xs text-slate-500 font-mono mt-0.5">{user.memberId || `@${user.username}`}</p>
               <div className="mt-1.5">
                 <RolePill role={user.role} />
               </div>

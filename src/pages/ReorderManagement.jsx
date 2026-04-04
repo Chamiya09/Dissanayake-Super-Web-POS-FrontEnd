@@ -730,16 +730,17 @@ export default function ReorderManagement() {
       return;
     }
 
-    let username = "";
+    let loginId = "";
     try {
       const raw = localStorage.getItem(AUTH_LS_KEY);
-      username = raw ? JSON.parse(raw)?.username ?? "" : "";
+      const session = raw ? JSON.parse(raw) : null;
+      loginId = session?.loginId ?? session?.username ?? "";
     } catch {
-      username = "";
+      loginId = "";
     }
 
-    if (!username) {
-      setPdfAccessError("Session username not found. Please login again.");
+    if (!loginId) {
+      setPdfAccessError("Session login ID not found. Please login again.");
       return;
     }
 
@@ -748,7 +749,7 @@ export default function ReorderManagement() {
 
     try {
       await authVerifyClient.post("/api/auth/login", {
-        username,
+        loginId,
         password: pdfPassword.trim(),
       });
 

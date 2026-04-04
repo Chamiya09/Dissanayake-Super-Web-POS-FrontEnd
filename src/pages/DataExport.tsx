@@ -451,16 +451,17 @@ export default function DataExport() {
       return;
     }
 
-    let username = "";
+    let loginId = "";
     try {
       const raw = localStorage.getItem(AUTH_LS_KEY);
-      username = raw ? JSON.parse(raw)?.username ?? "" : "";
+      const session = raw ? JSON.parse(raw) : null;
+      loginId = session?.loginId ?? session?.username ?? "";
     } catch {
-      username = "";
+      loginId = "";
     }
 
-    if (!username) {
-      setAuthError("Session username not found. Please login again.");
+    if (!loginId) {
+      setAuthError("Session login ID not found. Please login again.");
       return;
     }
 
@@ -469,7 +470,7 @@ export default function DataExport() {
 
     try {
       await authVerifyClient.post("/api/auth/login", {
-        username,
+        loginId,
         password: authPassword.trim(),
       });
 
