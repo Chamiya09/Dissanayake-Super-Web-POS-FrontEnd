@@ -4,40 +4,24 @@ import { Eye, EyeOff, ShieldCheck, Store } from "lucide-react";
 import { useAuth, ROLE_HOME } from "@/context/AuthContext";
 import { useToast } from "@/context/GlobalToastContext";
 
-const SPLASH_SESSION_KEY = "pos_login_splash_seen";
-
-function getInitialSplashState() {
-  try {
-    return sessionStorage.getItem(SPLASH_SESSION_KEY) !== "1";
-  } catch {
-    return true;
-  }
-}
-
 export default function Login() {
   const { user, login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [showSplash, setShowSplash] = useState(getInitialSplashState);
+  const [showSplash, setShowSplash] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!showSplash) return;
     const timer = window.setTimeout(() => {
       setShowSplash(false);
-      try {
-        sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
-      } catch {
-        // ignore storage failures and continue
-      }
     }, 1700);
 
     return () => window.clearTimeout(timer);
-  }, [showSplash]);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
