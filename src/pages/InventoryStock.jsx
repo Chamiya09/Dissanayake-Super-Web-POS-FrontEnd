@@ -1,10 +1,12 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
+import { inventoryApi } from "@/api/inventoryApi";
 import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
+import { ImportInventoryCsvModal } from "@/components/Inventory/ImportInventoryCsvModal";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -36,6 +38,7 @@ import {
   Sparkles,
   PlusCircle,
   PackagePlus,
+  Upload,
   Hash,
   Loader2,
   SlidersHorizontal,
@@ -859,6 +862,7 @@ const InventoryStock = () => {
   const [sortKey,        setSortKey]        = useState("productName");
   const [sortDir,        setSortDir]        = useState("asc");
   const [modalOpen,      setModalOpen]      = useState(false);
+  const [isImportOpen,   setIsImportOpen]   = useState(false);
   const [editTarget,     setEditTarget]     = useState(null);   // inventory item to edit
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
@@ -919,6 +923,35 @@ const InventoryStock = () => {
       .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
+  };
+
+  const handleCsvImport = async (rows) => {
+    try {
+      const result = await inventoryApi.bulkImport(rows);
+
+      if (result.importedCount > 0) {
+        refreshAll();
+      }
+
+      if (result.failedCount === 0) {
+        showToast(
+          `Imported ${result.importedCount} inventory row${result.importedCount === 1 ? "" : "s"} successfully!`,
+          "success"
+        );
+      } else if (result.importedCount > 0) {
+        showToast(
+          `Imported ${result.importedCount} row${result.importedCount === 1 ? "" : "s"}. ${result.failedCount} row${result.failedCount === 1 ? "" : "s"} failed.`,
+          "warning"
+        );
+      } else {
+        showToast("No inventory rows were imported. Please review failed rows.", "error");
+      }
+
+      return result;
+    } catch (err) {
+      showToast(err.response?.data?.message ?? "CSV import failed. Please try again.", "error");
+      throw err;
+    }
   };
 
   // ΓöÇΓöÇ Initial load
@@ -1055,6 +1088,11 @@ const InventoryStock = () => {
         inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
+      <ImportInventoryCsvModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleCsvImport}
+      />
       <EditInventoryModal
         item={editTarget}
         onClose={() => setEditTarget(null)}
@@ -1119,14 +1157,25 @@ const InventoryStock = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95"
-        >
-          <PlusCircle size={16} strokeWidth={2.5} />
-          Add Inventory Stock
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-95"
+          >
+            <Upload size={15} strokeWidth={2.4} />
+            Import CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95"
+          >
+            <PlusCircle size={16} strokeWidth={2.5} />
+            Add Inventory Stock
+          </button>
+        </div>
       </div>
 
       {/* ΓöÇΓöÇ Analytics Cards (from InventoryContext) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
