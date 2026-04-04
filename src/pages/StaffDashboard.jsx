@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import { AIPredictionsCard } from "@/components/Dashboard/AIPredictionsCard";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { SkeletonTable, SkeletonCard } from "@/components/ui/SkeletonTable";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
@@ -217,6 +218,18 @@ export default function StaffDashboard() {
 
     fetchAll();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen flex-col bg-background">
+        <AppHeader />
+        <RefreshLoadingTheme
+          title="Loading Staff Dashboard"
+          subtitle="Preparing shift stats and live store metrics..."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-background">

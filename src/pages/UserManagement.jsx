@@ -32,6 +32,7 @@ import api from "@/lib/axiosInstance";
 import AddUserModal from "@/components/Users/AddUserModal";
 import EditUserModal from "@/components/Users/EditUserModal";
 import DeleteUserModal from "@/components/Users/DeleteUserModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 
 /* ── Role-based permission config ── */
 const CAN_ADD_USERS = ["Owner", "Manager"];
@@ -334,10 +335,10 @@ export default function UserManagement() {
               {/* Table */}
               <div className="hidden md:block overflow-x-auto bg-white">
                 {loading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-                    <span className="ml-2 text-sm text-slate-500">Loading users...</span>
-                  </div>
+                  <RefreshLoadingTheme
+                    title="Loading Users"
+                    subtitle="Fetching user accounts and roles..."
+                  />
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <UserCircle2 className="h-12 w-12 text-slate-300 mb-3" />
@@ -430,10 +431,10 @@ export default function UserManagement() {
               {/* Mobile card list */}
               <div className="md:hidden divide-y divide-slate-100 bg-white">
                 {loading ? (
-                  <div className="flex items-center justify-center py-16 text-slate-500">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="ml-2 text-sm">Loading users...</span>
-                  </div>
+                  <RefreshLoadingTheme
+                    title="Loading Users"
+                    subtitle="Fetching user accounts and roles..."
+                  />
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <UserCircle2 className="h-10 w-10 text-slate-300 mb-2" />

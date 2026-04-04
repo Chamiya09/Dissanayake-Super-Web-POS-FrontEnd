@@ -7,6 +7,7 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import { ImportInventoryCsvModal } from "@/components/Inventory/ImportInventoryCsvModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -1019,21 +1020,10 @@ const InventoryStock = () => {
 
       {/* -- Full-page loading state -------------------------- */}
       {loading && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-5">
-          {/* Layered ring spinner */}
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-slate-900 animate-spin" />
-          </div>
-          <div className="text-center">
-            <p className="text-base font-semibold text-slate-700">
-              Loading Inventory
-            </p>
-            <p className="text-sm text-slate-400 mt-1">
-              Fetching your product stock levels...
-            </p>
-          </div>
-        </div>
+        <RefreshLoadingTheme
+          title="Loading Inventory"
+          subtitle="Fetching your product stock levels..."
+        />
       )}
 
       {/* -- Full-page error state ----------------------------- */}

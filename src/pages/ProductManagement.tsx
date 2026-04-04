@@ -5,6 +5,7 @@ import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
@@ -262,10 +263,10 @@ export default function ProductManagement() {
 
         {/* ── Loading state ── */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
-            <p className="text-sm text-slate-500 font-medium">Loading products…</p>
-          </div>
+          <RefreshLoadingTheme
+            title="Loading Products"
+            subtitle="Syncing product catalog..."
+          />
         )}
 
         {/* ── Error state ── */}
