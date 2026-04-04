@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { getLowStockItems, createOrder, mapHistoryItem } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
 import { useToast }         from "@/context/GlobalToastContext";
@@ -683,19 +684,10 @@ export default function LowStockAlerts() {
             {/* ── Table ────────────────────────────────────────────────────── */}
             <div className="overflow-x-auto min-h-[400px]">
               {isLoading ? (
-                <div className="p-6">
-                  <SkeletonTable
-                    rows={4}
-                    columns={[
-                      { width: "w-44", flexible: true },
-                      { width: "w-24" },
-                      { width: "w-16" },
-                      { width: "w-16" },
-                      { width: "w-20" },
-                      { width: "w-28", align: "right" },
-                    ]}
-                  />
-                </div>
+                <RefreshLoadingTheme
+                  title="Loading Low Stock Alerts"
+                  subtitle="Checking inventory risk levels..."
+                />
               ) : visibleAlerts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
                   <PackageSearch className="h-10 w-10 text-slate-300 mb-1" strokeWidth={1.2} />

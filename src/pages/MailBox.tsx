@@ -18,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/GlobalToastContext";
 import { fetchInbox, fetchSent, sendMailboxEmail, type MailboxMessage } from "@/api/mailboxApi";
@@ -1001,12 +1002,10 @@ export default function MailBox() {
           </div>
 
           {isInitializing && !hasAnyMails ? (
-            <div className="flex min-h-[520px] items-center justify-center">
-              <div className="inline-flex items-center gap-2 text-slate-500">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Fast loading mailbox...
-              </div>
-            </div>
+            <RefreshLoadingTheme
+              title="Loading Mailbox"
+              subtitle="Syncing emails and folders..."
+            />
           ) : loadError && !hasAnyMails ? (
             <div className="flex min-h-[520px] items-center justify-center p-6">
               <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{loadError}</div>

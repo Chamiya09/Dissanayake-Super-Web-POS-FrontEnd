@@ -7,6 +7,7 @@ import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Plus, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
@@ -226,6 +227,13 @@ export default function Suppliers() {
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        {loading && (
+          <RefreshLoadingTheme
+            title="Loading Suppliers"
+            subtitle="Syncing supplier network..."
+          />
+        )}
+
         <div className="w-full max-w-none py-8 space-y-8">
 
           {/* ── Page header ── */}

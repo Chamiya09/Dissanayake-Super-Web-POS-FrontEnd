@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import api from "@/lib/axiosInstance";
 import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
@@ -379,29 +380,19 @@ function EditOrderModal({ order, onUpdate, onClose }) {
 // ─── Cancellation Overlay ────────────────────────────────────────────────────
 function CancelOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-slate-950">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-950 border-2 border-red-700">
-        <Loader2 className="h-8 w-8 animate-spin text-red-400" />
-      </div>
-      <div className="text-center">
-        <p className="text-base font-semibold text-white">Sending Cancellation Notice to Supplier...</p>
-        <p className="mt-1 text-sm text-slate-400">Please wait while we notify them.</p>
-      </div>
-    </div>
+    <RefreshLoadingTheme
+      title="Cancelling Purchase Order"
+      subtitle="Sending cancellation notice to supplier..."
+    />
   );
 }
 
 function UpdateOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-slate-950">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-950 border-2 border-indigo-500">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-      </div>
-      <div className="text-center">
-        <p className="text-base font-semibold text-white">Sending Updated Purchase Order to Supplier...</p>
-        <p className="mt-1 text-sm text-slate-400">Please wait while we resend the order.</p>
-      </div>
-    </div>
+    <RefreshLoadingTheme
+      title="Updating Purchase Order"
+      subtitle="Sending updated order to supplier..."
+    />
   );
 }
 
