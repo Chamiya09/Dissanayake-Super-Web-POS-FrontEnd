@@ -102,10 +102,11 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
                   lineItems.map((item, i) => {
                     const qty   = item.quantity ?? item.qty ?? 0;
                     const price = item.price ?? item.unitPrice ?? 0;
+                    const itemName = item.name ?? item.productName ?? item.title ?? "Unnamed Item";
                     const lineTotal = qty * price;
                     return (
                       <tr key={i} className="align-top">
-                        <td className="py-1 pr-1 text-slate-800 leading-snug font-medium">{item.name}</td>
+                        <td className="py-1 pr-1 text-slate-800 leading-snug font-medium">{itemName}</td>
                         <td className="py-1 text-center text-slate-500">{qty}</td>
                         <td className="py-1 text-right text-slate-500">{formatCurrency(price)}</td>
                         <td className="py-1 text-right font-semibold text-slate-800">{formatCurrency(lineTotal)}</td>
