@@ -176,3 +176,19 @@
 .toast-progress {
   animation: toast-progress linear forwards;
 }
+
+@keyframes login-loading-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  60% {
+    transform: translateX(30%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.login-loading-bar {
+  animation: login-loading-slide 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

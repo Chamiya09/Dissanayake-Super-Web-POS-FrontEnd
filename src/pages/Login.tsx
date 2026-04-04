@@ -69,7 +69,7 @@ export default function Login() {
           <p className="mt-2 text-sm text-teal-100/90">Preparing secure workspace...</p>
 
           <div className="mt-8 h-1.5 w-52 overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-24 animate-pulse rounded-full bg-white" />
+            <div className="login-loading-bar h-full w-24 rounded-full bg-gradient-to-r from-white/70 via-white to-white/70" />
           </div>
         </div>
       </div>
