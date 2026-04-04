@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import { AIPredictionsCard } from "@/components/Dashboard/AIPredictionsCard";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { SkeletonTable, SkeletonCard } from "@/components/ui/SkeletonTable";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
@@ -67,26 +68,27 @@ function MetricCard({
   iconColor: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[12px] font-medium uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          <p className="mt-2 text-[28px] font-bold tracking-tight text-foreground leading-none">
-            {value}
-          </p>
-          <p className="mt-1.5 text-[11px] text-muted-foreground">{sub}</p>
-        </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
         <div
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-            iconBg
+            "flex h-12 w-12 items-center justify-center rounded-xl",
+            iconBg,
+            iconColor
           )}
         >
-          <Icon className={cn("h-5 w-5", iconColor)} />
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
         </div>
       </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -186,6 +188,18 @@ export default function Dashboard() {
     fetchAll();
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen flex-col bg-background">
+        <AppHeader />
+        <RefreshLoadingTheme
+          title="Loading Dashboard"
+          subtitle="Gathering sales, products, and supplier insights..."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
@@ -220,24 +234,24 @@ export default function Dashboard() {
                 value={formatCurrency(stats.revenue)}
                 sub="From completed transactions"
                 icon={TrendingUp}
-                iconBg="bg-emerald-500/10"
-                iconColor="text-emerald-600 dark:text-emerald-400"
+                iconBg="bg-teal-50"
+                iconColor="text-teal-600"
               />
               <MetricCard
                 label="Total Products"
                 value={stats.products}
                 sub="Items in inventory"
                 icon={Package}
-                iconBg="bg-indigo-500/10"
-                iconColor="text-indigo-600 dark:text-indigo-400"
+                iconBg="bg-indigo-50"
+                iconColor="text-indigo-600"
               />
               <MetricCard
                 label="Registered Suppliers"
                 value={stats.suppliers}
                 sub="Active supplier accounts"
                 icon={Truck}
-                iconBg="bg-orange-500/10"
-                iconColor="text-orange-600 dark:text-orange-400"
+                iconBg="bg-amber-50"
+                iconColor="text-amber-600"
               />
             </>
           )}

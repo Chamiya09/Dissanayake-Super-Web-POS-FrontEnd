@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import api from "@/lib/axiosInstance";
 import { createOrder, getHistory, mapHistoryItem, updateOrder, updateOrderStatus } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
-import { generatePurchaseOrderPDF } from "@/utils/generatePurchaseOrderPDF";
+import { generatePurchaseOrderPDF, generateReorderAccountingPDF, generateReorderDetailedBatchPDF } from "@/utils/generatePurchaseOrderPDF";
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
-import { useNotification } from "@/context/NotificationContext";
+import { useToast } from "@/context/GlobalToastContext";
 import {
   Package,
   ArrowLeft,
@@ -28,12 +30,22 @@ import {
   PackageCheck,
   Search,
   FileDown,
+  SlidersHorizontal,
+  CheckSquare,
 } from "lucide-react";
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-const SYSTEM_SENDER_EMAIL = "dissanayakesupers.orders@gmail.com";
+const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
+const AUTH_LS_KEY = "pos_auth_user";
+
+const authVerifyClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? "",
+  headers: { "Content-Type": "application/json" },
+});
+
+const normalizeEmail = (value) => (value ?? "").trim().toLowerCase();
 
 function StatusBadge({ status }) {
   const map = {
@@ -162,7 +174,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
             {/* To */}
             <div className="flex gap-3 px-4 py-2.5">
               <span className="text-[11px] font-bold text-slate-900 w-14 shrink-0 pt-px">To:</span>
-              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail ?? "—"}</span>
+              <span className="text-[12px] text-slate-900 break-all leading-relaxed">{order.supplierEmail || "No supplier email assigned"}</span>
             </div>
             {/* Subject */}
             <div className="flex gap-3 px-4 py-2.5">
@@ -184,7 +196,7 @@ function SupplierEmailModal({ order, emailBody, viewOnly = false, onConfirm, onC
           <div className="flex items-center justify-end border-t border-slate-100 bg-white px-5 py-4 shrink-0">
             <button
               onClick={onClose}
-              className="inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex items-center rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-none hover:bg-teal-700 hover:shadow-lg active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2"
             >
               Close
             </button>
@@ -308,7 +320,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               <input
                 type="number" min="1" value={qty}
                 onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all"
               />
               <button
                 onClick={() => setQty((q) => q + 1)}
@@ -327,7 +339,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="supplier@example.com"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all"
             />
           </div>
 
@@ -340,7 +352,7 @@ function EditOrderModal({ order, onUpdate, onClose }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={8}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 caret-black outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 transition-all resize-none"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-mono leading-[1.7] text-slate-700 caret-black outline-none focus:ring-2 focus:ring-teal-600 focus:border-indigo-400 transition-all resize-none"
             />
           </div>
         </div>
@@ -368,29 +380,19 @@ function EditOrderModal({ order, onUpdate, onClose }) {
 // ─── Cancellation Overlay ────────────────────────────────────────────────────
 function CancelOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-slate-950">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-950 border-2 border-red-700">
-        <Loader2 className="h-8 w-8 animate-spin text-red-400" />
-      </div>
-      <div className="text-center">
-        <p className="text-base font-semibold text-white">Sending Cancellation Notice to Supplier...</p>
-        <p className="mt-1 text-sm text-slate-400">Please wait while we notify them.</p>
-      </div>
-    </div>
+    <RefreshLoadingTheme
+      title="Cancelling Purchase Order"
+      subtitle="Sending cancellation notice to supplier..."
+    />
   );
 }
 
 function UpdateOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-slate-950">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-950 border-2 border-indigo-500">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-      </div>
-      <div className="text-center">
-        <p className="text-base font-semibold text-white">Sending Updated Purchase Order to Supplier...</p>
-        <p className="mt-1 text-sm text-slate-400">Please wait while we resend the order.</p>
-      </div>
-    </div>
+    <RefreshLoadingTheme
+      title="Updating Purchase Order"
+      subtitle="Sending updated order to supplier..."
+    />
   );
 }
 
@@ -400,26 +402,26 @@ function StepButton({ step, label, desc, isActive, isCompleted, onClick }) {
       onClick={onClick}
       className={`flex flex-1 items-center gap-3 rounded-xl border-2 p-4 text-left transition-all duration-150
         ${isActive
-          ? "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/30"
+          ? "border-teal-500 bg-teal-50"
           : isCompleted
-            ? "border-emerald-500 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/20"
-            : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+            ? "border-emerald-500 bg-emerald-50"
+            : "border-slate-200 bg-white"
         }`}
     >
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold
-        ${isActive    ? "bg-blue-600 text-white"
+        ${isActive    ? "bg-teal-600 text-white"
         : isCompleted ? "bg-emerald-500 text-white"
-        :               "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>
+        :               "bg-slate-100 text-slate-500"}`}>
         {isCompleted ? <Check className="h-4 w-4" /> : step}
       </div>
       <div className="min-w-0">
         <p className={`truncate text-sm font-semibold
-          ${isActive    ? "text-blue-700 dark:text-blue-300"
-          : isCompleted ? "text-emerald-700 dark:text-emerald-400"
-          :               "text-slate-700 dark:text-slate-200"}`}>
+          ${isActive    ? "text-blue-700"
+          : isCompleted ? "text-emerald-700"
+          :               "text-foreground"}`}>
           {label}
         </p>
-        <p className="truncate text-xs text-slate-400 dark:text-slate-500">{desc}</p>
+        <p className="truncate text-xs text-muted-foreground">{desc}</p>
       </div>
     </button>
   );
@@ -432,6 +434,75 @@ const DUMMY_SUPPLIERS = [
   { id: 2, companyName: "Edible Oils Lanka Pvt Ltd", contactPerson: "Chaminda Silva", email: "supply@edibleoils.lk",     phone: "+94 11 345 6789" },
   { id: 3, companyName: "Anchor Dairy Distributors", contactPerson: "Priya Fernando", email: "purchaseorders@anchor.lk", phone: "+94 11 456 7890" },
 ];
+
+// ── Components ─────────────────────────────────────────────────────────
+
+function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}
+        >
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
+        </div>
+      </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReorderAnalyticsCards({ reorders }) {
+  const totalOrders = reorders.length;
+  const pendingOrders = reorders.filter((o) => o.status === "Pending").length;
+  const confirmedOrders = reorders.filter((o) => o.status === "Confirmed").length;
+  const receivedOrders = reorders.filter((o) => o.status === "Received").length;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <SummaryCard
+        label="Total Orders"
+        value={totalOrders}
+        sub="All purchase orders in history"
+        icon={ClipboardList}
+        iconBg="bg-indigo-50"
+        iconColor="text-indigo-600"
+      />
+      <SummaryCard
+        label="Pending"
+        value={pendingOrders}
+        sub="Orders waiting for confirmation"
+        icon={Package}
+        iconBg="bg-amber-50"
+        iconColor="text-amber-600"
+      />
+      <SummaryCard
+        label="Confirmed"
+        value={confirmedOrders}
+        sub="Supplier-approved purchase orders"
+        icon={Building2}
+        iconBg="bg-blue-50"
+        iconColor="text-blue-600"
+      />
+      <SummaryCard
+        label="Received"
+        value={receivedOrders}
+        sub="Orders marked as stock received"
+        icon={CheckCircle}
+        iconBg="bg-emerald-50"
+        iconColor="text-emerald-600"
+      />
+    </div>
+  );
+}
 
 // â”€â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -476,6 +547,7 @@ export default function ReorderManagement() {
   const [suppliers,        setSuppliers]        = useState([]);
   const [suppliersLoading, setSuppliersLoading] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [productsCatalog, setProductsCatalog] = useState([]);
 
   const fetchSuppliers = useCallback(() => {
     setSuppliersLoading(true);
@@ -488,7 +560,7 @@ export default function ReorderManagement() {
           // Auto-select the supplier that matches the product's assigned supplierEmail
           const productEmail = location.state?.product?.supplierEmail;
           if (productEmail) {
-            const match = data.find((s) => s.email === productEmail);
+            const match = data.find((s) => normalizeEmail(s.email) === normalizeEmail(productEmail));
             if (match) return match;
           }
           return data[0];
@@ -503,6 +575,17 @@ export default function ReorderManagement() {
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
+  useEffect(() => {
+    api.get("/api/products")
+      .then((r) => {
+        const rows = Array.isArray(r?.data) ? r.data : [];
+        setProductsCatalog(rows);
+      })
+      .catch(() => {
+        setProductsCatalog([]);
+      });
+  }, []);
+
   // Fetch order history once (after component mounts); re-uses supplier list
   // for display-name resolution once suppliers have loaded.
   useEffect(() => {
@@ -514,7 +597,7 @@ export default function ReorderManagement() {
   const [sending,      setSending]      = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent,         setSent]         = useState(false);
-  const { notify }                       = useNotification();
+  const { showToast }                    = useToast();
 
   // ── Per-row loading: { [orderId]: 'confirming' | 'cancelling' | false }
   const [rowLoading, setRowLoading] = useState({});
@@ -537,12 +620,148 @@ export default function ReorderManagement() {
 
   // ── Inline cancel confirmation: which order.id is awaiting confirm
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState(() => new Set());
 
   // ── Edit order modal (null | order)
   const [editOrderModal, setEditOrderModal] = useState(null);
 
+  // ── PDF access gate
+  const [pdfAccessOpen, setPdfAccessOpen] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [pdfAccessError, setPdfAccessError] = useState("");
+  const [pdfChecking, setPdfChecking] = useState(false);
+  const [pendingPdfPayload, setPendingPdfPayload] = useState(null);
+
   // ── Update overlay
   const [updateOverlay, setUpdateOverlay] = useState(false);
+
+  useEffect(() => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set();
+      const existing = new Set(reorders.map((o) => o.id));
+      prev.forEach((id) => {
+        if (existing.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [reorders]);
+
+  const selectedFilteredCount = filteredReorders.filter((o) => selectedOrderIds.has(o.id)).length;
+  const confirmedFilteredOrders = filteredReorders.filter((o) => o.status === "Confirmed");
+  const selectedConfirmedCount = confirmedFilteredOrders.filter((o) => selectedOrderIds.has(o.id)).length;
+  const allFilteredSelected = confirmedFilteredOrders.length > 0 && selectedConfirmedCount === confirmedFilteredOrders.length;
+
+  function toggleOrderSelection(orderId) {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }
+
+  function toggleSelectAllFiltered() {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        confirmedFilteredOrders.forEach((o) => next.delete(o.id));
+      } else {
+        confirmedFilteredOrders.forEach((o) => next.add(o.id));
+      }
+      return next;
+    });
+  }
+
+  function requestPdfExport(order) {
+    setPendingPdfPayload({ mode: "single", order });
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  function requestBulkPdfExport() {
+    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id) && o.status === "Confirmed");
+    if (!selectedOrders.length) {
+      showToast({
+        type: "warning",
+        title: "No Orders Selected",
+        message: "Select one or more Confirmed orders, then export the accounting PDF.",
+      });
+      return;
+    }
+
+    setPendingPdfPayload({ mode: "bulk-summary", orders: selectedOrders });
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  function requestBulkDetailedPdfExport() {
+    const selectedOrders = filteredReorders.filter((o) => selectedOrderIds.has(o.id) && o.status === "Confirmed");
+    if (!selectedOrders.length) {
+      showToast({
+        type: "warning",
+        title: "No Orders Selected",
+        message: "Select one or more Confirmed orders, then export the detailed PDF.",
+      });
+      return;
+    }
+
+    setPendingPdfPayload({ mode: "bulk-detailed", orders: selectedOrders });
+    setPdfPassword("");
+    setPdfAccessError("");
+    setPdfAccessOpen(true);
+  }
+
+  async function handleVerifyAndDownloadPdf() {
+    if (!pendingPdfPayload) return;
+
+    if (!pdfPassword.trim()) {
+      setPdfAccessError("Password is required.");
+      return;
+    }
+
+    let loginId = "";
+    try {
+      const raw = localStorage.getItem(AUTH_LS_KEY);
+      const session = raw ? JSON.parse(raw) : null;
+      loginId = session?.loginId ?? session?.username ?? "";
+    } catch {
+      loginId = "";
+    }
+
+    if (!loginId) {
+      setPdfAccessError("Session login ID not found. Please login again.");
+      return;
+    }
+
+    setPdfChecking(true);
+    setPdfAccessError("");
+
+    try {
+      await authVerifyClient.post("/api/auth/login", {
+        loginId,
+        password: pdfPassword.trim(),
+      });
+
+      setPdfAccessOpen(false);
+      if (pendingPdfPayload.mode === "single") {
+        generatePurchaseOrderPDF(pendingPdfPayload.order, managerName, { products: productsCatalog });
+      } else if (pendingPdfPayload.mode === "bulk-detailed") {
+        generateReorderDetailedBatchPDF(pendingPdfPayload.orders, managerName, { products: productsCatalog });
+      } else {
+        generateReorderAccountingPDF(pendingPdfPayload.orders, managerName, { products: productsCatalog });
+      }
+    } catch (error) {
+      const msg =
+        error?.response?.status === 401
+          ? "Password is wrong."
+          : error?.response?.data?.message || "Credential verification failed.";
+      setPdfAccessError(msg);
+    } finally {
+      setPdfChecking(false);
+    }
+  }
 
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
@@ -553,9 +772,19 @@ export default function ReorderManagement() {
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handlePrepareEmail() {
-    if (!product || !selectedSupplier) return;
+    if (!product) return;
+    const recipientEmail = selectedSupplier?.email ?? product?.supplierEmail;
+    if (!recipientEmail) {
+      showToast({
+        type: "error",
+        title: "Missing Supplier Email",
+        message: "Assign a supplier email in Supplier Management before sending an order.",
+      });
+      return;
+    }
+    const recipientName = selectedSupplier?.contactPerson ?? product?.supplierName ?? "Supplier";
     setEmailBody([
-      `Dear ${selectedSupplier.contactPerson},`,
+      `Dear ${recipientName},`,
       ``,
       `I hope this message finds you well. We are writing from Dissanayake Super to place a formal purchase order for the following product:`,
       ``,
@@ -581,7 +810,18 @@ export default function ReorderManagement() {
 
   async function handleCreateReorder(e) {
     e?.preventDefault();
-    if (!product || !selectedSupplier || isSubmitting) return;
+    if (!product || isSubmitting) return;
+
+    const recipientEmailRaw = selectedSupplier?.email ?? product?.supplierEmail;
+    const recipientEmail = (recipientEmailRaw ?? "").trim();
+    if (!recipientEmail) {
+      showToast({
+        type: "error",
+        title: "Missing Supplier Email",
+        message: "Assign a supplier email in Supplier Management before sending an order.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setSending(true);
@@ -592,7 +832,7 @@ export default function ReorderManagement() {
     // Build ReorderRequestDTO
     const dto = {
       orderRef,
-      supplierEmail: selectedSupplier.email,
+      supplierEmail: recipientEmail,
       items: [{
         productName: product.productName,
         productId:   product.productId ?? product.id ?? null,
@@ -605,8 +845,8 @@ export default function ReorderManagement() {
     const optimisticOrder = {
       id:            orderRef,
       productName:   product.productName,
-      supplierName:  selectedSupplier.companyName,
-      supplierEmail: selectedSupplier.email,
+      supplierName:  selectedSupplier?.companyName ?? product?.supplierName ?? recipientEmail,
+      supplierEmail: recipientEmail,
       quantity:      orderQty,
       orderDate:     new Date().toISOString().slice(0, 10),
       status:        "Pending",
@@ -624,14 +864,14 @@ export default function ReorderManagement() {
 
       setSupplierEmailModal({ order: savedOrder, emailBody: capturedEmailBody });
       setSent(true);
-      notify({
+      showToast({
         type: "success",
         title: "Order Confirmed",
-        message: `Purchase Order ${orderRef} saved — email sent to ${selectedSupplier.email}.`,
+        message: `Purchase Order ${orderRef} saved — email sent to ${recipientEmail}.`,
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
-      notify({ type: "error", title: "Order Failed", message: msg });
+      showToast({ type: "error", title: "Order Failed", message: msg });
       // Roll back the optimistic row
       setReorders((prev) => prev.filter((o) => o.id !== orderRef));
     } finally {
@@ -676,7 +916,7 @@ export default function ReorderManagement() {
     setSent(false);
     setStep("config");
     setProduct(null);
-    notify({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
+    showToast({ type: "success", title: "Order Confirmed", message: "Supplier confirmed. Status updated to Confirmed." });
   }
 
   // Triggers 2-second cancellation overlay, calls API, then marks order Cancelled
@@ -689,14 +929,12 @@ export default function ReorderManagement() {
     try {
       const dto = await updateOrderStatus(order.dbId, "CANCELLED");
       const updated = mapHistoryItem(dto, suppliers);
-      setTimeout(() => {
-        setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-        setCancelOverlay(null);
-        notify({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
-      }, 2000);
+      setReorders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      setCancelOverlay(null);
+      showToast({ type: "warning", title: "Order Cancelled", message: "Cancellation saved. Notice sent to supplier." });
     } catch (err) {
       setCancelOverlay(null);
-      notify({
+      showToast({
         type: "error",
         title: "Cancel Failed",
         message: err.response?.data?.message ?? "Failed to cancel order. Please try again.",
@@ -723,12 +961,12 @@ export default function ReorderManagement() {
       });
       const updatedOrder = mapHistoryItem(dto, suppliers);
       setReorders((prev) => prev.map((o) => (o.id === id ? updatedOrder : o)));
-      notify({ type: "info", title: "Order Updated", message: "Purchase Order updated successfully." });
+      showToast({ type: "info", title: "Order Updated", message: "Purchase Order updated and revised email sent to supplier." });
     } catch (err) {
-      notify({
+      showToast({
         type: "error",
         title: "Update Failed",
-        message: err.response?.data?.message ?? "Failed to update order.",
+        message: err.response?.data?.message ?? "Failed to update order. Accepted orders cannot be revised.",
       });
     } finally {
       setUpdateOverlay(false);
@@ -740,7 +978,7 @@ export default function ReorderManagement() {
     setReorders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: "Received" } : o))
     );
-    notify({ type: "success", title: "Stock Updated", message: "Stock level updated successfully." });
+    showToast({ type: "success", title: "Stock Updated", message: "Stock level updated successfully." });
   }
 
   function handleReset() {
@@ -753,229 +991,284 @@ export default function ReorderManagement() {
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-        <div className="mx-auto max-w-6xl space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="w-full max-w-none py-8 space-y-8">
 
-        {/* Heading */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 shrink-0">
-            <Package className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-              Reorder Management
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Track and manage all purchase orders placed through the system.
-            </p>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            RECENT PURCHASE ORDERS HISTORY
-        ══════════════════════════════════════════════════════════════════ */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-
-          {/* Section header */}
-          <div className="flex flex-col gap-4 px-6 py-5 border-b border-slate-200">
-            {/* Title row */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 shrink-0">
-                  <ClipboardList className="h-4 w-4 text-white" />
+          {/* ── Page header ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                  <Package size={24} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Purchase Order History</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">All orders placed through this system</p>
+                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    Reorder Management
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Track and manage all purchase orders placed through the system.
+                  </p>
                 </div>
               </div>
-              <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-                {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
-              </span>
-            </div>
+          </div>
 
-            {/* Search + filter controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Search by supplier */}
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search by supplier name…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition"
-                />
+          <div className="px-4 sm:px-6 lg:px-8">
+            <ReorderAnalyticsCards reorders={reorders} />
+          </div>
+
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
+              {/* Section header */}
+              <div className="flex flex-col gap-4 p-6 border-b border-slate-200 bg-slate-50/50">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Purchase Order History</h2>
+                    <p className="text-sm text-slate-500 mt-1">All orders placed through this system</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <button
+                      type="button"
+                      onClick={requestBulkPdfExport}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                      Export Accounting PDF ({selectedConfirmedCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={requestBulkDetailedPdfExport}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      Export Full Details PDF
+                    </button>
+                    <span className="inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 font-semibold text-slate-700">
+                      {filteredReorders.length}{filteredReorders.length !== reorders.length && <span className="text-slate-400 font-normal ml-1">/ {reorders.length}</span>} orders
+                    </span>
+                  </div>
+                </div>
+
+                {/* Search + filter controls */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Search by supplier */}
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by supplier name…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white h-10 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
+                    />
+                  </div>
+
+                  {/* Status filter */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full sm:w-44 h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all appearance-none cursor-pointer"
+                    >
+                      {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
+                        <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(searchQuery !== "" || statusFilter !== "All") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("All");
+                      }}
+                      className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Status filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition appearance-none cursor-pointer sm:w-44"
-              >
-                {["All", "Pending", "Confirmed", "Cancelled", "Received"].map((s) => (
-                  <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
-                ))}
-              </select>
+              {/* Table */}
+              <div className="overflow-x-auto min-h-[400px]">
+                {historyLoading ? (
+                  <div className="p-6">
+                    <SkeletonTable
+                      rows={5}
+                      columns={[
+                        { width: "w-28" },
+                        { width: "w-44", flexible: true },
+                        { width: "w-36" },
+                        { width: "w-16" },
+                        { width: "w-24" },
+                        { width: "w-20" },
+                        { width: "w-32" },
+                      ]}
+                    />
+                  </div>
+                ) : (
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                        <input
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={toggleSelectAllFiltered}
+                          disabled={confirmedFilteredOrders.length === 0}
+                          className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                          title="Select all filtered confirmed orders"
+                        />
+                      </th>
+                      {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", ""].map((h, i) => (
+                        <th
+                          key={h}
+                          className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${i === 6 ? "text-right" : ""}`}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredReorders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="group transition-colors duration-150 hover:bg-slate-50/60"
+                      >
+                        <td className="px-4 py-6 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedOrderIds.has(order.id)}
+                            onChange={() => toggleOrderSelection(order.id)}
+                            disabled={order.status !== "Confirmed"}
+                            className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 disabled:opacity-40"
+                            title={order.status === "Confirmed" ? `Select ${order.id}` : "Only confirmed orders can be selected"}
+                          />
+                        </td>
+                        <td className="px-6 py-6 font-mono text-xs text-slate-500 whitespace-nowrap">
+                          {order.id}
+                        </td>
+                        <td className="px-6 py-6">
+                          <span className="font-semibold text-slate-900">{order.productName}</span>
+                        </td>
+                        <td className="px-6 py-6 text-slate-600 whitespace-nowrap">
+                          {order.supplierName}
+                        </td>
+                        <td className="px-6 py-6 tabular-nums font-bold text-slate-900 whitespace-nowrap">
+                          {order.quantity}
+                        </td>
+                        <td className="px-6 py-6 tabular-nums text-slate-500 whitespace-nowrap">
+                          {new Date(order.orderDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap">
+                          <OrderStatusBadge status={order.status} />
+                        </td>
+                        <td className="px-6 py-6 whitespace-nowrap text-right">
+                          {cancelConfirmId === order.id ? (
+                            /* ── Inline cancel confirmation ── */
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-xs font-medium text-slate-600">Cancel?</span>
+                              <button
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setCancelConfirmId(null)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* View */}
+                              <button
+                                onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
+                                title="View order email"
+                                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              {/* Download PDF */}
+                              <button
+                                onClick={() => requestPdfExport(order)}
+                                title="Download Purchase Order PDF"
+                                className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </button>
+                              {/* Edit — Pending only */}
+                              {order.status === "Pending" && (
+                                <button
+                                  onClick={() => setEditOrderModal(order)}
+                                  title="Edit Order"
+                                  className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              )}
+                              {/* Cancel — Pending only */}
+                              {order.status === "Pending" && (
+                                <button
+                                  onClick={() => setCancelConfirmId(order.id)}
+                                  title="Cancel Order"
+                                  className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                )}
+
+                {/* Empty state */}
+                {!historyLoading && filteredReorders.length === 0 && (
+                  <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                      <Package className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">
+                        {reorders.length === 0 ? "No Purchase Orders" : "No Matches Found"}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                        {reorders.length === 0
+                          ? "Purchase orders will appear here once you start resolving low stock items."
+                          : "Try adjusting your search or filters to see more results."}
+                      </p>
+                    </div>
+                    {reorders.length > 0 && (
+                      <button
+                        onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
+                        className="mt-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Clear all filters
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            {historyLoading ? (
-              <SkeletonTable
-                rows={5}
-                columns={[
-                  { width: "w-28" },
-                  { width: "w-44", flexible: true },
-                  { width: "w-36" },
-                  { width: "w-16" },
-                  { width: "w-24" },
-                  { width: "w-20" },
-                  { width: "w-32" },
-                ]}
-              />
-            ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  {["Order ID", "Product", "Supplier", "Qty", "Order Date", "Status", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3.5 text-left text-[11px] font-black uppercase tracking-wider text-slate-800"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredReorders.map((order, idx) => (
-                  <tr
-                    key={order.id}
-                    className={`transition-colors hover:bg-blue-50/50 ${
-                      idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    }`}
-                  >
-                    <td className="px-5 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
-                      {order.id}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-semibold text-slate-900">{order.productName}</span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
-                      {order.supplierName}
-                    </td>
-                    <td className="px-5 py-4 tabular-nums font-bold text-slate-900 whitespace-nowrap">
-                      {order.quantity}
-                    </td>
-                    <td className="px-5 py-4 tabular-nums text-slate-500 whitespace-nowrap">
-                      {new Date(order.orderDate).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <OrderStatusBadge status={order.status} />
-                    </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      {cancelConfirmId === order.id ? (
-                        /* ── Inline cancel confirmation ── */
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-slate-600 whitespace-nowrap">Cancel this order?</span>
-                          <button
-                            onClick={() => handleCancelOrder(order.id)}
-                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setCancelConfirmId(null)}
-                            className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition-all duration-200"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          {/* View — available for every status */}
-                          <button
-                            onClick={() => setSupplierEmailModal({ order, viewOnly: true })}
-                            title="View order email"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            View
-                          </button>
-                          {/* Download PDF — available for every status */}
-                          <button
-                            onClick={() => generatePurchaseOrderPDF(order, managerName)}
-                            title="Download Purchase Order PDF"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                          >
-                            <FileDown className="h-3.5 w-3.5" />
-                            PDF
-                          </button>
-                          {/* Edit — Pending only */}
-                          {order.status === "Pending" && (
-                            <button
-                              onClick={() => setEditOrderModal(order)}
-                              title="Edit Order"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800 active:scale-95 transition-all duration-200"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Edit
-                            </button>
-                          )}
-                          {/* Cancel — Pending only */}
-                          {order.status === "Pending" && (
-                            <button
-                              onClick={() => setCancelConfirmId(order.id)}
-                              title="Cancel Order"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            )}
-          </div>
-
-          {/* Empty state */}
-          {filteredReorders.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <ClipboardList className="h-10 w-10 text-slate-300" strokeWidth={1.2} />
-              {reorders.length === 0 ? (
-                <p className="text-sm font-medium text-slate-500">No purchase orders yet</p>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-slate-500">No orders match your search</p>
-                  <button
-                    onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                  >
-                    Clear filters
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
-
-        </div>{/* /max-w-6xl */}
-      </div>
+      </main>
 
 
 
@@ -990,6 +1283,49 @@ export default function ReorderManagement() {
 
       {/* Cancellation Overlay */}
       {cancelOverlay && <CancelOverlay />}
+
+      {pdfAccessOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-900/70" onClick={() => !pdfChecking && setPdfAccessOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900">Export Access Required</h3>
+            <p className="mt-1 text-sm text-slate-600">Enter your account password to download the purchase order PDF.</p>
+
+            <div className="mt-4 space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
+              <input
+                type="password"
+                value={pdfPassword}
+                onChange={(e) => setPdfPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={pdfChecking}
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm text-slate-900 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              />
+              {pdfAccessError && <p className="text-xs font-medium text-red-600">{pdfAccessError}</p>}
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPdfAccessOpen(false)}
+                disabled={pdfChecking}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyAndDownloadPdf}
+                disabled={pdfChecking}
+                className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800 disabled:opacity-60"
+              >
+                {pdfChecking && <Loader2 className="h-4 w-4 animate-spin" />}
+                Verify & Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Update Overlay */}
       {updateOverlay && <UpdateOverlay />}

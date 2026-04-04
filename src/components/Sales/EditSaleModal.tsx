@@ -206,7 +206,7 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
 
           {/* API error banner */}
           {errors.api && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium text-red-700">
               {errors.api}
             </div>
           )}
@@ -310,8 +310,8 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
             className={cn(
               "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-[12px]",
               paymentMethod === "Card"
-                ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
             )}
           >
             {paymentMethod === "Card"

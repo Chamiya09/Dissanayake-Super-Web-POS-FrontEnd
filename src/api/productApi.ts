@@ -6,6 +6,20 @@ const BASE_URL = "/api/products";
 /** Shape sent on create / update — id and createdAt are NOT sent to backend */
 export type ProductPayload = Omit<Product, "id">;
 
+export type ProductImportError = {
+  rowNumber: number;
+  sku: string | null;
+  message: string;
+};
+
+export type ProductBulkImportResponse = {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  importedProducts: Product[];
+  errors: ProductImportError[];
+};
+
 export const productApi = {
   /** GET /api/products — fetch all products */
   getAll(): Promise<Product[]> {
@@ -15,6 +29,13 @@ export const productApi = {
   /** POST /api/products — create a new product */
   create(payload: ProductPayload): Promise<Product> {
     return api.post<Product>(BASE_URL, payload).then((r) => r.data);
+  },
+
+  /** POST /api/products/bulk-import — create multiple products at once */
+  bulkImport(payload: ProductPayload[]): Promise<ProductBulkImportResponse> {
+    return api
+      .post<ProductBulkImportResponse>(`${BASE_URL}/bulk-import`, payload)
+      .then((r) => r.data);
   },
 
   /** PUT /api/products/{id} — update an existing product */

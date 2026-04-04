@@ -7,17 +7,25 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
+/* ── Profile palette aligned to the app's teal/slate theme ─────── */
+const PROFILE_PALETTE = {
+  ring: "rgba(13, 148, 136, 0.18)",
+  ringStrong: "rgba(13, 148, 136, 0.28)",
+  badgeBg: "rgba(15, 118, 110, 0.12)",
+  badgeBorder: "rgba(13, 148, 136, 0.30)",
+};
+
 /* ── Role colours (badge + avatar gradient) ────────────────────── */
 const ROLE_BADGE = {
-  Owner:   "bg-red-100   text-red-700   border-red-200   dark:bg-red-900/20   dark:text-red-400   dark:border-red-800",
-  Manager: "bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/20  dark:text-blue-400  dark:border-blue-800",
-  Staff:   "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+  Owner:   "bg-teal-100  text-teal-700  border-teal-200",
+  Manager: "bg-cyan-100  text-cyan-700  border-cyan-200",
+  Staff:   "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
-const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
+const ROLE_DOT = { Owner: "bg-teal-500", Manager: "bg-cyan-500", Staff: "bg-emerald-500" };
 const ROLE_AVATAR_GRADIENT = {
-  Owner:   "from-red-400   to-red-600",
-  Manager: "from-blue-400  to-blue-600",
-  Staff:   "from-green-400 to-green-600",
+  Owner:   "from-teal-500  to-teal-700",
+  Manager: "from-cyan-500  to-cyan-700",
+  Staff:   "from-emerald-500 to-emerald-700",
 };
 
 function getInitials(name: string | undefined) {
@@ -121,7 +129,7 @@ export function AppHeader() {
 
         {/* Scanner status — POS page only */}
         {isPOS && (
-          <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+          <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 scanner-pulse" />
             <Wifi className="h-3 w-3" />
             <span>Scanner Ready</span>
@@ -136,41 +144,56 @@ export function AppHeader() {
             aria-label="User menu"
             aria-expanded={menuOpen}
             className={cn(
-              "flex h-9 items-center gap-2 rounded-xl border border-border bg-secondary pl-1 pr-2.5",
-              "transition-all hover:border-primary/40 hover:bg-muted",
-              menuOpen && "border-primary/40 bg-muted ring-2 ring-primary/15"
+              "group flex h-10 items-center gap-2 rounded-xl border pl-1 pr-2.5",
+              "bg-gradient-to-r from-white to-slate-50/90 dark:from-slate-900 dark:to-slate-800/70",
+              "transition-all hover:shadow-md hover:shadow-teal-500/10",
+              menuOpen
+                ? "border-teal-300/80 ring-2 ring-teal-500/20"
+                : "border-slate-200/90 hover:border-teal-300/70"
             )}
+            style={{
+              boxShadow: menuOpen
+                ? `0 0 0 1px ${PROFILE_PALETTE.ringStrong}`
+                : `0 0 0 1px ${PROFILE_PALETTE.ring}`,
+            }}
           >
             {/* Initials circle */}
-            <div className={cn(
-              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-[11px] font-bold text-white shadow-sm",
-              avatarGradient
-            )}>
-              {initials}
+            <div className="relative">
+              <div className="absolute inset-0 rounded-lg bg-teal-500/20 blur-[2px]" />
+              <div className={cn(
+                "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-[11px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900",
+                avatarGradient
+              )}>
+                {initials}
+              </div>
+              <span className={cn(
+                "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-white dark:border-slate-900",
+                ROLE_DOT[user?.role as keyof typeof ROLE_DOT]
+              )} />
             </div>
 
             {/* Name + role (hidden on small screens) */}
             <div className="hidden sm:flex flex-col items-start leading-none">
-              <span className="text-[12px] font-semibold text-foreground leading-tight">
+              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 leading-tight">
                 {user?.name?.split(" ")[0] ?? "Guest"}
               </span>
-              <span className="text-[10px] text-muted-foreground">{user?.role}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{user?.role}</span>
             </div>
 
             <ChevronDown className={cn(
-              "ml-0.5 h-3 w-3 text-muted-foreground transition-transform duration-200",
+              "ml-0.5 h-3 w-3 text-slate-500 transition-transform duration-200 group-hover:text-teal-600",
               menuOpen && "rotate-180"
             )} />
           </button>
 
           {/* Dropdown panel */}
           {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 dark:shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
 
               {/* User info header */}
-              <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-3.5">
+              <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-teal-50/70 to-cyan-50/60 px-4 py-3.5 dark:from-slate-800 dark:to-slate-800/70">
                 <div className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white shadow",
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white shadow ring-2 ring-white dark:ring-slate-900",
                   avatarGradient
                 )}>
                   {initials}
@@ -180,7 +203,11 @@ export function AppHeader() {
                   <span className={cn(
                     "mt-0.5 inline-flex items-center gap-1 rounded-full border px-2 py-px text-[10px] font-semibold",
                     ROLE_BADGE[user?.role as keyof typeof ROLE_BADGE]
-                  )}>
+                  )}
+                  style={{
+                    backgroundColor: PROFILE_PALETTE.badgeBg,
+                    borderColor: PROFILE_PALETTE.badgeBorder,
+                  }}>
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[user?.role as keyof typeof ROLE_DOT])} />
                     {user?.role}
                   </span>
@@ -232,7 +259,7 @@ function DropdownItem({
       className={cn(
         "flex w-full items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-colors",
         danger
-          ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+          ? "text-red-600 hover:bg-red-50"
           : "text-foreground hover:bg-muted"
       )}
     >

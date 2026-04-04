@@ -2,6 +2,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_HOME } from "@/context/AuthContext";
 
+type ProtectedRouteProps = {
+  allowedRoles?: string[];
+};
+
 /**
  * Two-layer guard:
  *  1. If not authenticated  → redirect to /login
@@ -12,7 +16,7 @@ import { ROLE_HOME } from "@/context/AuthContext";
  *   <Route element={<ProtectedRoute />}>                        // auth only
  *   <Route element={<ProtectedRoute allowedRoles={["Owner","Manager"]} />}>  // auth + role
  */
-export default function ProtectedRoute({ allowedRoles }) {
+export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;

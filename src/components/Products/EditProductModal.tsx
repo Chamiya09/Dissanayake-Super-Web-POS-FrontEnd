@@ -74,13 +74,13 @@ export function EditProductModal({
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = validateForm(form);
     if (Object.keys(err).length) { setErrors(err); return; }
     if (!product) return;
     setSaving(true);
-    setTimeout(() => {
-      onSave({
+    try {
+      await onSave({
         id:           product.id,
         productName:  form.productName.trim(),
         sku:          form.sku.trim(),
@@ -89,9 +89,12 @@ export function EditProductModal({
         sellingPrice: Number(form.sellingPrice),
         unit:         form.unit || undefined,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch (e) {
+      // Handled by parent
+    } finally {
+      if (isOpen) setSaving(false);
+    }
   };
 
   if (!isOpen || !product) return null;
@@ -114,26 +117,26 @@ export function EditProductModal({
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
-              <Package className="h-[18px] w-[18px] text-white dark:text-slate-900" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Package size={20} />
             </div>
             <div>
               <h2
                 id="edit-product-title"
-                className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight"
+                className="text-base font-bold text-slate-800 leading-tight"
               >
                 Edit Product
               </h2>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[12px] text-sm text-slate-500 mt-1">
                 Update details for{" "}
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{product.productName}</span>.
+                <span className="font-semibold text-slate-700">{product.productName}</span>.
               </p>
             </div>
           </div>
@@ -142,7 +145,7 @@ export function EditProductModal({
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-muted hover:text-accent-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -165,14 +168,14 @@ export function EditProductModal({
             />
           </FormRow>
 
-          {/* SKU  +  Category — side by side on sm+ */}
+          {/* Product ID + Category — side by side on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="edit-sku" label="SKU / Barcode" icon={Hash} error={errors.sku}>
+            <FormRow id="edit-productId" label="Product ID" icon={Hash} error={errors.sku}>
               <Input
-                id="edit-sku"
+                id="edit-productId"
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. 4011"
+                placeholder="e.g. PI00001"
                 className={cn(
                   "h-10 text-[13px] font-mono",
                   errors.sku && "border-red-400 focus-visible:ring-red-400"
@@ -204,7 +207,7 @@ export function EditProductModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
                   $
                 </span>
                 <Input
@@ -225,7 +228,7 @@ export function EditProductModal({
 
             <FormRow id="edit-sellingPrice" label="Selling Price" icon={Tag} error={errors.sellingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
                   $
                 </span>
                 <Input
@@ -245,11 +248,17 @@ export function EditProductModal({
             </FormRow>
           </div>
 
-          {/* Unit — optional, full width */}
-          <FormRow id="edit-unit" label="Unit (optional)" icon={Ruler}>
+          {/* Pricing Unit — full width */}
+          <FormRow id="edit-pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
             <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-              <SelectTrigger id="edit-unit" className="h-10 text-[13px]">
-                <SelectValue placeholder="Select unit of measurement" />
+              <SelectTrigger
+                id="edit-pricingUnit"
+                className={cn(
+                  "h-10 text-[13px]",
+                  errors.unit && "border-red-400 focus-visible:ring-red-400"
+                )}
+              >
+                <SelectValue placeholder="Select pricing unit" />
               </SelectTrigger>
               <SelectContent>
                 {UNITS.map((u) => (
@@ -261,30 +270,30 @@ export function EditProductModal({
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-6 py-4">
-          <Button
-            variant="outline"
+        <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
+          <button
+            type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
           >
             Cancel
-          </Button>
+          </button>
 
-          <Button
+          <button
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-5 text-[13px] gap-2 shadow-sm bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
             {saving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving…
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
               </>
             ) : (
               "Save Changes"
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

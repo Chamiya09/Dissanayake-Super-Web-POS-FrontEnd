@@ -10,9 +10,9 @@ import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } fro
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
-import Swal from "sweetalert2";
 import { PaymentMethodModal } from "./PaymentMethodModal";
 import type { PaymentMethodOption } from "./PaymentMethodModal";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -22,16 +22,18 @@ interface CartPanelProps {
   highlightId?: string | null;
   /** Called with the final charged amount after a successful checkout */
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
+  /** Enables cart keyboard shortcuts only when cart area is active. */
+  keyboardActive?: boolean;
 }
 
 /*  Tier badge  */
 function TierBadge({ tier }: { tier: LoyaltyCustomer["tier"] }) {
   const cfg = TIER_CONFIG[tier];
   const color: Record<string, string> = {
-    Bronze:   "bg-amber-100  text-amber-700  border-amber-200  dark:bg-amber-900/30  dark:text-amber-500  dark:border-amber-800",
-    Silver:   "bg-slate-100  text-slate-500  border-slate-200  dark:bg-slate-800/60  dark:text-slate-400  dark:border-slate-700",
-    Gold:     "bg-yellow-50  text-yellow-600 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
-    Platinum: "bg-sky-50     text-sky-500    border-sky-200    dark:bg-sky-900/30    dark:text-sky-400    dark:border-sky-800",
+    Bronze:   "bg-amber-100  text-amber-700  border-amber-200",
+    Silver:   "bg-slate-100  text-slate-500  border-slate-200",
+    Gold:     "bg-yellow-50  text-yellow-600 border-yellow-200",
+    Platinum: "bg-sky-50     text-sky-500    border-sky-200",
   };
   return (
     <span className={cn("inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", color[tier])}>
@@ -182,7 +184,8 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout, keyboardActive = true }: CartPanelProps) {
+  const { confirm } = useConfirmDialog();
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -233,38 +236,15 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   /*  Core checkout executor — called after payment method is confirmed  */
   const proceedWithCheckout = useCallback(async (method: string) => {
-    // ── Swal confirmation ────────────────────────────────────────────────────
-    const result = await Swal.fire({
-      icon: "question",
+    const isConfirmed = await confirm({
       title: "Confirm Sale",
-      html: `
-        <div style="font-size:13.5px;color:#475569;line-height:1.6">
-          Are you sure you want to complete this sale?<br/>
-          <div style="margin-top:10px;display:flex;justify-content:space-between;background:#f1f5f9;border-radius:10px;padding:10px 14px;font-weight:600;color:#1e293b">
-            <span>Total</span>
-            <span style="color:#4f46e5">${formatCurrency(finalTotal)}</span>
-          </div>
-          <div style="margin-top:6px;font-size:12px;color:#94a3b8">
-            Payment via&nbsp;<strong style="color:#1e293b">${method}</strong>
-          </div>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: "Confirm Sale",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#059669",
-      cancelButtonColor:  "#64748b",
-      reverseButtons: true,
-      focusConfirm: false,
-      customClass: {
-        popup:          "!rounded-2xl !shadow-2xl",
-        title:          "!text-[17px] !font-bold !text-slate-900",
-        confirmButton:  "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
-        cancelButton:   "!rounded-xl !px-6 !py-2.5 !text-[13px] !font-bold",
-        actions:        "!gap-2",
-      },
+      message: `Complete this sale for ${formatCurrency(finalTotal)} using ${method}?`,
+      confirmText: "Confirm Sale",
+      cancelText: "Cancel",
+      tone: "default",
     });
 
-    if (!result.isConfirmed) return;
+    if (!isConfirmed) return;
 
     // ── Execute checkout ─────────────────────────────────────────────────────
     setProcessing(true);
@@ -278,7 +258,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     } finally {
       setProcessing(false);
     }
-  }, [finalTotal, onCheckout]);
+  }, [confirm, finalTotal, onCheckout]);
 
   /*  Payment handler — opens selection modal if no method set, else proceeds  */
   const handlePayment = useCallback(async () => {
@@ -306,6 +286,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   /* [Space] -> trigger charge when not typing */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (paymentModalOpen) return;
+
       if (
         e.code === "Space" &&
         !(e.target instanceof HTMLInputElement) &&
@@ -319,11 +301,13 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [items.length, processing, handlePayment]);
+  }, [items.length, processing, handlePayment, paymentModalOpen]);
 
   /* Cart keyboard navigation: Alt+Up/Down move, -/+ qty, Delete remove */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (paymentModalOpen) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
@@ -352,11 +336,34 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onUpdateQuantity, onRemoveItem]);
+  }, [onUpdateQuantity, onRemoveItem, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
+    "Auto Care": "🚗",
+    "Avurudu Kade": "🎉",
+    "Baby Products": "👶",
+    "Bakery": "🍞",
+    "Beverages": "🧃",
+    "Cooking Essentials": "🍳",
+    "Dairy": "🥛",
+    "Desserts & Ingredients": "🍰",
+    "Food Cupboard": "🥫",
+    "Frozen Food": "🧊",
     "Fruits": "🍎",
+    "Health & Beauty": "🧴",
+    "Household": "🏠",
+    "Meats": "🥩",
+    "Party Shop": "🎈",
+    "Pet Products": "🐾",
+    "Rice": "🌾",
+    "Seafood": "🐟",
+    "Seeds & Spices": "🌶️",
+    "Snacks & Confectionery": "🍫",
+    "Stationery": "📝",
+    "Tea & Coffee": "☕",
     "Vegetables": "🥦",
+
+    // Backward-compatible legacy categories
     "Rice & Grains": "🌾",
     "Dhal & Pulses": "🫘",
     "Flour & Baking": "🌾",
@@ -366,11 +373,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     "Eggs & Meat": "🥩",
     "Instant Food": "🍜",
     "Snacks": "🍿",
-    "Beverages": "🧃",
-    "Tea & Coffee": "☕",
     "Frozen Foods": "🧊",
     "Canned Foods": "🥫",
-    "Baby Products": "👶",
     "Personal Care": "🧴",
     "Cleaning Products": "🧹",
     "Household Items": "🏠",
@@ -380,14 +384,14 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     <div className="flex h-full w-full flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ShoppingBag className="h-3.5 w-3.5" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ShoppingBag className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-[13px] font-bold leading-none text-foreground">Active Basket</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <h2 className="text-[14px] font-bold leading-none text-foreground">Active Basket</h2>
+            <p className="mt-0.5 text-[11.5px] text-muted-foreground">
               {items.length === 0 ? "No items yet" : `${items.length} item${items.length !== 1 ? "s" : ""}`}
             </p>
           </div>
@@ -395,7 +399,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
         {items.length > 0 && (
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground shadow-md shadow-primary/30">
+              <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-2.5 text-[11.5px] font-bold text-primary-foreground shadow-md shadow-primary/30">
                 {items.length}
               </span>
               <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/60 select-none">
@@ -417,7 +421,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
       </div>
 
       {/* Items list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5">
         {items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 py-12">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/8 to-secondary shadow-inner">
@@ -438,7 +442,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
                 focused={cartFocusedIdx === idx}
-                emoji={categoryEmoji[item.product.category] ?? ""}
+                emoji={categoryEmoji[item.product.category] ?? "📦"}
               />
             </div>
           ))
@@ -564,7 +568,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                       <span className="font-semibold text-foreground">{loyaltyCustomer.points.toLocaleString()}</span>&nbsp;pts balance
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-center gap-1 font-semibold text-emerald-600">
                     <span>+{pointsEarned}</span>
                     <span className="font-normal text-muted-foreground">pts earned</span>
                   </div>
@@ -577,8 +581,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-[12px] text-left transition-all",
                       redeemPoints
-                        ? "border-amber-400 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                        : "border-border bg-card text-muted-foreground hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-900/10"
+                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                        : "border-border bg-card text-muted-foreground hover:border-amber-300 hover:bg-amber-50/50"
                     )}
                   >
                     <Star className={cn(
@@ -618,17 +622,17 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
           </div>
           {loyaltyDiscount > 0 && (
-            <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60 dark:bg-amber-900/10">
-              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60">
+              <span className="flex items-center gap-1.5 text-amber-600">
                 <Star className="h-3 w-3 fill-amber-400/30" />
                 Loyalty Discount
               </span>
-              <span className="tabular-nums font-bold text-amber-600 dark:text-amber-400">
+              <span className="tabular-nums font-bold text-amber-600">
                 -{formatCurrency(loyaltyDiscount)}
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-900/30">
+          <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 border-t border-blue-100">
             <span className="text-[13px] font-bold text-foreground">Total</span>
             <div className="flex items-baseline gap-1.5">
               {loyaltyDiscount > 0 && (
@@ -652,8 +656,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               className={cn(
                 "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
                 paymentMethod === "Cash"
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/20"
-                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10"
+                  ? "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-500/20"
+                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40"
               )}
             >
               <div className={cn(
@@ -667,7 +671,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               <span className={cn(
                 "text-[12.5px] font-bold transition-colors",
                 paymentMethod === "Cash"
-                  ? "text-emerald-700 dark:text-emerald-400"
+                  ? "text-emerald-700"
                   : "text-muted-foreground"
               )}>
                 Cash
@@ -686,8 +690,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               className={cn(
                 "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
                 paymentMethod === "Card"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/20"
-                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40 dark:hover:bg-blue-900/10"
+                  ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-500/20"
+                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40"
               )}
             >
               <div className={cn(
@@ -701,7 +705,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               <span className={cn(
                 "text-[12.5px] font-bold transition-colors",
                 paymentMethod === "Card"
-                  ? "text-blue-700 dark:text-blue-400"
+                  ? "text-blue-700"
                   : "text-muted-foreground"
               )}>
                 Card

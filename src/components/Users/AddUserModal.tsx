@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import {
-  X, UserPlus, User, AtSign, Mail,
+  X, UserPlus, User, AtSign, Mail, Hash,
   Lock, ShieldCheck, Info, Eye, EyeOff, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,29 @@ const ALLOWED_ROLES = {
 };
 
 const ROLE_PILL_STYLES = {
-  Owner:   "bg-red-100   text-red-700   border-red-200   dark:bg-red-900/20   dark:text-red-400   dark:border-red-800",
-  Manager: "bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/20  dark:text-blue-400  dark:border-blue-800",
-  Staff:   "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+  Owner:   "bg-red-50 text-red-600 border-red-200",
+  Manager: "bg-blue-50 text-blue-600 border-blue-200",
+  Staff:   "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
-const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-green-500" };
+const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
-const EMPTY_FORM = { fullName: "", username: "", email: "", role: "", password: "" };
+const EMPTY_FORM = { fullName: "", memberId: "", username: "", email: "", role: "", password: "" };
+
+const MEMBER_ID_HELPER = {
+  Manager: "Use format MGR### (example: MGR001)",
+  Staff: "Use format STF### (example: STF001)",
+};
 
 function validateForm(form) {
   const errors = {};
   if (!form.fullName.trim())  errors.fullName  = "Full name is required.";
-  if (!form.username.trim())  errors.username  = "Username is required.";
+  if (!form.memberId.trim()) {
+    errors.memberId = "Member ID is required.";
+  } else if (form.role === "Manager" && !/^MGR\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Manager ID must follow MGR###.";
+  } else if (form.role === "Staff" && !/^STF\d{3,}$/i.test(form.memberId.trim())) {
+    errors.memberId = "Staff ID must follow STF###.";
+  }
   if (!form.email.trim()) {
     errors.email = "Email is required.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -50,7 +61,7 @@ function validateForm(form) {
 function RolePill({ role }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+      "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap",
       ROLE_PILL_STYLES[role]
     )}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ROLE_DOT[role])} />
@@ -62,12 +73,12 @@ function RolePill({ role }) {
 function FormRow({ id, label, icon: Icon, error, children }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <Label htmlFor={id} className="text-[13px] font-medium text-slate-900 flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-slate-400" />
         {label}
       </Label>
       {children}
-      {error && <p className="text-[11px] text-red-500 dark:text-red-400 font-medium">{error}</p>}
+      {error && <p className="text-[11px] text-red-500 font-medium">{error}</p>}
     </div>
   );
 }
@@ -97,22 +108,26 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validation = validateForm(form);
     if (Object.keys(validation).length > 0) { setErrors(validation); return; }
     setSaving(true);
-    setTimeout(() => {
-      onAdd({
+    try {
+      await onAdd({
         fullName: form.fullName.trim(),
+        memberId: form.memberId.trim().toUpperCase(),
         username: form.username.trim(),
         email:    form.email.trim(),
         role:     form.role,
         password: form.password,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -124,7 +139,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
       aria-labelledby="add-user-title"
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -132,24 +147,24 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl",
           "animate-in fade-in-0 zoom-in-95 duration-200",
         )}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <UserPlus className="h-[18px] w-[18px]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <UserPlus size={20} />
             </div>
             <div>
               <h2
                 id="add-user-title"
-                className="text-[16px] font-bold text-foreground leading-tight"
+                className="text-[16px] font-bold text-slate-800 leading-tight"
               >
                 Add New User
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-[12px] text-slate-500 mt-0.5">
                 Fill in the details to create a new account.
               </p>
             </div>
@@ -157,7 +172,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -165,12 +180,12 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
 
         {/* ── Form body ── */}
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5 space-y-5">
 
             {/* Permission notice */}
-            <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-3 dark:border-blue-800 dark:bg-blue-900/20">
-              <Info className="mt-px h-3.5 w-3.5 shrink-0 text-blue-500" />
-              <p className="text-[12px] text-blue-700 dark:text-blue-400 leading-relaxed">
+            <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+              <p className="text-[12px] text-blue-700 leading-relaxed font-medium">
                 Signed in as <RolePill role={currentUserRole} />. You can only create{" "}
                 {allowedRoles.map((r, i) => (
                   <span key={r}>
@@ -184,14 +199,14 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
 
             {/* Section divider */}
             <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <div className="h-px flex-1 bg-slate-100" />
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 User Details
               </span>
-              <div className="h-px flex-1 bg-border" />
+              <div className="h-px flex-1 bg-slate-100" />
             </div>
 
-            {/* Full Name + Username */}
+            {/* Full Name + Member ID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormRow id="fullName" label="Full Name" icon={User} error={errors.fullName}>
                 <Input
@@ -201,25 +216,42 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                   value={form.fullName}
                   onChange={(e) => handleChange("fullName", e.target.value)}
                   className={cn(
-                    "h-10 text-[13px]",
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
                     errors.fullName && "border-red-400 focus-visible:ring-red-400",
                   )}
                 />
               </FormRow>
 
-              <FormRow id="username" label="Username" icon={AtSign} error={errors.username}>
+              <FormRow id="memberId" label="Staff / Manager ID" icon={Hash} error={errors.memberId}>
                 <Input
-                  id="username"
-                  placeholder="e.g. kamal_p"
-                  value={form.username}
-                  onChange={(e) => handleChange("username", e.target.value)}
+                  id="memberId"
+                  placeholder={form.role === "Manager" ? "e.g. MGR001" : "e.g. STF001"}
+                  value={form.memberId}
+                  onChange={(e) => handleChange("memberId", e.target.value.toUpperCase())}
                   className={cn(
-                    "h-10 text-[13px] font-mono",
-                    errors.username && "border-red-400 focus-visible:ring-red-400",
+                    "h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300",
+                    errors.memberId && "border-red-400 focus-visible:ring-red-400",
                   )}
                 />
+                {form.role && (
+                  <p className="text-[11px] text-slate-500">{MEMBER_ID_HELPER[form.role]}</p>
+                )}
               </FormRow>
             </div>
+
+            {/* Optional Username */}
+            <FormRow id="username" label="Username (Optional)" icon={AtSign} error={errors.username}>
+              <Input
+                id="username"
+                placeholder="Leave blank to auto-use member ID"
+                value={form.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                className={cn(
+                  "h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300",
+                  errors.username && "border-red-400 focus-visible:ring-red-400",
+                )}
+              />
+            </FormRow>
 
             {/* Email + Role */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,7 +263,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                   value={form.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   className={cn(
-                    "h-10 text-[13px]",
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
                     errors.email && "border-red-400 focus-visible:ring-red-400",
                   )}
                 />
@@ -239,7 +271,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
 
               <FormRow id="role" label="Role" icon={ShieldCheck} error={errors.role}>
                 {isRoleLocked ? (
-                  <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 gap-2">
+                  <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 gap-2">
                     <RolePill role={allowedRoles[0]} />
                   </div>
                 ) : (
@@ -247,7 +279,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                     <SelectTrigger
                       id="role"
                       className={cn(
-                        "h-10 text-[13px]",
+                        "h-10 text-[13px] bg-white border-slate-200 focus:ring-slate-300",
                         errors.role && "border-red-400 focus:ring-red-400",
                       )}
                     >
@@ -277,7 +309,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                   value={form.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                   className={cn(
-                    "h-10 text-[13px] pr-10",
+                    "h-10 text-[13px] pr-10 bg-white border-slate-200 focus-visible:ring-slate-300",
                     errors.password && "border-red-400 focus-visible:ring-red-400",
                   )}
                 />
@@ -286,7 +318,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                   tabIndex={-1}
                   onClick={() => setShowPw((v) => !v)}
                   aria-label={showPw ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -296,33 +328,32 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
           </div>
 
           {/* ── Footer ── */}
-          <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-            <Button
+          <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
+            <button
               type="button"
-              variant="outline"
               onClick={onClose}
               disabled={saving}
-              className="h-9 px-5 text-[13px]"
+              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={saving}
-              className="h-9 px-5 text-[13px] gap-2 shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Adding…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Adding...
                 </>
               ) : (
                 <>
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <UserPlus className="h-4 w-4" />
                   Add User
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </form>
       </div>

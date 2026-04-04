@@ -1,5 +1,3 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
@@ -9,11 +7,9 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { AuthProvider } from "./context/AuthContext";
 import { InventoryProvider } from "./context/InventoryContext";
 import { ReorderProvider }   from "./context/ReorderContext";
-import { NotificationProvider } from "./context/NotificationContext";
-import { ToastStack } from "./components/ui/SystemToast";
+import { ToastProvider } from "./context/GlobalToastContext";
+import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -27,24 +23,28 @@ import NotFound from "./pages/NotFound";
 import InventoryStock from "./pages/InventoryStock";
 import ReorderManagement from "./pages/ReorderManagement";
 import LowStockAlerts   from "./pages/LowStockAlerts";
+import MailBox from "./pages/MailBox";
+import DataExport from "./pages/DataExport";
 
 const queryClient = new QueryClient();
 
 /** Sidebar + main layout — used for all authenticated pages */
-const AppLayout = () => (
-  <InventoryProvider>
-    <ReorderProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <main className="flex-1 overflow-hidden">
-            <Outlet />
-          </main>
-        </div>
-      </SidebarProvider>
-    </ReorderProvider>
-  </InventoryProvider>
-);
+const AppLayout = () => {
+  return (
+    <InventoryProvider>
+      <ReorderProvider>
+        <SidebarProvider>
+          <div className="relative flex min-h-screen w-full">
+            <AppSidebar />
+            <main className="flex-1 overflow-hidden">
+              <Outlet />
+            </main>
+          </div>
+        </SidebarProvider>
+      </ReorderProvider>
+    </InventoryProvider>
+  );
+};
 
 /** Generic placeholder for stub pages */
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -59,27 +59,12 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <NotificationProvider>
-      <TooltipProvider>
-        {/* System-wide notification stack — renders toasts above everything */}
-        <ToastStack />
-      <Toaster />
-      <Sonner />
-      {/* react-toastify — globally available to all CRUD modules */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
+    <ToastProvider>
+      <ConfirmDialogProvider>
+        <TooltipProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <Routes>
             {/* ── Public ── */}
             <Route path="/login" element={<Login />} />
 
@@ -100,6 +85,8 @@ const App = () => (
                   <Route path="/low-stock"  element={<LowStockAlerts />} />
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
+                  <Route path="/mailbox"    element={<MailBox />} />
+                  <Route path="/data-export" element={<DataExport />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                   <Route path="/users"      element={<UserManagement />} />
                 </Route>
@@ -107,12 +94,13 @@ const App = () => (
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </NotificationProvider>
-</QueryClientProvider>
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+        </TooltipProvider>
+      </ConfirmDialogProvider>
+    </ToastProvider>
+  </QueryClientProvider>
 );
 
 export default App;

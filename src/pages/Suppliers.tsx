@@ -7,23 +7,47 @@ import { EditSupplierModal } from "@/components/Suppliers/EditSupplierModal";
 import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Plus, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
 import api from "@/lib/axiosInstance";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 
-function SummaryCard({ icon: Icon, iconBg, iconColor, label, value }: { icon: any, iconBg: string, iconColor: string, label: string, value: number }) {
+function SummaryCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  sub,
+}: {
+  icon: any;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: number;
+  sub?: string;
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</p>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}
+        >
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
         </div>
       </div>
-      <p className="mt-3 text-[26px] font-bold tracking-tight text-slate-900 tabular-nums">{value}</p>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -41,7 +65,51 @@ function extractApiError(err: unknown): string {
   return err instanceof Error ? err.message : "An unexpected error occurred.";
 }
 
+function buildSupplierDeleteError(err: unknown): { title: string; message: string } {
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status;
+    const data = err.response?.data;
+    const raw = String(data?.message ?? data?.detail ?? "").toLowerCase();
+
+    if (status === 404) {
+      return {
+        title: "Supplier Not Found",
+        message: "This supplier was not found. Refresh and try again.",
+      };
+    }
+
+    if (status === 409 || status === 400) {
+      if (raw.includes("assigned") || raw.includes("product")) {
+        return {
+          title: "Delete Blocked",
+          message: "This supplier has assigned products. Unassign them first, then delete.",
+        };
+      }
+
+      if (raw.includes("stock") || raw.includes("inventory")) {
+        return {
+          title: "Delete Blocked",
+          message: "This supplier still has active inventory or stock references. Clear them first, then delete.",
+        };
+      }
+    }
+
+    if (status === 500) {
+      return {
+        title: "Server Error",
+        message: "Could not delete supplier right now. Please try again in a moment.",
+      };
+    }
+  }
+
+  return {
+    title: "Delete Failed",
+    message: extractApiError(err),
+  };
+}
+
 export default function Suppliers() {
+  const { showToast } = useToast();
   /* ── Supplier list & async state ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -102,9 +170,9 @@ export default function Suppliers() {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
-      showSuccess("Supplier added successfully!");
+      showToast("Supplier added successfully!", "success");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -115,9 +183,9 @@ export default function Suppliers() {
       const { id, createdAt: _createdAt, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
-      showSuccess("Supplier updated successfully!");
+      showToast("Supplier updated successfully!", "success");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
   }, [fetchSuppliers]);
@@ -129,10 +197,11 @@ export default function Suppliers() {
       await supplierApi.remove(deleteTarget.id);
       setDeleteTarget(null);
       await fetchSuppliers();
-      showSuccess("Supplier deleted successfully!");
+      showToast("Supplier deleted successfully!", "success");
     } catch (err) {
-      showError("Something went wrong. Please try again.");
-      throw new Error(extractApiError(err));
+      const { title, message } = buildSupplierDeleteError(err);
+      showToast({ type: "error", title, message });
+      throw new Error(message);
     }
   }, [deleteTarget, fetchSuppliers]);
 
@@ -144,9 +213,9 @@ export default function Suppliers() {
         await supplierApi.assignProducts(assignTarget.id, productIds);
         setAvailableProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
         setAssignTarget(null);
-        showSuccess("Products assigned successfully!");
+        showToast("Products assigned successfully!", "success");
       } catch (err) {
-        showError("Something went wrong. Please try again.");
+        showToast("Something went wrong. Please try again.", "error");
         throw new Error(extractApiError(err));
       }
     },
@@ -154,28 +223,35 @@ export default function Suppliers() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        {loading && (
+          <RefreshLoadingTheme
+            title="Loading Suppliers"
+            subtitle="Syncing supplier network..."
+          />
+        )}
+
         <div className="w-full max-w-none py-8 space-y-8">
 
           {/* ── Page header ── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
-                  <Building2 className="h-6 w-6" />
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                <Building2 size={24} />
+              </div>
+              <div>
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                   Supplier Management
                 </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {loading
+                    ? "Loading supplier network..."
+                    : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
+                </p>
               </div>
-              <p className="text-sm text-slate-500 mt-1 ml-16">
-                {loading
-                  ? "Loading supplier network..."
-                  : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
-              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -183,17 +259,16 @@ export default function Suppliers() {
                 onClick={fetchSuppliers}
                 disabled={loading}
                 title="Refresh List"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-indigo-600 hover:border-indigo-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-teal-600 hover:border-teal-100 hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
-              
+
               <button
                 onClick={() => setIsAddOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 shrink-0"
               >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Supplier</span>
+                <Plus size={16} strokeWidth={2.5} />
                 <span className="sm:hidden">Add</span>
               </button>
             </div>
@@ -210,13 +285,14 @@ export default function Suppliers() {
           )}
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6 lg:px-8">
             <SummaryCard 
               icon={Truck}
               iconBg="bg-indigo-50"
               iconColor="text-indigo-600"
               label="Total Suppliers"
               value={suppliers.length}
+              sub="Suppliers currently active in network"
             />
             <SummaryCard 
               icon={Zap}
@@ -224,6 +300,7 @@ export default function Suppliers() {
               iconColor="text-emerald-600"
               label="AI Auto-Reorder"
               value={suppliers.filter((s) => s.isAutoReorderEnabled).length}
+              sub="Suppliers enabled for auto reorder"
             />
             <SummaryCard 
               icon={Clock}
@@ -231,6 +308,7 @@ export default function Suppliers() {
               iconColor="text-amber-600"
               label="Slow Delivery (> 5 Days)"
               value={suppliers.filter((s) => s.leadTime > 5).length}
+              sub="Suppliers exceeding lead-time threshold"
             />
           </div>
 
@@ -242,9 +320,9 @@ export default function Suppliers() {
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
           />        </div>
-      </div>
+        </main>
 
-      {/* ── Modals ── */}
+        {/* ── Modals ── */}
       <AddSupplierModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
