@@ -8,7 +8,7 @@ export function RefreshLoadingTheme({
   subtitle = "Fetching your latest data...",
 }: RefreshLoadingThemeProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-white/92 backdrop-blur-sm">
+    <div className="pointer-events-none fixed inset-0 z-[120] flex flex-col items-center justify-center bg-transparent">
       <div className="relative h-16 w-16">
         <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
         <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-slate-900 animate-spin" />
