@@ -38,7 +38,7 @@ interface Prediction {
 
 function buildPredictions(
   items: InventoryItem[],
-  forecastMap: Record<number, { predictedDemand: number }>,
+  forecastMap: Record<string, { predictedDemand: number }>,
 ): Prediction[] {
   // Score each item: higher score → more urgent reorder
   const scored = items.map((item) => {
@@ -46,7 +46,8 @@ function buildPredictions(
     const urgency    = 1 - Math.min(1, ratio); // 0..1
     const outOfStock = item.stockStatus === "OUT_OF_STOCK" ? 1 : 0;
     const lowStock   = item.stockStatus === "LOW_STOCK"    ? 0.5 : 0;
-    const apiForecast = forecastMap[item.productId]?.predictedDemand;
+    const forecastKey = String(item.sku ?? item.productId ?? "").trim();
+    const apiForecast = forecastMap[forecastKey]?.predictedDemand;
     const fallback = Math.round((Math.max(0, item.reorderLevel - item.stockQuantity) + Math.max(1, item.reorderLevel / 4) * 3));
     const predictedSales = Math.max(1, Math.round(apiForecast ?? fallback));
     const shortage = Math.max(0, predictedSales - item.stockQuantity);
@@ -123,7 +124,10 @@ export function AIPredictionsCard() {
   const { inventoryItems } = useInventory();
 
   const source = inventoryItems.length > 0 ? inventoryItems : DUMMY_ITEMS;
-  const forecastQuery = useForecastMap(source.map((item) => item.productId), "weekly");
+  const forecastQuery = useForecastMap(
+    source.map((item) => item.sku ?? item.productId),
+    "weekly",
+  );
   const forecastMap = forecastQuery.data ?? {};
 
   const predictions = useMemo(() => buildPredictions(source, forecastMap), [source, forecastMap]);

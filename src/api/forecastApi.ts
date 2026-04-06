@@ -1,9 +1,10 @@
 import axios from "axios";
 
 export type ForecastTimeframe = "weekly" | "monthly";
+export type ForecastIdentifier = string | number;
 
 export interface ForecastResponse {
-  productId: number;
+  productId: string;
   timeframe: ForecastTimeframe;
   predictedDemand: number;
 }
@@ -14,8 +15,8 @@ const mlApi = axios.create({
 });
 
 type RawForecastResponse = {
-  productId?: number;
-  product_id?: number;
+  productId?: string | number;
+  product_id?: string | number;
   timeframe?: ForecastTimeframe;
   predictedDemand?: number;
   predicted_demand?: number;
@@ -24,7 +25,7 @@ type RawForecastResponse = {
 };
 
 function normalizeForecastData(
-  productId: number,
+  productId: ForecastIdentifier,
   timeframe: ForecastTimeframe,
   raw: RawForecastResponse,
 ): ForecastResponse {
@@ -33,30 +34,35 @@ function normalizeForecastData(
   );
 
   return {
-    productId: Number(raw.productId ?? raw.product_id ?? productId),
+    productId: String(raw.productId ?? raw.product_id ?? productId).trim(),
     timeframe: raw.timeframe ?? timeframe,
     predictedDemand: Number.isFinite(normalizedDemand) ? normalizedDemand : 0,
   };
 }
 
 export const forecastApi = {
-  async getForecast(productId: number, timeframe: ForecastTimeframe): Promise<ForecastResponse> {
+  async getForecast(productId: ForecastIdentifier, timeframe: ForecastTimeframe): Promise<ForecastResponse> {
+    const normalizedId = String(productId ?? "").trim();
     const response = await mlApi.get<RawForecastResponse>("/api/forecast", {
       params: {
-        product_id: String(productId),
+        product_id: normalizedId,
         timeframe,
       },
     });
 
-    return normalizeForecastData(productId, timeframe, response.data ?? {});
+    return normalizeForecastData(normalizedId, timeframe, response.data ?? {});
   },
 
   async getForecastForProducts(
-    productIds: number[],
+    productIds: ForecastIdentifier[],
     timeframe: ForecastTimeframe,
-  ): Promise<Record<number, ForecastResponse>> {
+  ): Promise<Record<string, ForecastResponse>> {
     const uniqueProductIds = Array.from(
-      new Set(productIds.filter((id) => Number.isFinite(id) && id > 0)),
+      new Set(
+        productIds
+          .map((id) => String(id ?? "").trim())
+          .filter((id) => id.length > 0),
+      ),
     );
 
     if (uniqueProductIds.length === 0) {

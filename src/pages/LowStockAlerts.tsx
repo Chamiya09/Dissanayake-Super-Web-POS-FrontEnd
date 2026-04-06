@@ -73,7 +73,7 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 function PlaceOrderModal({ item, onClose, onSubmit }) {
   const fallbackAiQty = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
   const [timeframe, setTimeframe] = useState("monthly");
-  const forecastQuery = useProductForecast(item.productId, timeframe as "weekly" | "monthly");
+  const forecastQuery = useProductForecast(item.sku ?? item.productId, timeframe as "weekly" | "monthly");
   const predictedDemand = Math.max(0, Math.round(forecastQuery.data?.predictedDemand ?? 0));
   const aiQty = forecastQuery.data
     ? Math.max(1, Math.ceil(predictedDemand - (item.stockQuantity ?? 0)))
