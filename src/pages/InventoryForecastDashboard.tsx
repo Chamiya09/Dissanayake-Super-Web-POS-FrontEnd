@@ -40,6 +40,8 @@ type MonthlyPoint = {
   predicted: number;
 };
 
+type DateRangeKey = "3m" | "6m" | "12m";
+
 const products: InventoryRow[] = [
   { productId: "P-1001", productName: "Basmati Rice 5kg", predictedDemand: 164 },
   { productId: "P-1024", productName: "Fresh Milk 1L", predictedDemand: 132 },
@@ -112,16 +114,35 @@ const tooltipStyle = {
 };
 
 export default function InventoryForecastDashboard() {
-  const [selectedProductId, setSelectedProductId] = useState("P-1001");
+  const [dateRange, setDateRange] = useState<DateRangeKey>("12m");
 
-  const selectedProduct = useMemo(
-    () => products.find((row) => row.productId === selectedProductId) ?? products[0],
-    [selectedProductId],
-  );
+  const allMonthlySeries = useMemo(() => {
+    const productSeries = Object.values(productHistoryMap);
+    const baseMonths = productSeries[0] ?? [];
+
+    return baseMonths.map((basePoint, index) => {
+      const totals = productSeries.reduce(
+        (acc, series) => {
+          acc.actual += series[index]?.actual ?? 0;
+          acc.predicted += series[index]?.predicted ?? 0;
+          return acc;
+        },
+        { actual: 0, predicted: 0 },
+      );
+
+      return {
+        month: basePoint.month,
+        actual: totals.actual,
+        predicted: totals.predicted,
+      };
+    });
+  }, []);
 
   const monthlySeries = useMemo(() => {
-    return productHistoryMap[selectedProduct.productId] ?? productHistoryMap["P-1001"];
-  }, [selectedProduct.productId]);
+    if (dateRange === "3m") return allMonthlySeries.slice(-3);
+    if (dateRange === "6m") return allMonthlySeries.slice(-6);
+    return allMonthlySeries;
+  }, [allMonthlySeries, dateRange]);
 
   const topDemandProducts = useMemo(() => {
     return [...products]
@@ -168,20 +189,18 @@ export default function InventoryForecastDashboard() {
                       Actual vs. Predicted Sales
                     </CardTitle>
                     <CardDescription>
-                      Last 12 months for selected product.
+                      Aggregated sales trend filtered by date range.
                     </CardDescription>
                   </div>
                   <div className="w-full sm:w-[220px]">
-                    <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                    <Select value={dateRange} onValueChange={(value) => setDateRange(value as DateRangeKey)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
+                        <SelectValue placeholder="Select date range" />
                       </SelectTrigger>
                       <SelectContent>
-                        {products.map((row) => (
-                          <SelectItem key={row.productId} value={row.productId}>
-                            {row.productName}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="3m">Last 3 Months</SelectItem>
+                        <SelectItem value="6m">Last 6 Months</SelectItem>
+                        <SelectItem value="12m">Last 12 Months</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
