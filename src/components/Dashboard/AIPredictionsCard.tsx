@@ -14,10 +14,11 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Sparkles, TrendingUp, Clock, BarChart2 } from "lucide-react";
 import { useInventory, type InventoryItem } from "@/context/InventoryContext";
 import { useForecastMap } from "@/hooks/useForecast";
+import type { ForecastTimeframe } from "@/api/forecastApi";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,23 +41,28 @@ function buildPredictions(
   items: InventoryItem[],
   forecastMap: Record<string, { predictedDemand: number }>,
 ): Prediction[] {
-  // Score each item: higher score → more urgent reorder
-  const scored = items.map((item) => {
-    const ratio      = item.reorderLevel > 0 ? item.stockQuantity / item.reorderLevel : 1;
-    const urgency    = 1 - Math.min(1, ratio); // 0..1
-    const outOfStock = item.stockStatus === "OUT_OF_STOCK" ? 1 : 0;
-    const lowStock   = item.stockStatus === "LOW_STOCK"    ? 0.5 : 0;
+  // An item is AI-low-stock only when current stock is below predicted demand.
+  const scored = items.flatMap((item) => {
     const forecastKey = String(item.sku ?? item.productId ?? "").trim();
-    const apiForecast = forecastMap[forecastKey]?.predictedDemand;
-    const fallback = Math.round((Math.max(0, item.reorderLevel - item.stockQuantity) + Math.max(1, item.reorderLevel / 4) * 3));
-    const predictedSales = Math.max(1, Math.round(apiForecast ?? fallback));
+    const apiForecast = Number(forecastMap[forecastKey]?.predictedDemand ?? 0);
+    const predictedSales = Math.max(0, Math.round(apiForecast));
+
+    // No false alerts when demand is unknown/zero.
+    if (predictedSales <= 0) {
+      return [];
+    }
+
     const shortage = Math.max(0, predictedSales - item.stockQuantity);
-    return { item, predictedSales, shortage, score: urgency + outOfStock + lowStock + shortage / 100 };
+    if (shortage <= 0) {
+      return [];
+    }
+
+    const severity = shortage + predictedSales * 0.2;
+    return [{ item, predictedSales, shortage, score: severity }];
   });
 
   // Take top 4 by score
   const top4 = scored
-    .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 4);
 
@@ -122,11 +128,12 @@ const DUMMY_ITEMS: InventoryItem[] = [
 
 export function AIPredictionsCard() {
   const { inventoryItems } = useInventory();
+  const [timeframe, setTimeframe] = useState<ForecastTimeframe>("weekly");
 
   const source = inventoryItems.length > 0 ? inventoryItems : DUMMY_ITEMS;
   const forecastQuery = useForecastMap(
     source.map((item) => item.sku ?? item.productId),
-    "weekly",
+    timeframe,
   );
   const forecastMap = forecastQuery.data ?? {};
 
@@ -160,30 +167,55 @@ export function AIPredictionsCard() {
           </div>
           <div>
             <h2 className="text-[15px] font-black text-slate-950 leading-tight">
-              Top AI Predictions
+              AI Low Stock Alerts
             </h2>
             <p className="text-[12px] text-slate-500 mt-0.5">
-              Next 7 days · demand forecast
+              {timeframe === "weekly" ? "Next 7 days" : "Next 30 days"} · demand forecast
             </p>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[11px] font-bold text-indigo-600">
-          <BarChart2 className="h-3 w-3" />
-          Analytics
-        </span>
+        <div className="inline-flex rounded-lg border border-indigo-100 bg-indigo-50 p-1">
+          <button
+            type="button"
+            onClick={() => setTimeframe("weekly")}
+            className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors ${
+              timeframe === "weekly" ? "bg-indigo-600 text-white" : "text-indigo-700 hover:bg-indigo-100"
+            }`}
+          >
+            Weekly
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeframe("monthly")}
+            className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors ${
+              timeframe === "monthly" ? "bg-indigo-600 text-white" : "text-indigo-700 hover:bg-indigo-100"
+            }`}
+          >
+            Monthly
+          </button>
+        </div>
       </div>
 
       {/* ── Subtitle banner ── */}
       <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-6 py-2.5">
         <TrendingUp className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
         <p className="text-[11px] font-semibold text-indigo-700">
-          Predicted stock need based on current inventory levels and demand velocity.
+          Alert rule: Current Stock is lower than AI Predicted Demand for the selected horizon.
         </p>
       </div>
 
       {/* ── Predictions list ── */}
       <div className="divide-y divide-slate-100">
+        {(forecastQuery.isLoading || forecastQuery.isFetching) && (
+          <div className="px-6 py-5 bg-slate-50 border-b border-slate-200">
+            <p className="text-sm font-semibold text-slate-700">Loading AI predictions...</p>
+            <p className="text-[12px] text-slate-500 mt-1">
+              Checking {timeframe === "weekly" ? "weekly" : "monthly"} demand before flagging low stock items.
+            </p>
+          </div>
+        )}
+
         {forecastQuery.isError && (
           <div className="px-6 py-4 bg-amber-50 border-b border-amber-200">
             <p className="text-sm font-semibold text-amber-800">
@@ -192,11 +224,11 @@ export function AIPredictionsCard() {
           </div>
         )}
 
-        {predictions.length === 0 && (
+        {!forecastQuery.isLoading && !forecastQuery.isFetching && predictions.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-400">
             <Sparkles className="h-8 w-8 opacity-30" />
-            <p className="text-sm font-medium">No predictions available</p>
-            <p className="text-[12px]">All items are well-stocked.</p>
+            <p className="text-sm font-medium">No low stock alerts</p>
+            <p className="text-[12px]">All items have enough stock for the selected forecast horizon.</p>
           </div>
         )}
 
@@ -220,14 +252,14 @@ export function AIPredictionsCard() {
               </p>
 
               <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${
-                item.stockStatus === "OUT_OF_STOCK"
+                shortage > 0
                   ? "bg-red-50 border-red-200 text-red-600"
-                  : "bg-amber-50 border-amber-200 text-amber-700"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
               }`}>
                 <span className={`h-1 w-1 rounded-full ${
-                  item.stockStatus === "OUT_OF_STOCK" ? "bg-red-500" : "bg-amber-500"
+                  shortage > 0 ? "bg-red-500" : "bg-emerald-500"
                 }`} />
-                {item.stockStatus === "OUT_OF_STOCK" ? "Out of Stock" : "Low Stock"}
+                {shortage > 0 ? "Low Stock" : "Healthy"}
               </span>
 
               <span className="shrink-0 text-[12px] font-black tabular-nums text-slate-800">
@@ -258,11 +290,11 @@ export function AIPredictionsCard() {
             <div className="pl-9 mt-2">
               <p className="text-[11px] text-slate-500">
                 Current stock is <span className="font-semibold text-slate-700">{item.stockQuantity}</span>,
-                predicted weekly demand is <span className="font-semibold text-slate-700">{predictedSales}</span>
+                predicted {timeframe} demand is <span className="font-semibold text-slate-700">{predictedSales}</span>
                 {shortage > 0 ? (
                   <>. Suggested replenishment: <span className="font-semibold text-red-600">{shortage} {item.unit ?? "units"}</span>.</>
                 ) : (
-                  <>. Stock looks healthy for the next week.</>
+                  <>. Stock looks healthy for this horizon.</>
                 )}
               </p>
             </div>
@@ -278,11 +310,12 @@ export function AIPredictionsCard() {
             Last updated: <span className="font-semibold text-slate-500">{lastUpdated}</span>
           </span>
           {forecastQuery.isLoading && (
-            <span className="text-[10px] font-semibold text-slate-400">Refreshing forecast...</span>
+            <span className="text-[10px] font-semibold text-slate-400">Refreshing {timeframe} forecast...</span>
           )}
         </div>
 
         <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600">
+          <BarChart2 className="h-3 w-3" />
           <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
           AI Engine
         </span>
