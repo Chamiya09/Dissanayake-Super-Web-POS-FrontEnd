@@ -107,11 +107,12 @@ export async function getLowStockItems() {
  * @param {Array}  payload.items         - [{ productName, quantity, unitPrice }]
  * @returns {Promise<Object>} ReorderResponseDTO (raw, not yet mapped)
  */
-export async function createOrder({ orderRef, supplierEmail, items }) {
+export async function createOrder({ orderRef, supplierEmail, items, ...extra }) {
   const { data } = await api.post(`${BASE}/create`, {
     orderRef,
     supplierEmail,
     items,
+    ...extra,
   });
   return data;
 }

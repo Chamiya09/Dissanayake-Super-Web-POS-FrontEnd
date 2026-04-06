@@ -2,6 +2,7 @@
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { inventoryApi } from "@/api/inventoryApi";
+import { createOrder } from "@/api/reorderApi";
 import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
@@ -879,6 +880,47 @@ const InventoryStock = () => {
 
   const { refreshInventory } = useInventory();
 
+  const handleAiReorder = async (item, predictedDemand) => {
+    const qty = Math.max(1, Math.ceil((predictedDemand ?? 0) - (item.stockQuantity ?? 0)));
+    const timeframe = "monthly";
+
+    if (!item?.supplierEmail) {
+      showToast("Supplier email is missing for this product. Assign a supplier before placing an order.", "error");
+      return;
+    }
+
+    const payload = {
+      product_id: item.productId,
+      quantity: qty,
+      timeframe,
+    };
+    console.log("Order Payload:", payload);
+
+    const orderRef = `PO-${Date.now()}`;
+    const dto = {
+      orderRef,
+      supplierEmail: item.supplierEmail,
+      items: [
+        {
+          productName: item.productName,
+          productId: item.productId ?? null,
+          quantity: qty,
+          unitPrice: Number(item.sellingPrice ?? 0),
+        },
+      ],
+      timeframe,
+      aiOrderPayload: payload,
+    };
+
+    try {
+      await createOrder(dto);
+      showToast(`Order placed for ${qty} ${item.unit ?? "units"}!`, "success");
+    } catch (error) {
+      const msg = error?.response?.data?.message ?? "Failed to place reorder.";
+      showToast(msg, "error");
+    }
+  };
+
   // -- Fetch all products (for AddStockModal dropdown)
   const fetchProducts = () =>
     api.get("/api/products").then((res) => {
@@ -1370,10 +1412,11 @@ const InventoryStock = () => {
                           <button
                             type="button"
                             title={`AI recommended order quantity: ${aiRecommendedQty}`}
+                            onClick={() => handleAiReorder(item, predictedDemand ?? 0)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                           >
                             <Sparkles size={14} />
-                            Suggest {aiRecommendedQty}
+                            Reorder {aiRecommendedQty}
                           </button>
                         )}
                         <button

@@ -497,7 +497,14 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 Back
               </button>
               <button
-                onClick={() => onSubmit({ item, qty, supplier: assignedSupplier, emailBody })}
+                onClick={() => onSubmit({
+                  item,
+                  qty,
+                  supplier: assignedSupplier,
+                  emailBody,
+                  timeframe,
+                  predictedDemand,
+                })}
                 disabled={!hasSupplier}
                 title={!hasSupplier ? "Assign a supplier to this product before placing an order" : undefined}
                 className="h-10 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
@@ -570,8 +577,24 @@ export default function LowStockAlerts() {
   const [orderModal, setOrderModal] = useState(null); // null | item
   const { showToast }               = useToast();
 
-  function handleSubmitOrder({ item, qty, supplier, emailBody }) {
+  async function handleSubmitOrder({ item, qty, supplier, emailBody, timeframe, predictedDemand }) {
+    if (!supplier?.email) {
+      showToast({
+        type: "error",
+        title: "Order Failed",
+        message: "Supplier email is missing. Assign a supplier before placing an order.",
+      });
+      return;
+    }
+
     const orderRef = `PO-${Date.now()}`;
+    const aiOrderPayload = {
+      product_id: item.productId ?? item.sku,
+      quantity: qty,
+      timeframe,
+      predicted_demand: predictedDemand,
+    };
+    console.log("Order Payload:", aiOrderPayload);
 
     // Optimistic entry — visible on history table immediately after redirect
     const optimisticOrder = {
@@ -586,10 +609,7 @@ export default function LowStockAlerts() {
     };
     addReorder(optimisticOrder);
 
-    // 1. Close modal instantly
-    setOrderModal(null);
-
-    // 2. Build ReorderRequestDTO and POST to backend (non-blocking)
+    // Build ReorderRequestDTO and include AI context for debugging/audit.
     const dto = {
       orderRef,
       supplierEmail: supplier.email,
@@ -599,30 +619,32 @@ export default function LowStockAlerts() {
         quantity:    qty,
         unitPrice:   item.sellingPrice ?? 0,
       }],
+      timeframe,
+      aiOrderPayload,
     };
 
-    createOrder(dto)
-      .then((savedDTO) => {
-        // Swap optimistic entry for the real persisted record
-        setReorders((prev) =>
-          prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
-        );
-        showToast({
-          type: "success",
-          title: "Order Confirmed",
-          message: "Purchase order saved and email sent to supplier.",
-        });
-      })
-      .catch((err) => {
-        const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
-        showToast({ type: "error", title: "Order Failed", message: msg });
-        // Roll back the optimistic entry
-        setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+    try {
+      setOrderModal(null);
+      const savedDTO = await createOrder(dto);
+
+      // Swap optimistic entry for the real persisted record
+      setReorders((prev) =>
+        prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
+      );
+
+      showToast({
+        type: "success",
+        title: "Order Placed",
+        message: `Order placed for ${qty} ${item.unit ?? "units"}.`,
       });
 
-    // 3. Show redirect toast and navigate
-    showToast({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
-    navigate("/reorder");
+      navigate("/reorder");
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
+      showToast({ type: "error", title: "Order Failed", message: msg });
+      // Roll back the optimistic entry
+      setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+    }
   }
 
   return (
@@ -818,7 +840,7 @@ export default function LowStockAlerts() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 opacity-0 group-hover:opacity-100"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
                         >
                           Place Order
                           <ArrowRight className="h-3.5 w-3.5" />
