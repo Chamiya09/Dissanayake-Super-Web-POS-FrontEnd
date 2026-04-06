@@ -1,4 +1,4 @@
-import api from "@/lib/axiosInstance";
+import axios from "axios";
 
 export type ForecastTimeframe = "weekly" | "monthly";
 
@@ -7,6 +7,11 @@ export interface ForecastResponse {
   timeframe: ForecastTimeframe;
   predictedDemand: number;
 }
+
+const mlApi = axios.create({
+  baseURL: import.meta.env.VITE_ML_API_URL ?? "http://127.0.0.1:8000",
+  headers: { "Content-Type": "application/json" },
+});
 
 type RawForecastResponse = {
   productId?: number;
@@ -36,9 +41,9 @@ function normalizeForecastData(
 
 export const forecastApi = {
   async getForecast(productId: number, timeframe: ForecastTimeframe): Promise<ForecastResponse> {
-    const response = await api.get<RawForecastResponse>("/api/forecast", {
+    const response = await mlApi.get<RawForecastResponse>("/api/forecast", {
       params: {
-        product_id: productId,
+        product_id: String(productId),
         timeframe,
       },
     });

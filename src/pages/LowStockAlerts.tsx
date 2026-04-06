@@ -24,6 +24,7 @@ import {
   Send,
   TrendingUp,
   Building2,
+  Loader2,
 } from "lucide-react";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -71,10 +72,11 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
   const fallbackAiQty = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
-  const weeklyForecastQuery = useProductForecast(item.productId, "weekly");
-  const predictedWeeklyDemand = Math.max(0, Math.round(weeklyForecastQuery.data?.predictedDemand ?? 0));
-  const aiQty = weeklyForecastQuery.data
-    ? Math.max(1, Math.ceil(predictedWeeklyDemand - (item.stockQuantity ?? 0)))
+  const [timeframe, setTimeframe] = useState("monthly");
+  const forecastQuery = useProductForecast(item.productId, timeframe as "weekly" | "monthly");
+  const predictedDemand = Math.max(0, Math.round(forecastQuery.data?.predictedDemand ?? 0));
+  const aiQty = forecastQuery.data
+    ? Math.max(1, Math.ceil(predictedDemand - (item.stockQuantity ?? 0)))
     : fallbackAiQty;
   const [step,    setStep]    = useState(1);
   const [stepDir, setStepDir] = useState("fwd");
@@ -276,21 +278,41 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
 
               {/* AI recommendation card */}
               <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+                <div className="mb-3 flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
+                    Forecast Horizon
+                  </label>
+                  <select
+                    value={timeframe}
+                    onChange={(e) => setTimeframe(e.target.value)}
+                    className="h-9 rounded-lg border border-blue-200 bg-white px-3 text-[12px] font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="weekly">Next Week</option>
+                    <option value="monthly">Next Month</option>
+                  </select>
+                </div>
+
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="h-4 w-4 text-blue-600 shrink-0" />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
                     AI Recommended Quantity
                   </span>
+                  {forecastQuery.isFetching && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Updating
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-end gap-2 mb-1.5">
+                <div className={`flex items-end gap-2 mb-1.5 transition-opacity ${forecastQuery.isFetching ? "opacity-60" : "opacity-100"}`}>
                   <span className="text-4xl font-black text-slate-900 leading-none">{aiQty}</span>
                   <span className="text-sm text-slate-500 pb-0.5">{item.unit ?? "units"}</span>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  {weeklyForecastQuery.isLoading
-                    ? "Fetching latest weekly forecast from AI model... "
-                    : weeklyForecastQuery.data
-                    ? `AI predicts weekly demand of ${predictedWeeklyDemand} ${item.unit ?? "units"}. `
+                  {forecastQuery.isLoading
+                    ? "Fetching latest forecast from AI model... "
+                    : forecastQuery.data
+                    ? `AI predicts ${timeframe === "weekly" ? "next week" : "next month"} demand of ${predictedDemand} ${item.unit ?? "units"}. `
                     : "Forecast API unavailable, using threshold fallback. "}
                   Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
                   {daysLeft > 0
@@ -298,6 +320,14 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     : " Stock is already depleted."}
                   {" "}This quantity covers ~45 days of demand.
                 </p>
+                <p className="mt-1 text-[11px] font-semibold text-blue-700">
+                  AI Suggests: {aiQty} {item.unit ?? "units"} for {timeframe === "weekly" ? "Next Week" : "Next Month"}.
+                </p>
+                {forecastQuery.isError && (
+                  <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                    AI Engine Offline. Please start the backend server.
+                  </p>
+                )}
               </div>
 
               {/* Quantity input */}

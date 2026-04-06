@@ -11,8 +11,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { LineChart as LineChartIcon, Sparkles } from "lucide-react";
+import { AlertTriangle, LineChart as LineChartIcon, Loader2, Sparkles } from "lucide-react";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { useModelHealth } from "@/hooks/useModelHealth";
 import {
   Card,
   CardContent,
@@ -98,13 +99,6 @@ const productHistoryMap: Record<string, MonthlyPoint[]> = {
   ],
 };
 
-const kpiCards = [
-  { label: "R² Score", value: "97.5%", hint: "Explained variance" },
-  { label: "MAPE", value: "0.86%", hint: "Mean absolute percentage error" },
-  { label: "MAE", value: "0.50 Units", hint: "Average absolute error" },
-  { label: "RMSE", value: "5.08 Units", hint: "Root mean squared error" },
-];
-
 const tooltipStyle = {
   borderRadius: 12,
   fontSize: 12,
@@ -115,6 +109,31 @@ const tooltipStyle = {
 
 export default function InventoryForecastDashboard() {
   const [dateRange, setDateRange] = useState<DateRangeKey>("12m");
+  const modelHealthQuery = useModelHealth();
+  const modelHealth = modelHealthQuery.data;
+
+  const kpiCards = [
+    {
+      label: "R² Score",
+      value: modelHealth ? `${(modelHealth.monthly_R2 * 100).toFixed(1)}%` : "--",
+      hint: "Monthly explained variance",
+    },
+    {
+      label: "MAPE",
+      value: modelHealth ? `${modelHealth.monthly_MAPE.toFixed(2)}%` : "--",
+      hint: "Monthly absolute percentage error",
+    },
+    {
+      label: "Weekly R²",
+      value: modelHealth ? `${(modelHealth.weekly_R2 * 100).toFixed(1)}%` : "--",
+      hint: "Weekly explained variance",
+    },
+    {
+      label: "Model Status",
+      value: modelHealth?.status ?? "--",
+      hint: "Live backend health summary",
+    },
+  ];
 
   const allMonthlySeries = useMemo(() => {
     const productSeries = Object.values(productHistoryMap);
@@ -164,8 +183,23 @@ export default function InventoryForecastDashboard() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Model Performance & Analytics</h1>
               <p className="text-sm text-muted-foreground">Forecast quality, product demand concentration, and sales trend alignment.</p>
+              {modelHealthQuery.isLoading && (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading model health metrics...
+                </p>
+              )}
             </div>
           </div>
+
+          {modelHealthQuery.isError && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                <AlertTriangle className="h-4 w-4" />
+                AI Engine Offline. Please start the backend server.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpiCards.map((kpi) => (

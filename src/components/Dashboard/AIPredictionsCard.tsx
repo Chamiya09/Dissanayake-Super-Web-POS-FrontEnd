@@ -180,6 +180,14 @@ export function AIPredictionsCard() {
 
       {/* ── Predictions list ── */}
       <div className="divide-y divide-slate-100">
+        {forecastQuery.isError && (
+          <div className="px-6 py-4 bg-amber-50 border-b border-amber-200">
+            <p className="text-sm font-semibold text-amber-800">
+              AI Engine Offline. Please start the backend server.
+            </p>
+          </div>
+        )}
+
         {predictions.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-400">
             <Sparkles className="h-8 w-8 opacity-30" />

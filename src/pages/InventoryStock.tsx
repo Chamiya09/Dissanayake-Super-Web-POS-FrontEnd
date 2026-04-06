@@ -1232,6 +1232,13 @@ const InventoryStock = () => {
         </div>
 
         <div className="overflow-x-auto flex-1">
+          {monthlyForecastQuery.isError && (
+            <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm font-semibold text-amber-800">
+                AI Engine Offline. Please start the backend server.
+              </p>
+            </div>
+          )}
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="border-b border-slate-100 sticky top-0 z-10 bg-white">
               <tr>
@@ -1335,6 +1342,8 @@ const InventoryStock = () => {
                     <td className="px-6 py-6">
                       {monthlyForecastQuery.isLoading ? (
                         <span className="text-xs text-slate-400">Loading...</span>
+                      ) : monthlyForecastQuery.isError ? (
+                        <span className="text-xs text-amber-700">Engine offline</span>
                       ) : hasForecast ? (
                         <div className="inline-flex items-center gap-2" title="AI predicted demand for the next month.">
                           <span className="font-semibold tabular-nums text-indigo-700">{Math.round(predictedDemand)}</span>
