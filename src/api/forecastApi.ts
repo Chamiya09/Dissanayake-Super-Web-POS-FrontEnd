@@ -43,12 +43,20 @@ function normalizeForecastData(
 export const forecastApi = {
   async getForecast(productId: ForecastIdentifier, timeframe: ForecastTimeframe): Promise<ForecastResponse> {
     const normalizedId = String(productId ?? "").trim();
+    if (!normalizedId) {
+      throw new Error("product_id is empty. Cannot request forecast.");
+    }
+
+    console.log("Forecast Request Params:", { product_id: normalizedId, timeframe });
+
     const response = await mlApi.get<RawForecastResponse>("/api/forecast", {
       params: {
         product_id: normalizedId,
         timeframe,
       },
     });
+
+    console.log("API Response:", response.data);
 
     return normalizeForecastData(normalizedId, timeframe, response.data ?? {});
   },
