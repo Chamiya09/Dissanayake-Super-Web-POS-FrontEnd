@@ -72,19 +72,33 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
   const fallbackAiQty = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
+  const [selectedProductId, setSelectedProductId] = useState(() => String(item.sku ?? item.productId ?? item.id ?? ""));
   const [timeframe, setTimeframe] = useState("monthly");
-  const forecastQuery = useProductForecast(item.sku ?? item.productId, timeframe as "weekly" | "monthly");
-  const predictedDemand = Math.max(0, Math.round(forecastQuery.data?.predictedDemand ?? 0));
-  const aiQty = forecastQuery.data
-    ? Math.max(1, Math.ceil(predictedDemand - (item.stockQuantity ?? 0)))
-    : fallbackAiQty;
+  const [predictedDemand, setPredictedDemand] = useState(0);
+  const forecastQuery = useProductForecast(selectedProductId, timeframe as "weekly" | "monthly");
+  const aiQty = Math.max(1, Math.ceil((predictedDemand ?? 0) - (item.stockQuantity ?? 0)));
   const [step,    setStep]    = useState(1);
   const [stepDir, setStepDir] = useState("fwd");
-  const [qty,     setQty]     = useState(aiQty);
+  const [qty,     setQty]     = useState(fallbackAiQty);
 
   useEffect(() => {
-    setQty(aiQty);
-  }, [aiQty]);
+    setSelectedProductId(String(item.sku ?? item.productId ?? item.id ?? ""));
+  }, [item]);
+
+  useEffect(() => {
+    if (forecastQuery.data) {
+      const next = Math.max(0, Math.round(Number(forecastQuery.data.predictedDemand ?? 0)));
+      setPredictedDemand(next);
+      return;
+    }
+    if (forecastQuery.isError) {
+      setPredictedDemand(0);
+    }
+  }, [forecastQuery.data, forecastQuery.isError]);
+
+  useEffect(() => {
+    setQty(fallbackAiQty);
+  }, [fallbackAiQty, selectedProductId]);
 
   // Directional navigation — sets animation direction before updating step
   function goTo(n) {
@@ -280,53 +294,73 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
               <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
                 <div className="mb-3 flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
-                    Forecast Horizon
+                    Forecast Period
                   </label>
-                  <select
-                    value={timeframe}
-                    onChange={(e) => setTimeframe(e.target.value)}
-                    className="h-9 rounded-lg border border-blue-200 bg-white px-3 text-[12px] font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
-                  >
-                    <option value="weekly">Next Week</option>
-                    <option value="monthly">Next Month</option>
-                  </select>
+                  <div className="inline-flex w-full rounded-lg border border-blue-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setTimeframe("weekly")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                        timeframe === "weekly"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      Next Week
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeframe("monthly")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                        timeframe === "monthly"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      Next Month
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="h-4 w-4 text-blue-600 shrink-0" />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
-                    AI Recommended Quantity
+                    AI Forecast
                   </span>
                   {forecastQuery.isFetching && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Updating
+                      Fetching forecast...
                     </span>
                   )}
                 </div>
-                <div className={`flex items-end gap-2 mb-1.5 transition-opacity ${forecastQuery.isFetching ? "opacity-60" : "opacity-100"}`}>
-                  <span className="text-4xl font-black text-slate-900 leading-none">{aiQty}</span>
-                  <span className="text-sm text-slate-500 pb-0.5">{item.unit ?? "units"}</span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  {forecastQuery.isLoading
-                    ? "Fetching latest forecast from AI model... "
-                    : forecastQuery.data
-                    ? `AI predicts ${timeframe === "weekly" ? "next week" : "next month"} demand of ${predictedDemand} ${item.unit ?? "units"}. `
-                    : "Forecast API unavailable, using threshold fallback. "}
-                  Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
-                  {daysLeft > 0
-                    ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
-                    : " Stock is already depleted."}
-                  {" "}This quantity covers ~45 days of demand.
-                </p>
-                <p className="mt-1 text-[11px] font-semibold text-blue-700">
-                  AI Suggests: {aiQty} {item.unit ?? "units"} for {timeframe === "weekly" ? "Next Week" : "Next Month"}.
-                </p>
-                {forecastQuery.isError && (
-                  <p className="mt-2 text-[11px] font-semibold text-amber-700">
-                    AI Engine Offline. Please start the backend server.
-                  </p>
+                {forecastQuery.isLoading ? (
+                  <div className="animate-pulse rounded-lg border border-blue-100 bg-white/70 px-3 py-3">
+                    <div className="h-3 w-40 rounded bg-blue-100" />
+                    <div className="mt-2 h-3 w-56 rounded bg-blue-100" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[12px] font-semibold text-slate-700">
+                      {`🤖 AI Forecast: You will need ${predictedDemand} ${item.unit ?? "units"} for the ${timeframe}.`}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
+                      Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
+                      {daysLeft > 0
+                        ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
+                        : " Stock is already depleted."}
+                    </p>
+                    {forecastQuery.isError && (
+                      <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                        Forecast API unavailable. You can still place the order manually.
+                      </p>
+                    )}
+                    {!forecastQuery.isError && predictedDemand === 0 && (
+                      <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                        Forecast returned 0 demand. Please confirm quantity before sending.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -334,9 +368,6 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
               <div className="space-y-2">
                 <label className="flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-700">
                   <span>Quantity to Order</span>
-                  <span className="text-[11px] font-bold text-blue-700">
-                    AI Recommended: {aiQty} {item.unit ?? "units"}
-                  </span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -353,12 +384,15 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
                   >+</button>
                   <button
-                    onClick={() => setQty(aiQty)}
+                    onClick={() => setQty(Math.max(1, Math.round(predictedDemand || aiQty)))}
                     className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2.5 text-[12px] font-bold text-teal-700 hover:bg-teal-100 transition-colors"
                   >
-                    Use AI ({aiQty})
+                    Apply AI Suggestion
                   </button>
                 </div>
+                <p className="text-[11px] text-blue-700 font-semibold">
+                  Suggested order quantity: {Math.max(1, Math.round(predictedDemand || aiQty))} {item.unit ?? "units"}
+                </p>
               </div>
             </div>
           )}

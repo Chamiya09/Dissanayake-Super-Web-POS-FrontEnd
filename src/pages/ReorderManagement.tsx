@@ -10,6 +10,7 @@ import { generatePurchaseOrderPDF, generateReorderAccountingPDF, generateReorder
 import { useReorder }      from "@/context/ReorderContext";
 import { useAuth }         from "@/context/AuthContext";
 import { useToast } from "@/context/GlobalToastContext";
+import { useProductForecast } from "@/hooks/useForecast";
 import {
   Package,
   ArrowLeft,
@@ -515,6 +516,11 @@ export default function ReorderManagement() {
 
   // Product injected by Low Stock Alerts via navigate state
   const [product, setProduct] = useState(location.state?.product ?? null);
+  const [selectedProductId, setSelectedProductId] = useState(() =>
+    String(location.state?.product?.sku ?? location.state?.product?.productId ?? location.state?.product?.id ?? "")
+  );
+  const [timeframe, setTimeframe] = useState("monthly");
+  const [predictedDemand, setPredictedDemand] = useState(0);
 
   // ── Recent Purchase Orders — live via ReorderContext ───────────────────────
   const { reorders, setReorders } = useReorder();
@@ -542,6 +548,34 @@ export default function ReorderManagement() {
         ))
       : 1
   );
+
+  const forecastQuery = useProductForecast(selectedProductId, timeframe as "weekly" | "monthly");
+
+  useEffect(() => {
+    if (product) {
+      setSelectedProductId(String(product.sku ?? product.productId ?? product.id ?? ""));
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (forecastQuery.data) {
+      setPredictedDemand(Math.max(0, Math.round(Number(forecastQuery.data.predictedDemand ?? 0))));
+      return;
+    }
+    if (forecastQuery.isError) {
+      setPredictedDemand(0);
+    }
+  }, [forecastQuery.data, forecastQuery.isError]);
+
+  useEffect(() => {
+    const nextProduct = location.state?.product;
+    if (!nextProduct) return;
+    setProduct(nextProduct);
+    setStep("config");
+    setOrderQty(
+      Math.max(1, Math.ceil((nextProduct.reorderLevel ?? 0) - (nextProduct.stockQuantity ?? 0)))
+    );
+  }, [location.state]);
 
   // â”€â”€ Suppliers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [suppliers,        setSuppliers]        = useState([]);
@@ -762,6 +796,11 @@ export default function ReorderManagement() {
       setPdfChecking(false);
     }
   }
+
+  // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const aiSuggestedQty = product
+    ? Math.max(1, Math.ceil((predictedDemand ?? 0) - (product.stockQuantity ?? 0)))
+    : 1;
 
   // â”€â”€ Stock preview calc â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const expectedStock = (product?.stockQuantity ?? 0) + (orderQty ?? 0);
@@ -1017,6 +1056,231 @@ export default function ReorderManagement() {
           <div className="px-4 sm:px-6 lg:px-8">
             <ReorderAnalyticsCards reorders={reorders} />
           </div>
+
+          {product && (
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">Reorder Form</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Create a purchase order for {product.productName} with AI-assisted demand forecasting.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={product.stockStatus} />
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                        Stock: {product.stockQuantity ?? 0} {product.unit ?? "units"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-b border-slate-100 px-6 py-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <StepButton
+                      step={1}
+                      label="Order Configuration"
+                      desc="Set forecast period and quantity"
+                      isActive={step === "config"}
+                      isCompleted={step === "email"}
+                      onClick={() => setStep("config")}
+                    />
+                    <StepButton
+                      step={2}
+                      label="Email Review"
+                      desc="Review and send purchase order"
+                      isActive={step === "email"}
+                      isCompleted={false}
+                      onClick={() => step === "email" && setStep("email")}
+                    />
+                  </div>
+                </div>
+
+                <div className="px-6 py-5">
+                  {step === "config" ? (
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[12px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                            Supplier
+                          </label>
+                          <select
+                            value={selectedSupplier?.id ?? ""}
+                            onChange={(e) => {
+                              const next = suppliers.find((s) => String(s.id) === e.target.value) ?? null;
+                              setSelectedSupplier(next);
+                            }}
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                          >
+                            {suppliers.map((s) => (
+                              <option key={s.id} value={s.id}>{s.companyName}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[12px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                            Quantity to Order
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOrderQty((q) => Math.max(1, q - 1))}
+                              className="h-11 w-11 rounded-lg border border-slate-200 bg-white text-lg font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={orderQty}
+                              onChange={(e) => setOrderQty(Math.max(1, Number.parseInt(e.target.value, 10) || 1))}
+                              className="h-11 w-28 rounded-lg border border-slate-200 bg-white px-3 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setOrderQty((q) => q + 1)}
+                              className="h-11 w-11 rounded-lg border border-slate-200 bg-white text-lg font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Stock Projection</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            Current: <span className="font-semibold">{product.stockQuantity ?? 0}</span> {product.unit ?? "units"}
+                            {"  |  "}
+                            Expected after order: <span className="font-semibold">{expectedStock}</span> {product.unit ?? "units"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-700">Forecast Period</p>
+                        <div className="mt-2 inline-flex w-full rounded-lg border border-blue-200 bg-white p-1">
+                          <button
+                            type="button"
+                            onClick={() => setTimeframe("weekly")}
+                            className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                              timeframe === "weekly" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50"
+                            }`}
+                          >
+                            Next Week
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTimeframe("monthly")}
+                            className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                              timeframe === "monthly" ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-blue-50"
+                            }`}
+                          >
+                            Next Month
+                          </button>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          {forecastQuery.isLoading ? (
+                            <div className="rounded-lg border border-blue-100 bg-white/80 px-3 py-2 text-[12px] text-blue-700 inline-flex items-center gap-2">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Fetching forecast...
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-[13px] font-semibold text-slate-800">
+                                {`🤖 AI Forecast: You will need ${predictedDemand} ${product.unit ?? "units"} for the ${timeframe}.`}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setOrderQty(Math.max(1, Math.round(predictedDemand || aiSuggestedQty)))}
+                                className="inline-flex items-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-bold text-teal-700 hover:bg-teal-100"
+                              >
+                                Apply AI Suggestion
+                              </button>
+                              <p className="text-[11px] font-semibold text-blue-700">
+                                Suggested quantity: {Math.max(1, Math.round(predictedDemand || aiSuggestedQty))} {product.unit ?? "units"}
+                              </p>
+                            </>
+                          )}
+
+                          {forecastQuery.isError && (
+                            <p className="text-[11px] font-semibold text-amber-700">
+                              Forecast API unavailable. You can continue with manual quantity.
+                            </p>
+                          )}
+
+                          {!forecastQuery.isError && !forecastQuery.isLoading && predictedDemand === 0 && (
+                            <p className="text-[11px] font-semibold text-amber-700">
+                              Forecast returned 0 demand. Please confirm quantity before sending.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <label className="block text-[12px] font-semibold uppercase tracking-wider text-slate-500">Supplier Email Preview</label>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-[12px] text-slate-700">
+                          To: <span className="font-semibold">{(selectedSupplier?.email ?? product?.supplierEmail ?? "No supplier email assigned")}</span>
+                        </p>
+                      </div>
+                      <textarea
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
+                        rows={10}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-[12px] leading-6 text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Alerts
+                  </button>
+
+                  {step === "config" ? (
+                    <button
+                      type="button"
+                      onClick={handlePrepareEmail}
+                      className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+                    >
+                      Next: Review Email
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setStep("config")}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSend}
+                        disabled={sending || isSubmitting}
+                        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                      >
+                        {(sending || isSubmitting) && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Send Purchase Order
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
