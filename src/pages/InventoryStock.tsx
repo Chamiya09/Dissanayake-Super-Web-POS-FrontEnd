@@ -154,7 +154,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
-  const validQty  = !isNaN(qtyNum) && qtyNum !== 0;
+  const validQty  = !isNaN(qtyNum) && qtyNum > 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
 
@@ -176,7 +176,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     e.preventDefault();
     const errs = {};
     if (!selectedId)  errs.product = "Please select a product.";
-    if (!validQty)    errs.qty     = "Enter a non-zero quantity (positive to add, negative to remove).";
+    if (!validQty)    errs.qty     = "Enter a quantity greater than zero.";
     if (belowZero)    errs.qty     = "Stock cannot be less than zero.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -184,14 +184,16 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setSubmitting(true);
     setApiError(null);
     try {
-      await api.put(`/api/inventory/add-stock/${selectedId}`, { quantity: qtyNum });
+      const payload = { quantity: Number(qtyNum) };
+      console.log("Restock Payload:", { product_id: selectedId, ...payload });
+      await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
       handleClose();
-        onStockUpdated?.();
-        showToast("Stock updated successfully!", "success");
+      await onStockUpdated?.();
+      showToast("Stock updated successfully!", "success");
     } catch (err) {
       const msg = err.response?.data?.message ?? "Something went wrong. Please try again.";
       setApiError(msg);
-        showToast(msg, "error");
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -422,7 +424,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {/* -- Step 3 ┬╖ Quantity to Add ------------------------- */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
+                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <div className="relative">
                 <Hash
@@ -431,19 +433,20 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 <input
                   type="number"
                   step="any"
+                  min="0.001"
                   value={qtyToAdd}
                   onChange={(e) => {
                     setQtyToAdd(e.target.value);
                     if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
                   }}
-                  placeholder="e.g. 50 or -5"
+                  placeholder="e.g. 1.5"
                   className={`${inputBase} pl-9 ${
                     errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
                   }`}
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Use a negative number (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">-5</code>) to reduce stock.
+                Decimal quantities are supported (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">1.5</code> Kg, <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">2.25</code> L).
               </p>
               {errors.qty && (
                 <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
@@ -456,15 +459,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {/* -- Step 4 ┬╖ New Total Preview ----------------------- */}
             {(() => {
               // Determine colour theme based on result
-              const theme = belowZero
-                ? { card: "bg-red-50 border-red-200",
-                    total: "text-red-700",
-                    badge: "text-red-700 bg-red-100/50" }
-                : validQty && qtyNum < 0
-                ? { card: "bg-amber-50 border-amber-200",
-                    total: "text-amber-700",
-                    badge: "text-amber-700 bg-amber-100/50" }
-                : newTotal !== null
+                const theme = newTotal !== null
                 ? { card: "bg-emerald-50 border-emerald-200",
                     total: "text-emerald-700",
                     badge: "text-emerald-700 bg-emerald-100/50" }
@@ -489,20 +484,16 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
                     {/* Operator */}
                     <span className="text-xl font-light text-slate-400 pb-3">
-                      {validQty && qtyNum < 0 ? "-" : "+"}
+                      +
                     </span>
 
                     {/* Quantity */}
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className={`text-2xl font-bold tabular-nums ${
-                        validQty && qtyNum < 0
-                          ? "text-red-600"
-                          : "text-slate-800"
-                      }`}>
-                        {validQty ? Math.abs(qtyNum) : "-"}
+                      <span className="text-2xl font-bold tabular-nums text-slate-800">
+                        {validQty ? qtyNum : "-"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">
-                        {validQty && qtyNum < 0 ? "Removing" : "Adding"}
+                        Adding
                       </span>
                     </div>
 
@@ -1129,7 +1120,7 @@ const InventoryStock = () => {
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        products={availableProducts}
+        products={products}
         inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
