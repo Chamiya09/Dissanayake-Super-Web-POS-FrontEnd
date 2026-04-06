@@ -146,6 +146,7 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
   };
 
   if (!isOpen || !saleData) return null;
+  const transactionId = saleData.transactionId ?? saleData.receiptNo ?? saleData.id;
 
   return (
     /* ── Backdrop ── */
@@ -185,7 +186,7 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
               <p className="mt-0.5 text-[12px] text-muted-foreground">
                 Updating{" "}
                 <span className="font-mono font-semibold text-foreground">
-                  {saleData.receiptNo}
+                  {transactionId}
                 </span>
               </p>
             </div>
