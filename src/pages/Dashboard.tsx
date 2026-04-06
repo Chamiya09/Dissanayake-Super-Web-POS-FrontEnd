@@ -38,12 +38,15 @@ const formatDate = (iso: string) =>
 /*  Types  */
 interface RecentSale {
   id: number;
+  transactionId?: string;
   receiptNo: string;
   saleDate: string;
   totalAmount: number;
   status: string;
   paymentMethod: string;
 }
+
+const getTransactionId = (sale: RecentSale) => sale?.transactionId ?? sale?.receiptNo ?? "";
 
 interface DashboardStats {
   revenue: number;
@@ -366,7 +369,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="border-b border-border bg-muted/60">
                     <th className="w-[30%] px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Receipt No.
+                      Transaction ID
                     </th>
                     <th className="w-[35%] px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Date
@@ -388,7 +391,7 @@ export default function Dashboard() {
                       <tr key={sale.id} className="group transition-colors hover:bg-muted/40">
                         <td className="px-6 py-4">
                           <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
-                            {sale?.receiptNo || "N/A"}
+                            {getTransactionId(sale) || "N/A"}
                           </span>
                         </td>
                         <td className="px-6 py-4">

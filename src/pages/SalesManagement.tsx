@@ -32,6 +32,8 @@ const formatDateTime = (iso) => {
   };
 };
 
+const getTransactionId = (sale) => sale?.transactionId ?? sale?.receiptNo ?? "";
+
 const getSaleDisplayTotal = (sale) => {
   if (!Array.isArray(sale?.items) || sale.items.length === 0) {
     return Number(sale?.totalAmount || 0);
@@ -201,7 +203,7 @@ export default function SalesManagement() {
   /* ── Filtering ── */
   const filtered = (sales ?? []).filter((s) => {
     const q = search.toLowerCase();
-    const matchSearch = !q || (s?.receiptNo ?? "").toLowerCase().includes(q) || (s?.paymentMethod ?? "").toLowerCase().includes(q);
+    const matchSearch = !q || getTransactionId(s).toLowerCase().includes(q) || (s?.paymentMethod ?? "").toLowerCase().includes(q);
     const matchStatus = filterStatus === "All" || (s?.status ?? "") === filterStatus;
     const saleDateKey = toDateKey(s?.saleDate);
     const hasCompleteDateRange = !!fromDate && !!toDate;
@@ -221,7 +223,7 @@ export default function SalesManagement() {
   /* ── Void handler ── */
   const handleVoid = async (id) => {
     const sale = sales.find((s) => s.id === id);
-    const label = sale?.receiptNo ?? `#${id}`;
+    const label = getTransactionId(sale) || `#${id}`;
     const confirmed = await confirm({
       title: "Void this sale?",
       message: `Sale ${label} will be marked as Voided. This action cannot be undone.`,
@@ -276,7 +278,7 @@ export default function SalesManagement() {
       // Always refresh from server so totalAmount/status are guaranteed current.
       await fetchSales();
 
-      showToast(`Return processed for sale ${returnSale.receiptNo}.`, "success");
+      showToast(`Return processed for sale ${getTransactionId(returnSale)}.`, "success");
       setIsReturnModalOpen(false);
       setReturnSale(null);
     } catch (err) {
@@ -381,7 +383,7 @@ export default function SalesManagement() {
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <Input
-                  placeholder="Search receipt no. or payment…"
+                  placeholder="Search transaction ID or payment…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
@@ -499,7 +501,7 @@ export default function SalesManagement() {
                   <thead>
                     <tr className="border-b border-slate-100">
                       <th className="w-[14%] px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                        Receipt No.
+                        Transaction ID
                       </th>
                       <th className="w-[18%] px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                         Date &amp; Time
@@ -551,10 +553,10 @@ export default function SalesManagement() {
                           isInactive && "opacity-55"
                         )}
                       >
-                        {/* Receipt No. */}
+                        {/* Transaction ID */}
                         <td className="px-6 py-4">
                           <span className="font-mono text-[13px] font-bold tracking-tight text-primary">
-                            {sale?.receiptNo || 'N/A'}
+                            {getTransactionId(sale) || 'N/A'}
                           </span>
                         </td>
 

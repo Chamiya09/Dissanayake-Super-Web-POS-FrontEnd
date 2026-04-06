@@ -83,7 +83,7 @@ const Index = () => {
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number; paymentMethod: string } | null>(null);
+  const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
 
   /* ── Live inventory data from shared context ── */
   const { inventoryItems, refreshInventory } = useInventory();
@@ -164,9 +164,7 @@ const Index = () => {
   }, []);
 
   const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
-    const receiptNo = `RCP-${Date.now()}`;
     const payload = {
-      receiptNo,
       paymentMethod,
       totalAmount,
       status: "Completed",
@@ -180,13 +178,14 @@ const Index = () => {
     };
 
     try {
-      await api.post("/api/sales", payload);
+      const { data } = await api.post("/api/sales", payload);
+      const transactionId = data?.transactionId ?? data?.receiptNo ?? "TRX-UNKNOWN";
       setCart([]);
       setCartOpen(false);
-      setLastSale({ receiptNo, total: totalAmount, paymentMethod });
+      setLastSale({ transactionId, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
-      showToast(`Sale ${receiptNo} recorded successfully!`, "success", "Success");
+      showToast(`Sale ${transactionId} recorded successfully!`, "success", "Success");
     } catch (err) {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
@@ -429,8 +428,8 @@ const Index = () => {
 
             <div className="mt-5 rounded-xl border border-border bg-muted/40 px-5 py-4 text-left space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Receipt No.</span>
-                <span className="font-mono font-bold text-primary">{lastSale?.receiptNo}</span>
+                <span className="text-muted-foreground">Transaction ID</span>
+                <span className="font-mono font-bold text-primary">{lastSale?.transactionId}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Amount</span>
