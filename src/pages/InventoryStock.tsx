@@ -5,6 +5,7 @@ import { inventoryApi } from "@/api/inventoryApi";
 import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
+import { useForecastMap } from "@/hooks/useForecast";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import { ImportInventoryCsvModal } from "@/components/Inventory/ImportInventoryCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
@@ -844,6 +845,7 @@ const COLUMNS = [
   { key: "category", label: "Category", sortable: true },
   { key: "price", label: "Price", sortable: true },
   { key: "quantity", label: "Quantity", sortable: true },
+  { key: "predictedDemand", label: "Predicted Demand (Next Month)", sortable: true },
   { key: "status", label: "Status", sortable: true },
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
@@ -868,6 +870,12 @@ const InventoryStock = () => {
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
   const [logs,           setLogs]           = useState([]);
+
+  const monthlyForecastQuery = useForecastMap(
+    inventoryItems.map((item) => Number(item.productId)),
+    "monthly",
+  );
+  const forecastMap = monthlyForecastQuery.data ?? {};
 
   const { refreshInventory } = useInventory();
 
@@ -1000,9 +1008,13 @@ const InventoryStock = () => {
         !selectedCategory || category.toLowerCase() === selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
     })
+    .map((item) => ({
+      ...item,
+      predictedDemand: forecastMap[item.productId]?.predictedDemand ?? null,
+    }))
     .sort((a, b) => {
-      const valA = a[sortKey];
-      const valB = b[sortKey];
+      const valA = sortKey === "predictedDemand" ? (a.predictedDemand ?? -1) : a[sortKey];
+      const valB = sortKey === "predictedDemand" ? (b.predictedDemand ?? -1) : b[sortKey];
       const cmp  = typeof valA === "string" ? valA.localeCompare(valB) : valA - valB;
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -1244,7 +1256,7 @@ const InventoryStock = () => {
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-20 text-center">
+                <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-2 text-slate-400">
                     <Package size={36} strokeWidth={1.2} />
                     <p className="text-sm font-medium">No products match your search</p>
@@ -1258,6 +1270,11 @@ const InventoryStock = () => {
                 const status   = deriveStatus(qty, reorder);
                 const isLow    = status !== "In Stock";
                 const isWarning = qty < 10;
+                const predictedDemand = item.predictedDemand;
+                const hasForecast = typeof predictedDemand === "number";
+                const aiRecommendedQty = hasForecast
+                  ? Math.max(1, Math.ceil(predictedDemand - qty))
+                  : Math.max(1, Math.ceil(reorder - qty));
                 const cfg      = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
                 const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
 
@@ -1314,6 +1331,20 @@ const InventoryStock = () => {
                       </div>
                     </td>
 
+                    {/* Predicted Demand */}
+                    <td className="px-6 py-6">
+                      {monthlyForecastQuery.isLoading ? (
+                        <span className="text-xs text-slate-400">Loading...</span>
+                      ) : hasForecast ? (
+                        <div className="inline-flex items-center gap-2" title="AI predicted demand for the next month.">
+                          <span className="font-semibold tabular-nums text-indigo-700">{Math.round(predictedDemand)}</span>
+                          <span className="text-xs text-slate-500">{item.unit ?? "units"}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Not available</span>
+                      )}
+                    </td>
+
                     {/* Status */}
                     <td className="px-6 py-6 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}>
@@ -1328,11 +1359,11 @@ const InventoryStock = () => {
                         {isLow && (
                           <button
                             type="button"
-                            title="Suggest AI reorder quantity"
+                            title={`AI recommended order quantity: ${aiRecommendedQty}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                           >
                             <Sparkles size={14} />
-                            Suggest Order
+                            Suggest {aiRecommendedQty}
                           </button>
                         )}
                         <button

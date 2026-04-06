@@ -8,6 +8,7 @@ import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
 import { useToast }         from "@/context/GlobalToastContext";
+import { useProductForecast } from "@/hooks/useForecast";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -69,10 +70,19 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
-  const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
+  const fallbackAiQty = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
+  const weeklyForecastQuery = useProductForecast(item.productId, "weekly");
+  const predictedWeeklyDemand = Math.max(0, Math.round(weeklyForecastQuery.data?.predictedDemand ?? 0));
+  const aiQty = weeklyForecastQuery.data
+    ? Math.max(1, Math.ceil(predictedWeeklyDemand - (item.stockQuantity ?? 0)))
+    : fallbackAiQty;
   const [step,    setStep]    = useState(1);
   const [stepDir, setStepDir] = useState("fwd");
   const [qty,     setQty]     = useState(aiQty);
+
+  useEffect(() => {
+    setQty(aiQty);
+  }, [aiQty]);
 
   // Directional navigation — sets animation direction before updating step
   function goTo(n) {
@@ -277,6 +287,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   <span className="text-sm text-slate-500 pb-0.5">{item.unit ?? "units"}</span>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
+                  {weeklyForecastQuery.isLoading
+                    ? "Fetching latest weekly forecast from AI model... "
+                    : weeklyForecastQuery.data
+                    ? `AI predicts weekly demand of ${predictedWeeklyDemand} ${item.unit ?? "units"}. `
+                    : "Forecast API unavailable, using threshold fallback. "}
                   Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
                   {daysLeft > 0
                     ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
@@ -287,8 +302,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
 
               {/* Quantity input */}
               <div className="space-y-2">
-                <label className="block text-[13px] font-semibold text-slate-700">
-                  Quantity to Order
+                <label className="flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-700">
+                  <span>Quantity to Order</span>
+                  <span className="text-[11px] font-bold text-blue-700">
+                    AI Recommended: {aiQty} {item.unit ?? "units"}
+                  </span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button

@@ -17,6 +17,7 @@
 import { useMemo } from "react";
 import { Sparkles, TrendingUp, Clock, BarChart2 } from "lucide-react";
 import { useInventory, type InventoryItem } from "@/context/InventoryContext";
+import { useForecastMap } from "@/hooks/useForecast";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,16 +33,24 @@ interface Prediction {
   predictedSales:  number;
   confidence:      number; // 0-100
   growthPct:       number; // e.g. 12 means +12%
+  shortage:        number;
 }
 
-function buildPredictions(items: InventoryItem[]): Prediction[] {
+function buildPredictions(
+  items: InventoryItem[],
+  forecastMap: Record<number, { predictedDemand: number }>,
+): Prediction[] {
   // Score each item: higher score → more urgent reorder
   const scored = items.map((item) => {
     const ratio      = item.reorderLevel > 0 ? item.stockQuantity / item.reorderLevel : 1;
     const urgency    = 1 - Math.min(1, ratio); // 0..1
     const outOfStock = item.stockStatus === "OUT_OF_STOCK" ? 1 : 0;
     const lowStock   = item.stockStatus === "LOW_STOCK"    ? 0.5 : 0;
-    return { item, score: urgency + outOfStock + lowStock };
+    const apiForecast = forecastMap[item.productId]?.predictedDemand;
+    const fallback = Math.round((Math.max(0, item.reorderLevel - item.stockQuantity) + Math.max(1, item.reorderLevel / 4) * 3));
+    const predictedSales = Math.max(1, Math.round(apiForecast ?? fallback));
+    const shortage = Math.max(0, predictedSales - item.stockQuantity);
+    return { item, predictedSales, shortage, score: urgency + outOfStock + lowStock + shortage / 100 };
   });
 
   // Take top 4 by score
@@ -50,14 +59,11 @@ function buildPredictions(items: InventoryItem[]): Prediction[] {
     .sort((a, b) => b.score - a.score)
     .slice(0, 4);
 
-  return top4.map(({ item }) => {
+  return top4.map(({ item, predictedSales, shortage }) => {
     const seed          = Math.abs(item.productId ?? item.inventoryId ?? 1);
-    const velocity      = Math.max(1, Math.round(item.reorderLevel / 4));
-    const gap           = Math.max(0, item.reorderLevel - item.stockQuantity);
-    const predictedSales = Math.round((gap + velocity * 3) * seededRandom(seed, 0.9, 1.2));
     const confidence     = Math.round(seededRandom(seed + 1, 82, 97));
     const growthPct      = Math.round(seededRandom(seed + 2, 8, 31));
-    return { item, predictedSales, confidence, growthPct };
+    return { item, predictedSales, confidence, growthPct, shortage };
   });
 }
 
@@ -117,8 +123,10 @@ export function AIPredictionsCard() {
   const { inventoryItems } = useInventory();
 
   const source = inventoryItems.length > 0 ? inventoryItems : DUMMY_ITEMS;
+  const forecastQuery = useForecastMap(source.map((item) => item.productId), "weekly");
+  const forecastMap = forecastQuery.data ?? {};
 
-  const predictions = useMemo(() => buildPredictions(source), [source]);
+  const predictions = useMemo(() => buildPredictions(source, forecastMap), [source, forecastMap]);
 
   const maxPredicted = useMemo(
     () => Math.max(1, ...predictions.map((p) => p.predictedSales)),
@@ -180,7 +188,7 @@ export function AIPredictionsCard() {
           </div>
         )}
 
-        {predictions.map(({ item, predictedSales, confidence, growthPct }, idx) => (
+        {predictions.map(({ item, predictedSales, confidence, growthPct, shortage }, idx) => (
           <div
             key={item.inventoryId}
             className="px-6 py-4"
@@ -234,6 +242,18 @@ export function AIPredictionsCard() {
                 <span className="text-[11px] font-semibold text-emerald-600">+{growthPct}%</span>
               </div>
             </div>
+
+            <div className="pl-9 mt-2">
+              <p className="text-[11px] text-slate-500">
+                Current stock is <span className="font-semibold text-slate-700">{item.stockQuantity}</span>,
+                predicted weekly demand is <span className="font-semibold text-slate-700">{predictedSales}</span>
+                {shortage > 0 ? (
+                  <>. Suggested replenishment: <span className="font-semibold text-red-600">{shortage} {item.unit ?? "units"}</span>.</>
+                ) : (
+                  <>. Stock looks healthy for the next week.</>
+                )}
+              </p>
+            </div>
           </div>
         ))}
       </div>
@@ -245,6 +265,9 @@ export function AIPredictionsCard() {
           <span className="text-[11px] text-slate-400">
             Last updated: <span className="font-semibold text-slate-500">{lastUpdated}</span>
           </span>
+          {forecastQuery.isLoading && (
+            <span className="text-[10px] font-semibold text-slate-400">Refreshing forecast...</span>
+          )}
         </div>
 
         <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-600">
