@@ -32,8 +32,11 @@ export function useGlobalBarcodeScanner({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.isComposing) return;
 
+      if (event.altKey || event.ctrlKey || event.metaKey || event.key.startsWith("Arrow")) {
+        return;
+      }
+
       // Ignore modifier combinations and standalone modifier keys.
-      if (event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta") return;
 
       if (event.key === "Enter") {

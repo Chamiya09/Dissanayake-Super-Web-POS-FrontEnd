@@ -205,6 +205,15 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   useEffect(() => { cartFocusedIdxRef.current = cartFocusedIdx; }, [cartFocusedIdx]);
   useEffect(() => { cartItemsRef.current = items; });
 
+  useEffect(() => {
+    if (!keyboardActive) return;
+    if (items.length === 0) {
+      setCartFocusedIdx(-1);
+      return;
+    }
+    setCartFocusedIdx((cur) => (cur < 0 ? 0 : Math.min(cur, items.length - 1)));
+  }, [keyboardActive, items.length]);
+
   /* Reset focus + loyalty when cart empties */
   useEffect(() => {
     if (items.length === 0) {
@@ -307,11 +316,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (paymentModalOpen) return;
-
-      const isInInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
-      if (isInInput) return;
+      if (!keyboardActive) return;
 
       const cur    = cartFocusedIdxRef.current;
       const cItems = cartItemsRef.current;
@@ -319,10 +324,21 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
       if (e.altKey && e.key === "ArrowDown") {
         e.preventDefault();
         setCartFocusedIdx(cur < 0 ? 0 : Math.min(cur + 1, cItems.length - 1));
-      } else if (e.altKey && e.key === "ArrowUp") {
+        return;
+      }
+
+      if (e.altKey && e.key === "ArrowUp") {
         e.preventDefault();
         setCartFocusedIdx(cur <= 0 ? 0 : cur - 1);
-      } else if (!e.altKey && (e.key === "-" || e.key === "_") && cur >= 0 && cItems[cur]) {
+        return;
+      }
+
+      const isInInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
+      if (isInInput) return;
+
+      if (!e.altKey && (e.key === "-" || e.key === "_") && cur >= 0 && cItems[cur]) {
         e.preventDefault();
         onUpdateQuantity(cItems[cur].product.id, -1);
       } else if (!e.altKey && (e.key === "+" || e.key === "=") && cur >= 0 && cItems[cur]) {
@@ -336,7 +352,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onUpdateQuantity, onRemoveItem, paymentModalOpen]);
+  }, [keyboardActive, onUpdateQuantity, onRemoveItem, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
     "Auto Care": "🚗",
@@ -441,7 +457,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 onSetQuantity={onSetQuantity}
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
-                focused={cartFocusedIdx === idx}
+                focused={keyboardActive && cartFocusedIdx === idx}
                 emoji={categoryEmoji[item.product.category] ?? "📦"}
               />
             </div>
