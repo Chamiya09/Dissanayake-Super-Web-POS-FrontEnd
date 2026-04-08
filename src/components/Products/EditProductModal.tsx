@@ -43,9 +43,9 @@ export function EditProductModal({
   useEffect(() => {
     if (isOpen && product) {
       setForm({
-        productId: String(product.id),
+        sku: product.sku?.trim() || "",
         productName: product.productName,
-        barcode: product.sku?.trim() || "",
+        barcode: product.barcode?.trim() || "",
         category: product.category,
         buyingPrice: String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
@@ -81,12 +81,14 @@ export function EditProductModal({
     setSaving(true);
     try {
       const productId = product.id;
+      const sku = form.sku.trim();
       const barcode = form.barcode.trim();
       await onSave({
         // Keep id and barcode strictly independent in update payload.
         id: productId,
+        sku: sku,
         productName: form.productName.trim(),
-        sku: barcode,
+        barcode: barcode,
         category: form.category,
         buyingPrice: Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
@@ -146,13 +148,17 @@ export function EditProductModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          <FormRow id="edit-product-id" label="Product ID" icon={Tag}>
+          <FormRow id="edit-product-sku" label="Product ID (SKU)" icon={Tag} error={errors.sku}>
             <Input
-              id="edit-product-id"
-              value={form.productId}
-              readOnly
-              disabled
-              className="h-10 text-[13px] font-mono bg-muted/40"
+              id="edit-product-sku"
+              value={form.sku}
+              onChange={(e) => set("sku", e.target.value)}
+              placeholder="e.g. PI00001"
+              autoComplete="off"
+              className={cn(
+                "h-10 text-[13px] font-mono",
+                errors.sku && "border-red-400 focus-visible:ring-red-400"
+              )}
             />
           </FormRow>
 

@@ -51,7 +51,7 @@ export const UNITS = [
 ] as const;
 
 export type FormFields = {
-  productId:    string;
+  sku:          string;
   productName:  string;
   barcode:      string;
   category:     string;
@@ -61,7 +61,7 @@ export type FormFields = {
 };
 
 export const EMPTY_FORM: FormFields = {
-  productId:    "",
+  sku:          "",
   productName:  "",
   barcode:      "",
   category:     "",
@@ -72,6 +72,7 @@ export const EMPTY_FORM: FormFields = {
 
 export function validateForm(form: FormFields): Partial<FormFields> {
   const err: Partial<FormFields> = {};
+  if (!form.sku.trim())          err.sku          = "Product ID is required.";
   if (!form.productName.trim())  err.productName  = "Product name is required.";
   if (!form.category)            err.category     = "Please select a category.";
   if (!form.unit)                err.unit         = "Pricing unit is required.";
@@ -164,11 +165,13 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
     if (Object.keys(err).length) { setErrors(err); return; }
     setSaving(true);
     try {
+      const sku = form.sku.trim();
       const barcode = form.barcode.trim();
       await onSave({
+        sku:          sku,
         productName:  form.productName.trim(),
-        // Keep barcode independent from Product ID; never substitute one for the other.
-        sku:          barcode,
+        // Keep barcode independent from SKU; never substitute one for the other.
+        barcode:      barcode,
         category:     form.category,
         buyingPrice:  Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
@@ -237,14 +240,17 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
         {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
-          <FormRow id="add-product-id" label="Product ID" icon={Tag}>
+          <FormRow id="add-product-sku" label="Product ID (SKU)" icon={Tag} error={errors.sku}>
             <Input
-              id="add-product-id"
-              value={form.productId}
-              readOnly
-              disabled
-              placeholder="Auto-assigned after save"
-              className="h-10 text-[13px] font-mono bg-muted/40"
+              id="add-product-sku"
+              value={form.sku}
+              onChange={(e) => set("sku", e.target.value)}
+              placeholder="e.g. PI00001"
+              autoComplete="off"
+              className={cn(
+                "h-10 text-[13px] font-mono",
+                errors.sku && "border-red-400 focus-visible:ring-red-400"
+              )}
             />
           </FormRow>
 
