@@ -20,10 +20,27 @@ export type ProductBulkImportResponse = {
   errors: ProductImportError[];
 };
 
+export type ProductPageResponse = {
+  content: Product[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
+
 export const productApi = {
   /** GET /api/products — fetch all products */
   getAll(): Promise<Product[]> {
     return api.get<Product[]>(BASE_URL).then((r) => r.data);
+  },
+
+  /** GET /api/products/page?page=x&limit=y&search=z — server-side pagination */
+  getPage(params: { page: number; limit: number; search?: string }): Promise<ProductPageResponse> {
+    return api
+      .get<ProductPageResponse>(`${BASE_URL}/page`, { params })
+      .then((r) => r.data);
   },
 
   /** POST /api/products — create a new product */

@@ -1,392 +1,299 @@
-import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import {
-  Pencil, Trash2, Search, ChevronDown, X, Eye,
-  Package, Apple, Milk, Coffee, SlidersHorizontal,
-  Wheat, Cookie, Beef, Leaf, Tag,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  Eye,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { List, type RowComponentProps } from "react-window";
 import type { Product } from "@/data/product-management";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { Input } from "@/components/ui/input";
-import { CATEGORIES as ADD_FORM_CATEGORIES } from "@/components/Products/AddProductModal";
+import { cn } from "@/lib/utils";
 
-/* ── Category icon map ── */
-const categoryIcon: Record<string, React.ElementType> = {
-  Fruits:     Apple,
-  Dairy:      Milk,
-  Beverages:  Coffee,
-  Bakery:     Wheat,
-  Snacks:     Cookie,
-  Meat:       Beef,
-  Vegetables: Leaf,
-};
-
-/* ── Category pastel background ── */
-const categoryBg: Record<string, string> = {
-  Fruits:     "bg-rose-50    text-rose-600",
-  Dairy:      "bg-blue-50    text-blue-600",
-  Beverages:  "bg-sky-50     text-sky-600",
-  Bakery:     "bg-amber-50   text-amber-600",
-  Snacks:     "bg-lime-50    text-lime-600",
-  Meat:       "bg-red-50     text-red-600",
-  Vegetables: "bg-green-50   text-green-600",
-};
-
-/* ── Category chip ── */
-function CategoryChip({ category }: { category: string }) {
-  const Icon   = categoryIcon[category] ?? Tag;
-  const colour = categoryBg[category]   ?? "bg-muted text-muted-foreground";
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
-        colour
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" />
-      {category}
-    </span>
-  );
+interface ProductTableProps {
+  products: Product[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+  searchInput: string;
+  isSearching: boolean;
+  onSearchInputChange: (value: string) => void;
+  onPageChange: (nextPage: number) => void;
+  onPageSizeChange: (nextSize: number) => void;
+  onView: (product: Product) => void;
+  onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
 }
 
-/* ── Product avatar (initials) ── */
-function ProductAvatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+type RowData = {
+  products: Product[];
+  onView: (product: Product) => void;
+  onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
+};
+
+const DESKTOP_ROW_HEIGHT = 76;
+const DESKTOP_LIST_HEIGHT = 560;
+
+function ProductRow({ index, style, products, onView, onEdit, onDelete }: RowComponentProps<RowData>) {
+  const product = products[index];
+  if (!product) return null;
+
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 text-[13px] font-bold select-none">
-      {initials}
+    <div
+      style={style as CSSProperties}
+      className={cn(
+        "grid items-center border-b border-slate-100 px-6",
+        "grid-cols-[1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr]"
+      )}
+    >
+      <div className="pr-4">
+        <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
+          {product.sku || "No Barcode"}
+        </span>
+      </div>
+
+      <div className="pr-4">
+        <p className="truncate text-sm font-semibold text-slate-900">{product.productName}</p>
+      </div>
+
+      <div className="pr-4">
+        <span className="truncate text-sm text-slate-700">{product.category}</span>
+      </div>
+
+      <div className="pr-4">
+        <span className="truncate text-sm text-slate-700">{product.unit ?? "-"}</span>
+      </div>
+
+      <div className="pr-4 text-right tabular-nums text-sm text-slate-700">
+        {formatCurrency(product.buyingPrice)}
+      </div>
+
+      <div className="pr-4 text-right tabular-nums text-sm font-semibold text-slate-900">
+        {formatCurrency(product.sellingPrice)}
+      </div>
+
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          title="View product"
+          onClick={() => onView(product)}
+          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+        >
+          <Eye size={16} />
+        </button>
+        <button
+          type="button"
+          title="Edit product"
+          onClick={() => onEdit(product)}
+          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+        >
+          <Pencil size={16} />
+        </button>
+        <button
+          type="button"
+          title="Delete product"
+          onClick={() => onDelete(product)}
+          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     </div>
   );
 }
 
-/* ── Props ── */
-interface ProductTableProps {
-  products: Product[];
-  onView:   (product: Product) => void;
-  onEdit:   (product: Product) => void;
-  onDelete: (product: Product) => void;
-}
+export function ProductTable({
+  products,
+  totalElements,
+  totalPages,
+  page,
+  pageSize,
+  searchInput,
+  isSearching,
+  onSearchInputChange,
+  onPageChange,
+  onPageSizeChange,
+  onView,
+  onEdit,
+  onDelete,
+}: ProductTableProps) {
+  const rowData: RowData = {
+    products,
+    onView,
+    onEdit,
+    onDelete,
+  };
 
-export function ProductTable({ products, onView, onEdit, onDelete }: ProductTableProps) {
-  const [search,         setSearch]         = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
-
-  const categoryOptions = useMemo(() => {
-    const combined: string[] = [...ADD_FORM_CATEGORIES];
-    const dataCategories = [...new Set(products.map((p) => p.category).filter(Boolean))];
-
-    dataCategories.forEach((category) => {
-      if (!combined.includes(category)) {
-        combined.push(category);
-      }
-    });
-
-    return ["All", ...combined];
-  }, [products]);
-
-  useEffect(() => {
-    if (!categoryOptions.includes(filterCategory)) {
-      setFilterCategory("All");
-    }
-  }, [categoryOptions, filterCategory]);
-
-  /* ── Client-side filtering ── */
-  const filtered = products.filter((p) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      !q ||
-      p.productName.toLowerCase().includes(q) ||
-      (p.sku ?? "").toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.unit ?? "").toLowerCase().includes(q);
-
-    const matchesCategory =
-      filterCategory === "All" || p.category === filterCategory;
-
-    return matchesSearch && matchesCategory;
-  });
-
-  const hasActiveFilters = search !== "" || filterCategory !== "All";
-
-  const fmt = (n: number) => formatCurrency(n);
+  const hasData = products.length > 0;
+  const pageLabel = totalPages === 0 ? 0 : page + 1;
 
   return (
-    <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col mb-4">
-
-      {/* ── Search & Filter toolbar ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
-        {/* Search input */}
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-          {search && (
+    <div className="mb-4 flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          {searchInput && (
             <button
               type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => onSearchInputChange("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
             >
               <X size={16} />
             </button>
           )}
           <Input
             type="text"
-            placeholder="Search by Product Name, Product ID or Category…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+            value={searchInput}
+            onChange={(e) => onSearchInputChange(e.target.value)}
+            placeholder="Search by name, barcode, or category..."
+            className="h-10 rounded-xl border-slate-200 bg-white pl-10 text-sm placeholder:text-slate-400 focus-visible:ring-slate-300"
           />
         </div>
 
-        {/* Category dropdown */}
-        <div className="flex items-center gap-2 shrink-0">
-          <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <div className="relative w-full sm:w-52">
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="h-10 w-full appearance-none bg-white border border-slate-200 rounded-xl pl-4 pr-10 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 cursor-pointer transition-all"
-            >
-              {categoryOptions.map((c) => (
-                <option key={c} value={c}>{c === "All" ? "All Categories" : c}</option>
-              ))}
-            </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          <span>{isSearching ? "Searching..." : `${totalElements} products`}</span>
+        </div>
+      </div>
+
+      <div className="hidden md:block">
+        <div className="grid grid-cols-[1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr] border-b border-slate-100 bg-slate-50 px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+          <span>Barcode</span>
+          <span>Product Name</span>
+          <span>Category</span>
+          <span>Unit</span>
+          <span className="text-right">Buying Price</span>
+          <span className="text-right">Selling Price</span>
+          <span className="text-right">Actions</span>
         </div>
 
-        {/* Clear filters — only when active */}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={() => { setSearch(""); setFilterCategory("All"); }}
-            className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
-          >
-            Clear
-          </button>
+        {hasData ? (
+          <List
+            rowCount={products.length}
+            rowHeight={DESKTOP_ROW_HEIGHT}
+            rowComponent={ProductRow}
+            rowProps={rowData}
+            style={{ height: DESKTOP_LIST_HEIGHT }}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+            <Package className="mb-3 h-10 w-10 opacity-40" strokeWidth={1.2} />
+            <p className="text-sm font-medium text-slate-500">No products matched your search</p>
+          </div>
         )}
       </div>
 
-      {/* ── Desktop table ── */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="border-b border-slate-100">
-              {[
-                { label: "Barcode",        align: "text-left" },
-                { label: "Product Name",   align: "text-left" },
-                { label: "Category",       align: "text-left" },
-                { label: "Pricing Unit",   align: "text-left" },
-                { label: "Buying Price",   align: "text-right" },
-                { label: "Selling Price",  align: "text-right" },
-                { label: "Actions",        align: "text-right" },
-              ].map(({ label, align }) => (
-                <th
-                  key={label}
-                  className={`px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent ${align}`}
-                >
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                  No products matched your search.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((product) => (
-              <tr
-                key={product.id}
-                className="group transition-colors duration-150 hover:bg-slate-50/60"
-              >
-                {/* Barcode */}
-                <td className="px-6 py-6">
-                  <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-                    {product.sku || "No Barcode"}
-                  </span>
-                </td>
+      <div className="divide-y divide-slate-100 md:hidden">
+        {hasData ? (
+          products.map((product) => (
+            <div key={product.id} className="space-y-3 p-4">
+              <div className="space-y-1">
+                <p className="truncate text-sm font-semibold text-slate-900">{product.productName}</p>
+                <p className="text-[12px] text-slate-500">{product.category}</p>
+              </div>
 
-                {/* Product name */}
-                <td className="px-6 py-6">
-                  <div className="flex items-center gap-3">
-                    <ProductAvatar name={product.productName} />
-                    <div>
-                      <p className="font-semibold text-slate-900 whitespace-nowrap">
-                        {product.productName}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                {/* Category */}
-                <td className="px-6 py-6 whitespace-nowrap">
-                  <CategoryChip category={product.category} />
-                </td>
-
-                {/* Unit */}
-                <td className="px-6 py-6 whitespace-nowrap">
-                  {product.unit ? (
-                    <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-600">
-                      {product.unit}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-slate-400">—</span>
-                  )}
-                </td>
-
-                {/* Buying price */}
-                <td className="px-6 py-6 text-right tabular-nums text-slate-700 font-medium whitespace-nowrap">
-                  {fmt(product.buyingPrice)}
-                </td>
-
-                {/* Selling price */}
-                <td className="px-6 py-6 text-right tabular-nums text-slate-900 font-semibold whitespace-nowrap">
-                  {fmt(product.sellingPrice)}
-                </td>
-
-                {/* Actions */}
-                <td className="px-6 py-6">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      title="View product"
-                      onClick={() => onView(product)}
-                      className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Edit product"
-                      onClick={() => onEdit(product)}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Delete product"
-                      onClick={() => onDelete(product)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Mobile card list ── */}
-      <div className="md:hidden divide-y divide-slate-100">
-        {filtered.map((product) => (
-          <div key={product.id} className="p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <ProductAvatar name={product.productName} />
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px]">
                 <div>
-                  <p className="font-semibold text-slate-900 leading-tight">{product.productName}</p>
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Barcode</p>
+                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku || "No Barcode"}</span>
+                </div>
+                <div>
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Unit</p>
+                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.unit ?? "-"}</span>
+                </div>
+                <div>
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Buying</p>
+                  <p className="tabular-nums text-slate-700">{formatCurrency(product.buyingPrice)}</p>
+                </div>
+                <div>
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Selling</p>
+                  <p className="tabular-nums font-semibold text-slate-900">{formatCurrency(product.sellingPrice)}</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
-                <CategoryChip category={product.category} />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Barcode</p>
-                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku || "No Barcode"}</span>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Pricing Unit</p>
-                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.unit ?? "—"}</span>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Buying</p>
-                <p className="font-medium text-slate-700 tabular-nums">{fmt(product.buyingPrice)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Selling</p>
-                <p className="font-semibold text-slate-900 tabular-nums">{fmt(product.sellingPrice)}</p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onView(product)}
+                  className="flex-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
+                >
+                  <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEdit(product)}
+                  className="flex-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 transition-all duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(product)}
+                  className="flex-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 transition-all duration-150 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Delete
+                </button>
               </div>
             </div>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => onView(product)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-all duration-150"
-              >
-                <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
-                View
-              </button>
-              <button
-                type="button"
-                onClick={() => onEdit(product)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all duration-150"
-              >
-                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(product)}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all duration-150"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Delete
-              </button>
-            </div>
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <Package className="mb-3 h-10 w-10 opacity-40" strokeWidth={1.2} />
+            <p className="text-sm font-medium text-slate-500">No products matched your search</p>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* ── Empty state ── */}
-      {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <Package className="h-10 w-10 mb-3 opacity-40" strokeWidth={1.2} />
-          {hasActiveFilters ? (
-            <>
-              <p className="text-sm font-medium text-slate-500">No products match your filters</p>
-              <p className="text-xs mt-1 text-slate-400">Try adjusting your search term or clearing the filters.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-slate-500">No products found</p>
-              <p className="text-xs mt-1 text-slate-400">Add your first product to get started.</p>
-            </>
-          )}
-        </div>
-      )}
+      <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-slate-500">
+          Showing <span className="font-semibold text-slate-900">{products.length}</span> on page{" "}
+          <span className="font-semibold text-slate-900">{pageLabel}</span> of{" "}
+          <span className="font-semibold text-slate-900">{Math.max(totalPages, 1)}</span>
+        </p>
 
-      {/* ── Footer count ── */}
-      {filtered.length > 0 && (
-        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
-            Showing{" "}
-            <span className="font-semibold text-slate-900">{filtered.length}</span>
-            {" "}of{" "}
-            <span className="font-semibold text-slate-900">{products.length}</span>
-            {" "}products
-          </p>
-          {hasActiveFilters && (
-            <span className="text-[11px] text-slate-400">
-              {products.length - filtered.length} hidden by filters
-            </span>
-          )}
+        <div className="flex items-center gap-2">
+          <label htmlFor="page-size" className="text-xs text-slate-500">Rows</label>
+          <select
+            id="page-size"
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700"
+          >
+            {[25, 50, 75, 100].map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 0}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page + 1 >= Math.max(totalPages, 1)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
