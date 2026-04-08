@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
 import type { Product, CartItem } from "@/data/products";
 import { formatCurrency } from "@/utils/formatCurrency";
@@ -328,37 +329,19 @@ const Index = () => {
           {/* ── SKU / Barcode Search Bar ── */}
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <div className="flex h-10 flex-1 items-center overflow-hidden rounded-lg border border-border bg-background">
-              <span className="inline-flex h-full items-center border-r border-border bg-muted px-3 text-[13px] font-semibold text-muted-foreground">
-                PI
-              </span>
-              <input
-                ref={skuInputRef}
-                type="text"
-                value={skuQuery}
-                onChange={(e) => {
-                  const raw = e.target.value.trim();
-                  const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
-                  setSkuQuery(normalized);
-                }}
-                onKeyDown={handleSkuSearch}
-                placeholder="00001"
-                className="h-full flex-1 bg-transparent px-3 text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
-                autoFocus
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            {skuQuery && (
-              <button
-                onClick={() => { setSkuQuery(""); skuInputRef.current?.focus(); }}
-                className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-                aria-label="Clear"
-              >
-                ×
-              </button>
-            )}
+            <PiPrefixSearchInput
+              value={skuQuery}
+              onChange={setSkuQuery}
+              onKeyDown={handleSkuSearch}
+              inputRef={skuInputRef}
+              autoFocus
+              placeholder="00001"
+              onClear={() => {
+                setSkuQuery("");
+                skuInputRef.current?.focus();
+              }}
+              className="h-10 flex-1 shadow-none"
+            />
           </div>
 
           <div onPointerDown={() => setKeyboardScope("grid")}>
@@ -366,6 +349,7 @@ const Index = () => {
               onAddToCart={addToCart}
               products={posProducts}
               keyboardActive={keyboardScope === "grid"}
+              searchSuffix={skuQuery}
             />
           </div>
         </div>

@@ -6,7 +6,6 @@ import {
   ShoppingBag, Apple, Milk, Coffee, Wheat, Cookie, Beef, Leaf,
   Flame, Tag, Sparkles, PackageX,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { categories as staticCategories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +15,17 @@ interface ProductGridProps {
   products?: Product[];
   /** Enables keyboard navigation only when the product area is active. */
   keyboardActive?: boolean;
+  /** Shared SKU search suffix from POS checkout search input. */
+  searchSuffix?: string;
 }
 
-export function ProductGrid({ onAddToCart, products: externalProducts, keyboardActive = true }: ProductGridProps) {
+export function ProductGrid({
+  onAddToCart,
+  products: externalProducts,
+  keyboardActive = true,
+  searchSuffix = "",
+}: ProductGridProps) {
   const productList = externalProducts ?? staticProducts;
-  const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
@@ -40,8 +45,10 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
     }
   }, [categoryOptions, activeCategory]);
 
+  const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
+
   const filtered = productList.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
     const matchesCategory = activeCategory === "All" || p.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
@@ -99,8 +106,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
   }, []);
 
   const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
-  const isSearching = search.trim().length > 0;
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const isSearching = searchSuffix.trim().length > 0;
   const gridRef   = useRef<HTMLDivElement>(null);
   const cardRefs  = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -111,7 +117,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
   useEffect(() => { filteredRef.current   = filtered;     });
 
   // Reset keyboard focus when the visible list changes
-  useEffect(() => { setFocusedIndex(-1); }, [search, activeCategory]);
+  useEffect(() => { setFocusedIndex(-1); }, [searchSuffix, activeCategory]);
 
   // Scroll focused card into view
   useEffect(() => {
@@ -134,22 +140,6 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-
-      // F1 → focus search
-      if (e.key === "F1") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
-        return;
-      }
-
-      // ArrowDown from search box → jump to first grid card
-      if (e.key === "ArrowDown" && isInInput) {
-        e.preventDefault();
-        (e.target as HTMLElement).blur();
-        setFocusedIndex(0);
-        return;
-      }
 
       if (isInInput) return; // let the search input handle other keys normally
 
@@ -188,22 +178,6 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* â”€â”€ Search bar â”€â”€ */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search products or scan barcode&hellip;"
-          ref={inputRef}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 rounded-lg border border-border bg-card pl-10 pr-12 text-sm shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 pointer-events-none select-none">
-          F1
-        </kbd>
-      </div>
-
 
       {/* Category pills - slides away while searching */}
       <div

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import {
   Plus,
   Pencil,
@@ -106,30 +107,13 @@ const InventoryPage = () => {
       <div className="flex items-center justify-between gap-4 mb-8">
         {/* Search Input */}
         <div className="w-1/2">
-          <div className="
-            flex h-10 items-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm
-            focus-within:ring-2 focus-within:ring-teal-600/20 focus-within:border-teal-600 transition-all duration-200
-          ">
-            <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-slate-700">
-              PI
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
-                setSearchQuery(normalized);
-              }}
-              placeholder="00001"
-              className="
-                h-full w-full bg-transparent px-3 pr-4
-                text-[13px] text-slate-900
-                placeholder:text-slate-400
-                outline-none
-              "
-            />
-          </div>
+          <PiPrefixSearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="00001"
+            onClear={() => setSearchQuery("")}
+            className="h-10"
+          />
         </div>
 
         {/* Add Product Button */}

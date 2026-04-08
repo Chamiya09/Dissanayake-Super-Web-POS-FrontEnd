@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import api from "@/lib/axiosInstance";
 import { getLowStockItems, createOrder, mapHistoryItem } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
@@ -749,22 +750,13 @@ export default function LowStockAlerts() {
           <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
               <div className="relative flex-1 min-w-0">
-                <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
-                  <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
-                    PI
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="00001"
-                    value={search}
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
-                      setSearch(normalized);
-                    }}
-                    className="h-full w-full bg-transparent px-3 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                  />
-                </div>
+                <PiPrefixSearchInput
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="00001"
+                  onClear={() => setSearch("")}
+                  className="h-10"
+                />
               </div>
 
               <div className="flex items-center gap-2 shrink-0">

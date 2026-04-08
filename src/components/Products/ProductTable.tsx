@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import {
   Pencil,
   Trash2,
-  X,
   Eye,
   Package,
   ChevronLeft,
@@ -12,7 +11,7 @@ import {
 import { List, type RowComponentProps } from "react-window";
 import type { Product } from "@/data/product-management";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { Input } from "@/components/ui/input";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import { cn } from "@/lib/utils";
 
 interface ProductTableProps {
@@ -138,32 +137,13 @@ export function ProductTable({
     <div className="mb-4 flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
-          {searchInput && (
-            <button
-              type="button"
-              onClick={() => onSearchInputChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-            >
-              <X size={16} />
-            </button>
-          )}
-
-          <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-slate-300">
-            <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
-              PI
-            </span>
-            <Input
-              type="text"
-              value={searchInput}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
-                onSearchInputChange(normalized);
-              }}
-              placeholder="00001"
-              className="h-full border-0 rounded-none bg-transparent text-sm placeholder:text-slate-400 focus-visible:ring-0"
-            />
-          </div>
+          <PiPrefixSearchInput
+            value={searchInput}
+            onChange={onSearchInputChange}
+            placeholder="00001"
+            onClear={() => onSearchInputChange("")}
+            className="h-10"
+          />
         </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
