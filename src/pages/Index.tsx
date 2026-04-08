@@ -285,9 +285,8 @@ const Index = () => {
     const minBarcodeLength = 5;
 
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const isInputFocused =
-        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
 
       // Route A: cart navigation first, then short-circuit.
       if (!isInputFocused && e.altKey && e.key === "ArrowUp") {

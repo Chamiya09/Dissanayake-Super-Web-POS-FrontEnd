@@ -147,6 +147,9 @@ export function ProductGrid({
     const handler = (e: KeyboardEvent) => {
       if (!keyboardActive) return;
 
+      // Let global POS shortcuts (e.g., Alt+Arrow cart navigation) pass through.
+      if (e.altKey) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
