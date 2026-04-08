@@ -21,6 +21,7 @@ interface CartPanelProps {
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
   activeBucketIndex?: number;
+  checkoutHotkeyNonce?: number;
   /** Called with the final charged amount after a successful checkout */
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
   /** Enables cart keyboard shortcuts only when cart area is active. */
@@ -185,7 +186,7 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, onCheckout, keyboardActive = true }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, checkoutHotkeyNonce = 0, onCheckout, keyboardActive = true }: CartPanelProps) {
   const { confirm } = useConfirmDialog();
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -268,6 +269,14 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     setPaymentModalOpen(false);
     await proceedWithCheckout(method);
   }, [proceedWithCheckout]);
+
+  useEffect(() => {
+    if (!checkoutHotkeyNonce) return;
+    if (!keyboardActive) return;
+    if (items.length === 0) return;
+    if (processing) return;
+    void handlePayment();
+  }, [checkoutHotkeyNonce, handlePayment, items.length, keyboardActive, processing]);
 
   /* Search helper */
   const doSearch = useCallback(() => {

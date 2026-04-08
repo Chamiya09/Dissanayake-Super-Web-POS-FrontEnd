@@ -86,6 +86,7 @@ const Index = () => {
   const cartIconRef = useRef<HTMLDivElement>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
+  const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
 
@@ -275,28 +276,28 @@ const Index = () => {
     const minBarcodeLength = 5;
 
     const handler = (e: KeyboardEvent) => {
-      const isInInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
+      const target = e.target as HTMLElement | null;
+      const isInputFocused =
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
 
       // Route A: cart navigation first, then short-circuit.
-      if (e.altKey && e.key === "ArrowUp") {
+      if (!isInputFocused && e.altKey && e.key === "ArrowUp") {
         e.preventDefault();
         setKeyboardScope("cart");
-        setActiveBucketIndex((idx) => {
-          const next = idx <= 0 ? 0 : idx - 1;
+        setActiveBucketIndex((prev) => {
+          const next = prev <= 0 ? 0 : prev - 1;
           activeBucketIndexRef.current = next;
           return next;
         });
         return;
       }
 
-      if (e.altKey && e.key === "ArrowDown") {
+      if (!isInputFocused && e.altKey && e.key === "ArrowDown") {
         e.preventDefault();
         setKeyboardScope("cart");
-        setActiveBucketIndex((idx) => {
+        setActiveBucketIndex((prev) => {
           const maxIndex = Math.max(cartRef.current.length - 1, 0);
-          const next = idx < 0 ? 0 : Math.min(idx + 1, maxIndex);
+          const next = prev < 0 ? 0 : Math.min(prev + 1, maxIndex);
           activeBucketIndexRef.current = next;
           return next;
         });
@@ -327,6 +328,47 @@ const Index = () => {
         return;
       }
 
+      // Checkout shortcuts.
+      if (e.key === "F12" || (e.ctrlKey && e.key === "Enter")) {
+        if (cartRef.current.length > 0) {
+          e.preventDefault();
+          setKeyboardScope("cart");
+          setCartOpen(true);
+          setCheckoutHotkeyNonce((n) => n + 1);
+        }
+        return;
+      }
+
+      // Cart item actions (only when cart scope is active and not typing into inputs).
+      if (!isInputFocused && keyboardScope === "cart") {
+        const cur = activeBucketIndexRef.current;
+        const activeItem = cur >= 0 ? cartRef.current[cur] : undefined;
+
+        if (e.key === "Delete" && activeItem) {
+          e.preventDefault();
+          const currentLength = cartRef.current.length;
+          removeItem(activeItem.product.id);
+          setActiveBucketIndex((prev) => {
+            const next = currentLength <= 1 ? -1 : Math.min(prev, currentLength - 2);
+            activeBucketIndexRef.current = next;
+            return next;
+          });
+          return;
+        }
+
+        if ((e.key === "+" || e.key === "=") && activeItem) {
+          e.preventDefault();
+          updateQuantity(activeItem.product.id, 1);
+          return;
+        }
+
+        if ((e.key === "-" || e.key === "_") && activeItem) {
+          e.preventDefault();
+          updateQuantity(activeItem.product.id, -1);
+          return;
+        }
+      }
+
       // [Esc] closes overlays first; otherwise clears basket when not typing.
       if (e.key === "Escape") {
         if (showSuccessPopup) {
@@ -341,7 +383,7 @@ const Index = () => {
           return;
         }
 
-        if (!isInInput && cart.length > 0) {
+        if (!isInputFocused && cart.length > 0) {
           e.preventDefault();
           setCart([]);
         }
@@ -383,7 +425,7 @@ const Index = () => {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, showSuccessPopup]);
+  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -438,6 +480,7 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />
@@ -483,6 +526,7 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />
