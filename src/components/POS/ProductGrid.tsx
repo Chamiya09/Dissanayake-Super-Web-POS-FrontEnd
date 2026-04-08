@@ -26,8 +26,10 @@ export function ProductGrid({
   searchSuffix = "",
 }: ProductGridProps) {
   const productList = externalProducts ?? staticProducts;
+  const PAGE_SIZE = 24;
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categoryOptions = useMemo(() => {
     if (externalProducts && externalProducts.length > 0) {
@@ -47,11 +49,16 @@ export function ProductGrid({
 
   const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
 
-  const filtered = productList.filter((p) => {
-    const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
-    const matchesCategory = activeCategory === "All" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filtered = useMemo(() => {
+    return productList.filter((p) => {
+      const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
+      const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [productList, skuQuery, activeCategory]);
+
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   const categoryIcon: Record<string, LucideIcon> = {
     All: ShoppingBag,
@@ -112,12 +119,15 @@ export function ProductGrid({
 
   // Keep stable refs for use inside event handlers (avoid stale closures)
   const focusedIdxRef = useRef(focusedIndex);
-  const filteredRef   = useRef(filtered);
+  const filteredRef   = useRef(visibleProducts);
   useEffect(() => { focusedIdxRef.current = focusedIndex; }, [focusedIndex]);
-  useEffect(() => { filteredRef.current   = filtered;     });
+  useEffect(() => { filteredRef.current   = visibleProducts; }, [visibleProducts]);
 
   // Reset keyboard focus when the visible list changes
-  useEffect(() => { setFocusedIndex(-1); }, [searchSuffix, activeCategory]);
+  useEffect(() => {
+    setFocusedIndex(-1);
+    setVisibleCount(PAGE_SIZE);
+  }, [searchSuffix, activeCategory]);
 
   // Scroll focused card into view
   useEffect(() => {
@@ -227,7 +237,7 @@ export function ProductGrid({
 
       {/* â”€â”€ Product grid â”€â”€ */}
       <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((product, idx) => {
+        {visibleProducts.map((product, idx) => {
           const outOfStock = product.stock === 0;
           const { label: stockLabel, cls: stockCls } = stockBadge(product.stock);
           const salePrice = product.discount
@@ -366,6 +376,18 @@ export function ProductGrid({
           </div>
         )}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </div>
   );
 }

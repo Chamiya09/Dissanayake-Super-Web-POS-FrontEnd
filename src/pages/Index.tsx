@@ -198,8 +198,17 @@ const Index = () => {
   }, [cart, refreshInventory]);
 
   /* ── SKU / Barcode quick-add ── */
-  const [skuQuery, setSkuQuery] = useState("");
+  const [skuInputValue, setSkuInputValue] = useState("");
+  const [debouncedSkuQuery, setDebouncedSkuQuery] = useState("");
   const skuInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSkuQuery(skuInputValue);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [skuInputValue]);
 
   const handleScannedBarcode = useCallback((barcode: string) => {
     console.info("[POS] handleScannedBarcode:", barcode);
@@ -240,14 +249,14 @@ const Index = () => {
   const handleSkuSearch = useCallback(
     async (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== "Enter") return;
-      const suffix = skuQuery.trim();
+      const suffix = skuInputValue.trim();
       if (!suffix) return;
       await addProductBySku(`PI${suffix}`);
-      setSkuQuery("");
+      setSkuInputValue("");
       // Re-focus so the next barcode scan / manual entry is instant.
       skuInputRef.current?.focus();
     },
-    [addProductBySku, skuQuery],
+    [addProductBySku, skuInputValue],
   );
 
   useEffect(() => {
@@ -402,7 +411,7 @@ const Index = () => {
           e.preventDefault();
           handleScannedBarcode(barcode);
           void addProductBySku(barcode);
-          setSkuQuery("");
+          setSkuInputValue("");
           skuInputRef.current?.focus();
         }
         scannerBuffer = "";
@@ -443,14 +452,14 @@ const Index = () => {
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
             <PiPrefixSearchInput
-              value={skuQuery}
-              onChange={setSkuQuery}
+              value={skuInputValue}
+              onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
               inputRef={skuInputRef}
               autoFocus
               placeholder="00001"
               onClear={() => {
-                setSkuQuery("");
+                setSkuInputValue("");
                 skuInputRef.current?.focus();
               }}
               className="h-10 flex-1 shadow-none"
@@ -462,7 +471,7 @@ const Index = () => {
               onAddToCart={addToCart}
               products={posProducts}
               keyboardActive={keyboardScope === "grid"}
-              searchSuffix={skuQuery}
+              searchSuffix={debouncedSkuQuery}
             />
           </div>
         </div>
