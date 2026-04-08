@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
+import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
 import type { Product, CartItem } from "@/data/products";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
@@ -196,10 +197,13 @@ const Index = () => {
   const [skuQuery, setSkuQuery] = useState("");
   const skuInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSkuSearch = useCallback(
-    async (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== "Enter") return;
-      const sku = skuQuery.trim();
+  const handleScannedBarcode = useCallback((barcode: string) => {
+    console.info("[POS] handleScannedBarcode:", barcode);
+  }, []);
+
+  const addProductBySku = useCallback(
+    async (rawSku: string) => {
+      const sku = rawSku.trim();
       if (!sku) return;
 
       try {
@@ -215,7 +219,8 @@ const Index = () => {
           barcode:  data.sku,
           stock:    50,
         };
-        // Override stock from live inventory if available
+
+        // Override stock from live inventory if available.
         const inv = inventoryItems.find((i) => i.productId === data.id);
         if (inv) product.stock = inv.stockQuantity;
 
@@ -223,14 +228,33 @@ const Index = () => {
         showToast(`Added: ${data.productName}`, "success", "Item Added");
       } catch {
         showToast(`No product found for SKU "${sku}"`, "error", "Invalid SKU");
-      } finally {
-        setSkuQuery("");
-        // Re-focus so the next barcode scan / manual entry is instant
-        skuInputRef.current?.focus();
       }
     },
-    [skuQuery, addToCart, inventoryItems],
+    [addToCart, inventoryItems, showToast],
   );
+
+  const handleSkuSearch = useCallback(
+    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
+      await addProductBySku(skuQuery);
+      setSkuQuery("");
+      // Re-focus so the next barcode scan / manual entry is instant.
+      skuInputRef.current?.focus();
+    },
+    [addProductBySku, skuQuery],
+  );
+
+  useGlobalBarcodeScanner({
+    enabled: true,
+    interKeyThresholdMs: 50,
+    minBarcodeLength: 5,
+    onScan: (barcode) => {
+      handleScannedBarcode(barcode);
+      void addProductBySku(barcode);
+      setSkuQuery("");
+      skuInputRef.current?.focus();
+    },
+  });
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
