@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Package, X, Tag, Hash, Layers,
+  Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
+  ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
 import type { Product } from "@/data/product-management";
 import {
   FormRow,
@@ -44,13 +46,15 @@ export function EditProductModal({
   const [form,   setForm]   = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
+  const [scanStatus, setScanStatus] = useState<"idle" | "captured">("idle");
+  const barcodeRef = useRef<HTMLInputElement>(null);
 
   /* Pre-fill form fields whenever a product is targeted */
   useEffect(() => {
     if (isOpen && product) {
       setForm({
         productName:  product.productName,
-        sku:          product.sku,
+        sku:          product.sku ?? "",
         category:     product.category,
         buyingPrice:  String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
@@ -58,8 +62,27 @@ export function EditProductModal({
       });
       setErrors({});
       setSaving(false);
+      setScanStatus("idle");
     }
   }, [isOpen, product]);
+
+  const applyScannedBarcode = useCallback((rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+    setForm((prev) => ({ ...prev, sku: code }));
+    setErrors((prev) => ({ ...prev, sku: undefined }));
+    setScanStatus("captured");
+  }, []);
+
+  useGlobalBarcodeScanner({
+    enabled: isOpen,
+    interKeyThresholdMs: 50,
+    minBarcodeLength: 5,
+    onScan: (barcode) => {
+      applyScannedBarcode(barcode);
+      setTimeout(() => barcodeRef.current?.focus(), 0);
+    },
+  });
 
   /* Close on Escape */
   useEffect(() => {
@@ -168,21 +191,46 @@ export function EditProductModal({
             />
           </FormRow>
 
-          {/* Product ID + Category — side by side on sm+ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="edit-productId" label="Product ID" icon={Hash} error={errors.sku}>
+          {/* Barcode */}
+          <FormRow id="edit-barcode" label="Barcode" icon={ScanLine} error={errors.sku}>
+            <div className="relative">
               <Input
-                id="edit-productId"
+                ref={barcodeRef}
+                id="edit-barcode"
                 value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. PI00001"
+                onChange={(e) => {
+                  set("sku", e.target.value);
+                  if (!e.target.value) {
+                    setScanStatus("idle");
+                  }
+                }}
+                placeholder="Scan barcode or type manually"
                 className={cn(
-                  "h-10 text-[13px] font-mono",
+                  "h-10 text-[13px] font-mono pr-9",
+                  scanStatus === "captured" && "border-emerald-500 focus-visible:ring-emerald-400",
                   errors.sku && "border-red-400 focus-visible:ring-red-400"
                 )}
+                autoComplete="off"
               />
-            </FormRow>
+              {!!form.sku && (
+                <button
+                  type="button"
+                  aria-label="Clear barcode"
+                  onClick={() => {
+                    set("sku", "");
+                    setScanStatus("idle");
+                    barcodeRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </FormRow>
 
+          {/* Category — side by side on sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-category" label="Category" icon={Layers} error={errors.category}>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger
@@ -197,6 +245,25 @@ export function EditProductModal({
                 <SelectContent>
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
+
+            <FormRow id="edit-pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
+              <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+                <SelectTrigger
+                  id="edit-pricingUnit"
+                  className={cn(
+                    "h-10 text-[13px]",
+                    errors.unit && "border-red-400 focus-visible:ring-red-400"
+                  )}
+                >
+                  <SelectValue placeholder="Select pricing unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -248,25 +315,6 @@ export function EditProductModal({
             </FormRow>
           </div>
 
-          {/* Pricing Unit — full width */}
-          <FormRow id="edit-pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
-            <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-              <SelectTrigger
-                id="edit-pricingUnit"
-                className={cn(
-                  "h-10 text-[13px]",
-                  errors.unit && "border-red-400 focus-visible:ring-red-400"
-                )}
-              >
-                <SelectValue placeholder="Select pricing unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormRow>
         </div>
 
         {/* ── Footer ── */}

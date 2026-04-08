@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Pencil, Trash2, Search, ChevronDown, X,
+  Pencil, Trash2, Search, ChevronDown, X, Eye,
   Package, Apple, Milk, Coffee, SlidersHorizontal,
   Wheat, Cookie, Beef, Leaf, Tag,
 } from "lucide-react";
@@ -68,11 +68,12 @@ function ProductAvatar({ name }: { name: string }) {
 /* ── Props ── */
 interface ProductTableProps {
   products: Product[];
+  onView:   (product: Product) => void;
   onEdit:   (product: Product) => void;
   onDelete: (product: Product) => void;
 }
 
-export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
+export function ProductTable({ products, onView, onEdit, onDelete }: ProductTableProps) {
   const [search,         setSearch]         = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
 
@@ -101,7 +102,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
     const matchesSearch =
       !q ||
       p.productName.toLowerCase().includes(q) ||
-      p.sku.toLowerCase().includes(q) ||
+      (p.sku ?? "").toLowerCase().includes(q) ||
       p.category.toLowerCase().includes(q) ||
       (p.unit ?? "").toLowerCase().includes(q);
 
@@ -176,7 +177,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           <thead>
             <tr className="border-b border-slate-100">
               {[
-                { label: "Product ID",     align: "text-left" },
+                { label: "Barcode",        align: "text-left" },
                 { label: "Product Name",   align: "text-left" },
                 { label: "Category",       align: "text-left" },
                 { label: "Pricing Unit",   align: "text-left" },
@@ -206,10 +207,10 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 key={product.id}
                 className="group transition-colors duration-150 hover:bg-slate-50/60"
               >
-                {/* Product ID */}
+                {/* Barcode */}
                 <td className="px-6 py-6">
                   <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-                    {product.sku}
+                    {product.sku || "No Barcode"}
                   </span>
                 </td>
 
@@ -256,6 +257,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
+                      title="View product"
+                      onClick={() => onView(product)}
+                      className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                    >
+                      <Eye size={18} />
+                    </button>
+                    <button
+                      type="button"
                       title="Edit product"
                       onClick={() => onEdit(product)}
                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -296,8 +305,8 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
             <div className="grid grid-cols-2 gap-2 text-[13px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Product ID</p>
-                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku}</span>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Barcode</p>
+                <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku || "No Barcode"}</span>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Pricing Unit</p>
@@ -314,6 +323,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
             </div>
 
             <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onView(product)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[13px] font-medium text-slate-700 bg-white border border-slate-200 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-all duration-150"
+              >
+                <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
+                View
+              </button>
               <button
                 type="button"
                 onClick={() => onEdit(product)}

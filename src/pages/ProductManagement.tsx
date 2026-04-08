@@ -4,6 +4,7 @@ import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
+import { ViewProductModal } from "@/components/Products/ViewProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
@@ -62,6 +63,7 @@ export default function ProductManagement() {
   /* ── Modal state ── */
   const [isAddOpen,    setIsAddOpen]    = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<Product | null>(null);
   const [editTarget,   setEditTarget]   = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -295,6 +297,7 @@ export default function ProductManagement() {
         {!loading && !fetchError && (
           <ProductTable
             products={products}
+            onView={(p) => setViewTarget(p)}
             onEdit={(p) => setEditTarget(p)}
             onDelete={(p) => setDeleteTarget(p)}
           />
@@ -312,6 +315,11 @@ export default function ProductManagement() {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImport={handleCsvImport}
+      />
+      <ViewProductModal
+        isOpen={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        product={viewTarget}
       />
       <EditProductModal
         isOpen={isEditOpen}

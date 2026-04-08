@@ -117,7 +117,7 @@ export function DeleteProductModal({
           <div className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-left space-y-1">
             <p className="text-[12px] font-semibold text-slate-800">{product.productName}</p>
             <p className="text-[11px] text-muted-foreground">
-              {product.id}&nbsp;&middot;&nbsp;SKU:&nbsp;{product.sku}&nbsp;&middot;&nbsp;{product.category}
+              {product.id}&nbsp;&middot;&nbsp;Barcode:&nbsp;{product.sku || "No Barcode"}&nbsp;&middot;&nbsp;{product.category}
             </p>
           </div>
         </div>

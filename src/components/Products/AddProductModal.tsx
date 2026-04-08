@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Package, X, Tag, Hash, Layers,
+  Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
-  ScanLine, Wifi, CheckCircle2,
+  ScanLine,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
 import type { Product } from "@/data/product-management";
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -71,7 +72,6 @@ export const EMPTY_FORM: FormFields = {
 export function validateForm(form: FormFields): Partial<FormFields> {
   const err: Partial<FormFields> = {};
   if (!form.productName.trim())  err.productName  = "Product name is required.";
-  if (!form.sku.trim())          err.sku          = "Product ID is required.";
   if (!form.category)            err.category     = "Please select a category.";
   if (!form.unit)                err.unit         = "Pricing unit is required.";
   if (!form.buyingPrice.trim()) {
@@ -134,8 +134,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
   const [form,          setForm]        = useState<FormFields>(EMPTY_FORM);
   const [errors,        setErrors]      = useState<Partial<FormFields>>({});
   const [saving,        setSaving]      = useState(false);
-  const [barcodeInput,  setBarcodeInput] = useState("");
-  const [scanStatus,    setScanStatus]   = useState<"idle" | "scanning" | "captured">("idle");
+  const [scanStatus,    setScanStatus]   = useState<"idle" | "captured">("idle");
   const barcodeRef = useRef<HTMLInputElement>(null);
 
   /* Reset form and focus scanner field on every open */
@@ -144,7 +143,6 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
       setForm(EMPTY_FORM);
       setErrors({});
       setSaving(false);
-      setBarcodeInput("");
       setScanStatus("idle");
       setTimeout(() => barcodeRef.current?.focus(), 80);
     }
@@ -158,16 +156,15 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
     setScanStatus("captured");
   }, []);
 
-  /* Auto-capture scanner input when typing pauses */
-  useEffect(() => {
-    if (!barcodeInput.trim()) {
-      setScanStatus("idle");
-      return;
-    }
-    setScanStatus("scanning");
-    const timer = setTimeout(() => applyScannedBarcode(barcodeInput), 220);
-    return () => clearTimeout(timer);
-  }, [barcodeInput, applyScannedBarcode]);
+  useGlobalBarcodeScanner({
+    enabled: isOpen,
+    interKeyThresholdMs: 50,
+    minBarcodeLength: 5,
+    onScan: (barcode) => {
+      applyScannedBarcode(barcode);
+      setTimeout(() => barcodeRef.current?.focus(), 0);
+    },
+  });
 
   /* Close on Escape */
   useEffect(() => {
@@ -242,7 +239,7 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 Add Product
               </h2>
               <p className="text-[12px] text-sm text-slate-500 mt-1">
-                Scan a barcode or enter Product ID manually, then fill the remaining details.
+                Scan a barcode or enter it manually, then fill the remaining details.
               </p>
             </div>
           </div>
@@ -266,73 +263,57 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
                 <ScanLine className="h-3.5 w-3.5" />
               </div>
               <span className="text-[13px] font-semibold text-slate-800">Scan Barcode</span>
-              <span className="ml-auto text-[11px] text-muted-foreground">Auto-fills Product ID</span>
+              <span className="ml-auto text-[11px] text-muted-foreground">Auto-captures from scanner</span>
             </div>
 
             <div className="relative">
               <ScanLine
                 className={cn(
                   "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
-                  scanStatus === "scanning" ? "text-violet-600 animate-pulse" : "text-muted-foreground"
+                  scanStatus === "captured" ? "text-violet-600" : "text-muted-foreground"
                 )}
               />
-              {scanStatus === "scanning" && (
-                <Wifi className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
-              )}
-              <input
+              <Input
                 ref={barcodeRef}
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyScannedBarcode(barcodeInput);
-                  }
-                }}
-                placeholder="Scan barcode and press Enter"
+                value={form.sku}
+                onChange={(e) => set("sku", e.target.value)}
+                placeholder="Scan barcode or type manually"
                 autoComplete="off"
                 className={cn(
-                  "flex h-11 w-full rounded-md border bg-white px-3 py-2 text-[13px] font-mono pl-9 pr-9",
+                  "h-11 text-[13px] font-mono pl-9 pr-9",
                   "placeholder:text-slate-400",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  scanStatus === "scanning" && "border-primary/60",
                   scanStatus === "captured" && "border-emerald-500 focus-visible:ring-emerald-400",
-                  scanStatus === "idle" && "border-input"
+                  scanStatus === "idle" && "border-input",
+                  errors.sku && "border-red-400 focus-visible:ring-red-400"
                 )}
               />
+              {!!form.sku && (
+                <button
+                  type="button"
+                  aria-label="Clear barcode"
+                  onClick={() => {
+                    set("sku", "");
+                    setScanStatus("idle");
+                    barcodeRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            {scanStatus === "scanning" && (
-              <div className="flex items-center gap-2 rounded-lg bg-violet-50/50 border border-violet-200 px-3 py-2">
-                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
-                <span className="text-[12px] text-primary font-medium">Reading barcode…</span>
-              </div>
-            )}
             {scanStatus === "captured" && (
               <div className="flex items-center gap-2 rounded-lg bg-emerald-50/50 border border-emerald-500/20 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                 <span className="text-[12px] text-emerald-700 font-medium">
-                  Barcode captured. Product ID has been auto-filled below.
+                  Barcode captured successfully.
                 </span>
               </div>
             )}
           </div>
 
-          {/* Product ID + Product Name */}
+          {/* Product Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="productId" label="Product ID" icon={Hash} error={errors.sku}>
-              <Input
-                id="productId"
-                value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. PI00001"
-                className={cn(
-                  "h-10 text-[13px] font-mono",
-                  errors.sku && "border-red-400 focus-visible:ring-red-400"
-                )}
-              />
-            </FormRow>
-
             <FormRow id="productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
               <Input
                 id="productName"
