@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
@@ -36,18 +36,16 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
-  const SCANNER_INTER_KEY_MS = 50;
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
-  const buffer = useRef("");
-  const lastKeyTime = useRef(Date.now());
 
   useEffect(() => {
     if (isOpen && product) {
       setForm({
+        productId: String(product.id),
         productName: product.productName,
-        sku: product.sku?.trim() || "",
+        barcode: product.sku?.trim() || "",
         category: product.category,
         buyingPrice: String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
@@ -67,45 +65,6 @@ export function EditProductModal({
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleScannerKeys = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-      if (e.key === "Enter") {
-        const scannedValue = buffer.current;
-        if (scannedValue) {
-          set("sku", scannedValue);
-          buffer.current = "";
-          lastKeyTime.current = Date.now();
-          e.preventDefault();
-        }
-        return;
-      }
-
-      if (e.key.length !== 1) return;
-
-      const now = Date.now();
-      const delta = now - lastKeyTime.current;
-
-      // If keystrokes are too far apart, reset sequence before collecting again.
-      if (delta > SCANNER_INTER_KEY_MS) {
-        buffer.current = "";
-      }
-
-      buffer.current += e.key;
-      lastKeyTime.current = now;
-    };
-
-    window.addEventListener("keydown", handleScannerKeys, true);
-    return () => {
-      window.removeEventListener("keydown", handleScannerKeys, true);
-      buffer.current = "";
-      lastKeyTime.current = Date.now();
-    };
-  }, [isOpen]);
-
   const set = (field: keyof FormFields, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -121,10 +80,13 @@ export function EditProductModal({
 
     setSaving(true);
     try {
+      const productId = product.id;
+      const barcode = form.barcode.trim();
       await onSave({
-        id: product.id,
+        // Keep id and barcode strictly independent in update payload.
+        id: productId,
         productName: form.productName.trim(),
-        sku: form.sku.trim(),
+        sku: barcode,
         category: form.category,
         buyingPrice: Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
@@ -184,6 +146,16 @@ export function EditProductModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
+          <FormRow id="edit-product-id" label="Product ID" icon={Tag}>
+            <Input
+              id="edit-product-id"
+              value={form.productId}
+              readOnly
+              disabled
+              className="h-10 text-[13px] font-mono bg-muted/40"
+            />
+          </FormRow>
+
           <FormRow id="edit-productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
             <Input
               id="edit-productName"
@@ -199,11 +171,11 @@ export function EditProductModal({
 
           <BarcodeInput
             mode="update"
-            initialBarcode={form.sku}
+            initialBarcode={form.barcode}
             autoFocus={isOpen}
             disabled={saving}
             inputId="edit-product-barcode"
-            onBarcodeChange={(value) => set("sku", value)}
+            onBarcodeChange={(value) => set("barcode", value)}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

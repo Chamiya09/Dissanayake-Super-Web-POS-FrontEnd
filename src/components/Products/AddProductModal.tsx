@@ -51,8 +51,9 @@ export const UNITS = [
 ] as const;
 
 export type FormFields = {
+  productId:    string;
   productName:  string;
-  sku:          string;
+  barcode:      string;
   category:     string;
   buyingPrice:  string;
   sellingPrice: string;
@@ -60,8 +61,9 @@ export type FormFields = {
 };
 
 export const EMPTY_FORM: FormFields = {
+  productId:    "",
   productName:  "",
-  sku:          "",
+  barcode:      "",
   category:     "",
   buyingPrice:  "",
   sellingPrice: "",
@@ -162,9 +164,11 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
     if (Object.keys(err).length) { setErrors(err); return; }
     setSaving(true);
     try {
+      const barcode = form.barcode.trim();
       await onSave({
         productName:  form.productName.trim(),
-        sku:          form.sku.trim(),
+        // Keep barcode independent from Product ID; never substitute one for the other.
+        sku:          barcode,
         category:     form.category,
         buyingPrice:  Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
@@ -233,13 +237,24 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
         {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
+          <FormRow id="add-product-id" label="Product ID" icon={Tag}>
+            <Input
+              id="add-product-id"
+              value={form.productId}
+              readOnly
+              disabled
+              placeholder="Auto-assigned after save"
+              className="h-10 text-[13px] font-mono bg-muted/40"
+            />
+          </FormRow>
+
           <BarcodeInput
             mode="add"
-            initialBarcode={form.sku}
+            initialBarcode={form.barcode}
             autoFocus={isOpen}
             disabled={saving}
             inputId="add-product-barcode"
-            onBarcodeChange={(value) => set("sku", value)}
+            onBarcodeChange={(value) => set("barcode", value)}
           />
 
           {/* Product Name */}

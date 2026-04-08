@@ -21,17 +21,18 @@ export function BarcodeInput({
   disabled = false,
   inputId = "barcode",
 }: BarcodeInputProps) {
+  const SCANNER_INTER_KEY_MS = 50;
   const [barcode, setBarcode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const buffer = useRef("");
+  const lastKeyTime = useRef(Date.now());
 
   useEffect(() => {
-    const next = mode === "update" && initialBarcode ? initialBarcode.trim() : "";
-    setBarcode(next);
-    onBarcodeChange?.(next);
-    // Initialization must reflect real persisted scanner value only.
+    const next = initialBarcode?.trim() || "";
+    setBarcode((prev) => (prev === next ? prev : next));
+    // Initialization must reflect persisted barcode only, with empty fallback.
     // No generated/fallback barcode values are introduced here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, initialBarcode]);
+  }, [initialBarcode]);
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -39,6 +40,46 @@ export function BarcodeInput({
       return () => window.clearTimeout(timer);
     }
   }, [autoFocus]);
+
+  useEffect(() => {
+    if (disabled) return;
+
+    const handleGlobalScannerKeys = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === "Enter") {
+        const scannedValue = buffer.current;
+        if (scannedValue) {
+          handleBarcodeChange(scannedValue);
+          buffer.current = "";
+          lastKeyTime.current = Date.now();
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
+
+      if (e.key.length !== 1) return;
+
+      const now = Date.now();
+      const delta = now - lastKeyTime.current;
+
+      if (delta > SCANNER_INTER_KEY_MS) {
+        buffer.current = "";
+      }
+
+      buffer.current += e.key;
+      lastKeyTime.current = now;
+    };
+
+    window.addEventListener("keydown", handleGlobalScannerKeys, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalScannerKeys, true);
+      buffer.current = "";
+      lastKeyTime.current = Date.now();
+    };
+  }, [disabled]);
 
   const handleBarcodeChange = (value: string) => {
     // Capture exact scanner/keyboard payload as-is.
@@ -73,6 +114,7 @@ export function BarcodeInput({
             // Scanner usually sends Enter after the code; keep form from accidental submit.
             if (e.key === "Enter") {
               e.preventDefault();
+              e.stopPropagation();
             }
           }}
         />
