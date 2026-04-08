@@ -1029,11 +1029,9 @@ const InventoryStock = () => {
   // -- Filtered + Sorted Data (from /api/inventory/status -> inventoryItems only)
   const filtered = inventoryItems
     .filter(({ productName, category, sku }) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        productName.toLowerCase().includes(q) ||
-        category.toLowerCase().includes(q) ||
-        sku.toLowerCase().includes(q);
+      const suffix = search.trim();
+      const skuQuery = suffix ? `PI${suffix}`.toLowerCase() : "";
+      const matchesSearch = !skuQuery || (sku ?? "").toLowerCase().includes(skuQuery);
       const matchesCategory =
         !selectedCategory || category.toLowerCase() === selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
@@ -1220,15 +1218,13 @@ const InventoryStock = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
 
           {/* Search input */}
-          <div className="relative flex-1 min-w-0">
-            <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none"
-            />
-            <Input
+          <div className="flex-1 min-w-0">
+            <PiPrefixSearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, SKU or category..."
-              className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+              onChange={setSearch}
+              placeholder="00001"
+              onClear={() => setSearch("")}
+              className="h-10"
             />
           </div>
 
