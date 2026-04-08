@@ -291,8 +291,8 @@ const Index = () => {
       const currentIndex = activeBucketIndexRef.current;
       const activeItem = currentIndex >= 0 ? cartRef.current[currentIndex] : undefined;
 
-      // Global search focus shortcut.
-      if (!isInputFocused && e.key === "/") {
+      // Global search focus shortcut (Ctrl/Cmd+K).
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setKeyboardScope("grid");
         skuInputRef.current?.focus();
@@ -408,8 +408,14 @@ const Index = () => {
         }
       }
 
-      // [Esc] closes overlays first; otherwise clears basket when not typing.
+      // [Esc] blurs active input/textarea first, then falls back to overlay/cart behavior.
       if (e.key === "Escape") {
+        if (activeEl && ["INPUT", "TEXTAREA"].includes(activeEl.tagName)) {
+          e.preventDefault();
+          activeEl.blur();
+          return;
+        }
+
         if (showSuccessPopup) {
           e.preventDefault();
           setShowSuccessPopup(false);
