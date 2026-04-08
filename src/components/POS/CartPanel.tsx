@@ -354,7 +354,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
               </kbd>
             </div>
             <p className="hidden sm:flex items-center gap-1 text-[9px] text-muted-foreground/45 select-none">
-              <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">Alt+&#8593;&#8595;</kbd>
+              <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">Shift+&#8593;&#8595;</kbd>
               <span>select</span>
               <span className="mx-0.5">&middot;</span>
               <kbd className="rounded border border-border bg-secondary px-1 py-px font-mono text-[8px]">+&nbsp;-</kbd>

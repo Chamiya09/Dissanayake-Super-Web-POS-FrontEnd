@@ -50,11 +50,22 @@ export function ProductGrid({
   const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
 
   const filtered = useMemo(() => {
-    return productList.filter((p) => {
-      const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
-      const matchesCategory = activeCategory === "All" || p.category === activeCategory;
-      return matchesSearch && matchesCategory;
-    });
+    return productList
+      .filter((p) => {
+        const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
+        const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .map((product, index) => ({ product, index }))
+      .sort((a, b) => {
+        const aInStock = (a.product.stock ?? 0) > 0;
+        const bInStock = (b.product.stock ?? 0) > 0;
+
+        if (aInStock && !bInStock) return -1;
+        if (!aInStock && bInStock) return 1;
+        return a.index - b.index;
+      })
+      .map(({ product }) => product);
   }, [productList, skuQuery, activeCategory]);
 
   const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);

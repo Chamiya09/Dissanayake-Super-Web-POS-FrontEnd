@@ -288,11 +288,24 @@ const Index = () => {
       const activeEl = document.activeElement as HTMLElement | null;
       const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
 
-      // Route A: cart navigation first, then short-circuit.
-      if (!isInputFocused && e.altKey && e.key === "ArrowUp") {
+      const currentIndex = activeBucketIndexRef.current;
+      const activeItem = currentIndex >= 0 ? cartRef.current[currentIndex] : undefined;
+
+      // Global search focus shortcut.
+      if (!isInputFocused && e.key === "/") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        skuInputRef.current?.select();
+        return;
+      }
+
+      // Conflict-free cart navigation.
+      if (!isInputFocused && e.shiftKey && e.key === "ArrowUp") {
         e.preventDefault();
         setKeyboardScope("cart");
         setActiveBucketIndex((prev) => {
+          if (cartRef.current.length === 0) return -1;
           const next = prev <= 0 ? 0 : prev - 1;
           activeBucketIndexRef.current = next;
           return next;
@@ -300,10 +313,11 @@ const Index = () => {
         return;
       }
 
-      if (!isInputFocused && e.altKey && e.key === "ArrowDown") {
+      if (!isInputFocused && e.shiftKey && e.key === "ArrowDown") {
         e.preventDefault();
         setKeyboardScope("cart");
         setActiveBucketIndex((prev) => {
+          if (cartRef.current.length === 0) return -1;
           const maxIndex = Math.max(cartRef.current.length - 1, 0);
           const next = prev < 0 ? 0 : Math.min(prev + 1, maxIndex);
           activeBucketIndexRef.current = next;
@@ -349,8 +363,25 @@ const Index = () => {
 
       // Cart item actions (only when cart scope is active and not typing into inputs).
       if (!isInputFocused && keyboardScope === "cart") {
-        const cur = activeBucketIndexRef.current;
-        const activeItem = cur >= 0 ? cartRef.current[cur] : undefined;
+        const digitKey = /^[0-9]$/.test(e.key) ? Number(e.key) : null;
+        const digitCode = /^Numpad[0-9]$/.test(e.code) ? Number(e.code.replace("Numpad", "")) : null;
+        const quickQty = digitKey ?? digitCode;
+
+        if (quickQty !== null && activeItem) {
+          e.preventDefault();
+          if (quickQty === 0) {
+            removeItem(activeItem.product.id);
+            setActiveBucketIndex((prev) => {
+              const currentLength = cartRef.current.length;
+              const next = currentLength <= 1 ? -1 : Math.min(prev, currentLength - 2);
+              activeBucketIndexRef.current = next;
+              return next;
+            });
+          } else {
+            setQuantity(activeItem.product.id, quickQty);
+          }
+          return;
+        }
 
         if (e.key === "Delete" && activeItem) {
           e.preventDefault();
