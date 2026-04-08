@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
@@ -36,15 +36,18 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
+  const SCANNER_INTER_KEY_MS = 30;
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
+  const scannerBufferRef = useRef("");
+  const lastKeyTimeRef = useRef(0);
 
   useEffect(() => {
     if (isOpen && product) {
       setForm({
         productName: product.productName,
-        sku: product.sku ?? "",
+        sku: product.sku?.trim() || "",
         category: product.category,
         buyingPrice: String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
@@ -63,6 +66,45 @@ export function EditProductModal({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleScannerKeys = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === "Enter") {
+        const scannedValue = scannerBufferRef.current;
+        if (scannedValue) {
+          set("sku", scannedValue);
+          scannerBufferRef.current = "";
+          lastKeyTimeRef.current = 0;
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (e.key.length !== 1) return;
+
+      const now = Date.now();
+      const delta = now - lastKeyTimeRef.current;
+
+      if (delta < SCANNER_INTER_KEY_MS) {
+        scannerBufferRef.current += e.key;
+      } else {
+        scannerBufferRef.current = e.key;
+      }
+
+      lastKeyTimeRef.current = now;
+    };
+
+    window.addEventListener("keydown", handleScannerKeys, true);
+    return () => {
+      window.removeEventListener("keydown", handleScannerKeys, true);
+      scannerBufferRef.current = "";
+      lastKeyTimeRef.current = 0;
+    };
+  }, [isOpen]);
 
   const set = (field: keyof FormFields, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

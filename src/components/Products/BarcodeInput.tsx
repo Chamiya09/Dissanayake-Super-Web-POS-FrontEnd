@@ -27,6 +27,10 @@ export function BarcodeInput({
   useEffect(() => {
     const next = mode === "update" && initialBarcode ? initialBarcode.trim() : "";
     setBarcode(next);
+    onBarcodeChange?.(next);
+    // Initialization must reflect real persisted scanner value only.
+    // No generated/fallback barcode values are introduced here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, initialBarcode]);
 
   useEffect(() => {
@@ -37,6 +41,7 @@ export function BarcodeInput({
   }, [autoFocus]);
 
   const handleBarcodeChange = (value: string) => {
+    // Capture exact scanner/keyboard payload as-is.
     setBarcode(value);
     onBarcodeChange?.(value);
   };
