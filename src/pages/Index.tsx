@@ -281,8 +281,22 @@ const Index = () => {
   useEffect(() => {
     let scannerBuffer = "";
     let lastKeystrokeTime = 0;
+    let quantityBuffer = "";
+    let quantityBufferProductId: string | null = null;
+    let quantityBufferTimer: number | null = null;
     const interKeyThresholdMs = 50;
     const minBarcodeLength = 5;
+
+    const restartQuantityBufferTimer = () => {
+      if (quantityBufferTimer !== null) {
+        window.clearTimeout(quantityBufferTimer);
+      }
+      quantityBufferTimer = window.setTimeout(() => {
+        quantityBuffer = "";
+        quantityBufferProductId = null;
+        quantityBufferTimer = null;
+      }, 1200);
+    };
 
     const handler = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
@@ -363,23 +377,38 @@ const Index = () => {
 
       // Cart item actions (only when cart scope is active and not typing into inputs).
       if (!isInputFocused && keyboardScope === "cart") {
-        const digitKey = /^[0-9]$/.test(e.key) ? Number(e.key) : null;
-        const digitCode = /^Numpad[0-9]$/.test(e.code) ? Number(e.code.replace("Numpad", "")) : null;
-        const quickQty = digitKey ?? digitCode;
+        const digitKey = /^[0-9]$/.test(e.key) ? e.key : null;
+        const digitCode = /^Numpad[0-9]$/.test(e.code) ? e.code.replace("Numpad", "") : null;
+        const isDecimalKey = e.key === "." || e.code === "NumpadDecimal";
+        const isBackspaceKey = e.key === "Backspace";
 
-        if (quickQty !== null && activeItem) {
+        if ((digitKey !== null || digitCode !== null || isDecimalKey || isBackspaceKey) && activeItem) {
           e.preventDefault();
-          if (quickQty === 0) {
-            removeItem(activeItem.product.id);
-            setActiveBucketIndex((prev) => {
-              const currentLength = cartRef.current.length;
-              const next = currentLength <= 1 ? -1 : Math.min(prev, currentLength - 2);
-              activeBucketIndexRef.current = next;
-              return next;
-            });
-          } else {
-            setQuantity(activeItem.product.id, quickQty);
+
+          if (quantityBufferProductId !== activeItem.product.id) {
+            quantityBuffer = "";
+            quantityBufferProductId = activeItem.product.id;
           }
+
+          if (isBackspaceKey) {
+            quantityBuffer = quantityBuffer.slice(0, -1);
+          } else if (isDecimalKey) {
+            if (!quantityBuffer.includes(".")) {
+              quantityBuffer = quantityBuffer.length === 0 ? "0." : `${quantityBuffer}.`;
+            }
+          } else {
+            quantityBuffer += (digitKey ?? digitCode) as string;
+          }
+
+          // Avoid validating while user is mid-entry like "1.".
+          if (quantityBuffer.length > 0 && !quantityBuffer.endsWith(".")) {
+            const parsedQty = parseFloat(quantityBuffer);
+            if (!Number.isNaN(parsedQty) && parsedQty > 0) {
+              setQuantity(activeItem.product.id, parsedQty);
+            }
+          }
+
+          restartQuantityBufferTimer();
           return;
         }
 
@@ -469,7 +498,12 @@ const Index = () => {
     };
 
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      if (quantityBufferTimer !== null) {
+        window.clearTimeout(quantityBufferTimer);
+      }
+    };
   }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
