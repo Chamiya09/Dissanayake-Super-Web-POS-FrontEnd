@@ -157,11 +157,10 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   const validQty  = !isNaN(qtyNum) && qtyNum > 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
+  const productSearchQuery = productSearch.trim() ? `PI${productSearch.trim()}`.toLowerCase() : "";
 
   const filteredProducts = products.filter(
-    (p) =>
-      p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
-      p.sku.toLowerCase().includes(productSearch.toLowerCase())
+    (p) => !productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery)
   );
 
   // -- Handlers
@@ -317,15 +316,21 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   <div className="absolute z-20 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                     {/* Search bar inside dropdown */}
                     <div className="px-3 pt-3 pb-2 border-b border-slate-100">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      <div className="flex h-9 items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 focus-within:border-teal-600 focus-within:ring-1 focus-within:ring-teal-600/20">
+                        <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-100 px-2.5 text-[12px] font-semibold text-slate-600">
+                          PI
+                        </span>
                         <input
                           autoFocus
                           type="text"
                           value={productSearch}
-                          onChange={(e) => setProductSearch(e.target.value)}
-                          placeholder="Type name or SKU..."
-                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 text-[13px] text-slate-900 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/20"
+                          onChange={(e) => {
+                            const raw = e.target.value.trim();
+                            const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
+                            setProductSearch(normalized);
+                          }}
+                          placeholder="00001"
+                          className="h-full w-full bg-transparent px-3 text-[13px] text-slate-900 outline-none"
                         />
                       </div>
                     </div>

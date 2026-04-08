@@ -598,11 +598,12 @@ export default function LowStockAlerts() {
   }, [apiAlerts, contextAlerts]);
 
   const visibleAlerts = useMemo(() => {
+    const skuQuery = search.trim() ? `PI${search.trim()}`.toLowerCase() : "";
     return alertSource
       .filter((i) => statusFilter === "all" || i.stockStatus === statusFilter)
       .filter((i) => {
-        const q = search.trim().toLowerCase();
-        return !q || i.productName.toLowerCase().includes(q) || (i.category ?? "").toLowerCase().includes(q);
+        const sku = String(i.sku ?? i.productId ?? i.id ?? "").toLowerCase();
+        return !skuQuery || sku.includes(skuQuery);
       });
   }, [alertSource, statusFilter, search]);
 
@@ -748,14 +749,22 @@ export default function LowStockAlerts() {
           <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search by product or category…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white h-10 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
-                />
+                <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
+                  <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+                    PI
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="00001"
+                    value={search}
+                    onChange={(e) => {
+                      const raw = e.target.value.trim();
+                      const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
+                      setSearch(normalized);
+                    }}
+                    className="h-full w-full bg-transparent px-3 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">

@@ -236,7 +236,9 @@ const Index = () => {
   const handleSkuSearch = useCallback(
     async (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== "Enter") return;
-      await addProductBySku(skuQuery);
+      const suffix = skuQuery.trim();
+      if (!suffix) return;
+      await addProductBySku(`PI${suffix}`);
       setSkuQuery("");
       // Re-focus so the next barcode scan / manual entry is instant.
       skuInputRef.current?.focus();
@@ -326,18 +328,27 @@ const Index = () => {
           {/* ── SKU / Barcode Search Bar ── */}
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <input
-              ref={skuInputRef}
-              type="text"
-              value={skuQuery}
-              onChange={(e) => setSkuQuery(e.target.value)}
-              onKeyDown={handleSkuSearch}
-              placeholder="Scan barcode or type SKU and press Enter…"
-              className="flex-1 bg-transparent text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
-              autoFocus
-              autoComplete="off"
-              spellCheck={false}
-            />
+            <div className="flex h-10 flex-1 items-center overflow-hidden rounded-lg border border-border bg-background">
+              <span className="inline-flex h-full items-center border-r border-border bg-muted px-3 text-[13px] font-semibold text-muted-foreground">
+                PI
+              </span>
+              <input
+                ref={skuInputRef}
+                type="text"
+                value={skuQuery}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
+                  setSkuQuery(normalized);
+                }}
+                onKeyDown={handleSkuSearch}
+                placeholder="00001"
+                className="h-full flex-1 bg-transparent px-3 text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
             {skuQuery && (
               <button
                 onClick={() => { setSkuQuery(""); skuInputRef.current?.focus(); }}
