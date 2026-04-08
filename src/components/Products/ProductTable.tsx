@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import {
   Pencil,
   Trash2,
-  Search,
   X,
   Eye,
   Package,
@@ -139,7 +138,6 @@ export function ProductTable({
     <div className="mb-4 flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           {searchInput && (
             <button
               type="button"
@@ -149,13 +147,23 @@ export function ProductTable({
               <X size={16} />
             </button>
           )}
-          <Input
-            type="text"
-            value={searchInput}
-            onChange={(e) => onSearchInputChange(e.target.value)}
-            placeholder="Search by name, barcode, or category..."
-            className="h-10 rounded-xl border-slate-200 bg-white pl-10 text-sm placeholder:text-slate-400 focus-visible:ring-slate-300"
-          />
+
+          <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-slate-300">
+            <span className="inline-flex h-full items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+              PI
+            </span>
+            <Input
+              type="text"
+              value={searchInput}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                const normalized = raw.toUpperCase().startsWith("PI") ? raw.slice(2) : raw;
+                onSearchInputChange(normalized);
+              }}
+              placeholder="00001"
+              className="h-full border-0 rounded-none bg-transparent text-sm placeholder:text-slate-400 focus-visible:ring-0"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-500">

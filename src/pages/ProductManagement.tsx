@@ -103,7 +103,8 @@ export default function ProductManagement() {
   useEffect(() => {
     setIsSearching(true);
     const timer = window.setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
+      const typed = searchInput.trim();
+      setDebouncedSearch(typed ? `PI${typed}` : "");
       setPage(0);
       setIsSearching(false);
     }, 500);
