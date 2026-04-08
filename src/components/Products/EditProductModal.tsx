@@ -36,12 +36,12 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
-  const SCANNER_INTER_KEY_MS = 30;
+  const SCANNER_INTER_KEY_MS = 50;
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
-  const scannerBufferRef = useRef("");
-  const lastKeyTimeRef = useRef(0);
+  const buffer = useRef("");
+  const lastKeyTime = useRef(Date.now());
 
   useEffect(() => {
     if (isOpen && product) {
@@ -74,11 +74,11 @@ export function EditProductModal({
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key === "Enter") {
-        const scannedValue = scannerBufferRef.current;
+        const scannedValue = buffer.current;
         if (scannedValue) {
           set("sku", scannedValue);
-          scannerBufferRef.current = "";
-          lastKeyTimeRef.current = 0;
+          buffer.current = "";
+          lastKeyTime.current = Date.now();
           e.preventDefault();
         }
         return;
@@ -87,22 +87,22 @@ export function EditProductModal({
       if (e.key.length !== 1) return;
 
       const now = Date.now();
-      const delta = now - lastKeyTimeRef.current;
+      const delta = now - lastKeyTime.current;
 
-      if (delta < SCANNER_INTER_KEY_MS) {
-        scannerBufferRef.current += e.key;
-      } else {
-        scannerBufferRef.current = e.key;
+      // If keystrokes are too far apart, reset sequence before collecting again.
+      if (delta > SCANNER_INTER_KEY_MS) {
+        buffer.current = "";
       }
 
-      lastKeyTimeRef.current = now;
+      buffer.current += e.key;
+      lastKeyTime.current = now;
     };
 
     window.addEventListener("keydown", handleScannerKeys, true);
     return () => {
       window.removeEventListener("keydown", handleScannerKeys, true);
-      scannerBufferRef.current = "";
-      lastKeyTimeRef.current = 0;
+      buffer.current = "";
+      lastKeyTime.current = Date.now();
     };
   }, [isOpen]);
 
