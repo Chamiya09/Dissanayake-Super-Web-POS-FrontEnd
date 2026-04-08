@@ -20,6 +20,7 @@ interface CartPanelProps {
   onSetQuantity: (productId: string, value: number) => void;
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
+  activeBucketIndex?: number;
   /** Called with the final charged amount after a successful checkout */
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
   /** Enables cart keyboard shortcuts only when cart area is active. */
@@ -184,12 +185,11 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, onCheckout, keyboardActive = true }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, onCheckout, keyboardActive = true }: CartPanelProps) {
   const { confirm } = useConfirmDialog();
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [cartFocusedIdx, setCartFocusedIdx] = useState(-1);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   /* Loyalty state */
@@ -199,25 +199,9 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   const [loyaltyNotFound, setLoyaltyNotFound] = useState(false);
   const [redeemPoints, setRedeemPoints]     = useState(false);
 
-  /* Stable refs to avoid stale closures */
-  const cartFocusedIdxRef = useRef(cartFocusedIdx);
-  const cartItemsRef = useRef(items);
-  useEffect(() => { cartFocusedIdxRef.current = cartFocusedIdx; }, [cartFocusedIdx]);
-  useEffect(() => { cartItemsRef.current = items; });
-
-  useEffect(() => {
-    if (!keyboardActive) return;
-    if (items.length === 0) {
-      setCartFocusedIdx(-1);
-      return;
-    }
-    setCartFocusedIdx((cur) => (cur < 0 ? 0 : Math.min(cur, items.length - 1)));
-  }, [keyboardActive, items.length]);
-
   /* Reset focus + loyalty when cart empties */
   useEffect(() => {
     if (items.length === 0) {
-      setCartFocusedIdx(-1);
       setLoyaltyCustomer(null);
       setLoyaltyOpen(false);
       setLoyaltyInput("");
@@ -228,10 +212,10 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   /* Scroll focused row into view */
   useEffect(() => {
-    if (cartFocusedIdx >= 0) {
-      cartRowRefs.current[cartFocusedIdx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (activeBucketIndex >= 0 && keyboardActive) {
+      cartRowRefs.current[activeBucketIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
-  }, [cartFocusedIdx]);
+  }, [activeBucketIndex, keyboardActive]);
 
   /*  Totals  */
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
@@ -291,68 +275,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     if (found) { setLoyaltyCustomer(found); setLoyaltyNotFound(false); }
     else setLoyaltyNotFound(true);
   }, [loyaltyInput]);
-
-  /* [Space] -> trigger charge when not typing */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (paymentModalOpen) return;
-
-      if (
-        e.code === "Space" &&
-        !(e.target instanceof HTMLInputElement) &&
-        !(e.target instanceof HTMLTextAreaElement) &&
-        items.length > 0 &&
-        !processing
-      ) {
-        e.preventDefault();
-        handlePayment();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [items.length, processing, handlePayment, paymentModalOpen]);
-
-  /* Cart keyboard navigation: Alt+Up/Down move, -/+ qty, Delete remove */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (paymentModalOpen) return;
-      if (!keyboardActive) return;
-
-      const cur    = cartFocusedIdxRef.current;
-      const cItems = cartItemsRef.current;
-
-      if (e.altKey && e.key === "ArrowDown") {
-        e.preventDefault();
-        setCartFocusedIdx(cur < 0 ? 0 : Math.min(cur + 1, cItems.length - 1));
-        return;
-      }
-
-      if (e.altKey && e.key === "ArrowUp") {
-        e.preventDefault();
-        setCartFocusedIdx(cur <= 0 ? 0 : cur - 1);
-        return;
-      }
-
-      const isInInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
-      if (isInInput) return;
-
-      if (!e.altKey && (e.key === "-" || e.key === "_") && cur >= 0 && cItems[cur]) {
-        e.preventDefault();
-        onUpdateQuantity(cItems[cur].product.id, -1);
-      } else if (!e.altKey && (e.key === "+" || e.key === "=") && cur >= 0 && cItems[cur]) {
-        e.preventDefault();
-        onUpdateQuantity(cItems[cur].product.id, 1);
-      } else if (e.key === "Delete" && cur >= 0 && cItems[cur]) {
-        e.preventDefault();
-        onRemoveItem(cItems[cur].product.id);
-        setCartFocusedIdx(Math.min(cur, cItems.length - 2));
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [keyboardActive, onUpdateQuantity, onRemoveItem, paymentModalOpen]);
 
   const categoryEmoji: Record<string, string> = {
     "Auto Care": "🚗",
@@ -457,7 +379,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 onSetQuantity={onSetQuantity}
                 onRemoveItem={onRemoveItem}
                 highlight={highlightId === item.product.id}
-                focused={keyboardActive && cartFocusedIdx === idx}
+                focused={keyboardActive && activeBucketIndex === idx}
                 emoji={categoryEmoji[item.product.category] ?? "📦"}
               />
             </div>

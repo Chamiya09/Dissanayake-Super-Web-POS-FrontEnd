@@ -7,7 +7,6 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
-import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
 import type { Product, CartItem } from "@/data/products";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
@@ -82,10 +81,13 @@ const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [activeBucketIndex, setActiveBucketIndex] = useState(-1);
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
+  const activeBucketIndexRef = useRef(-1);
+  const cartRef = useRef<CartItem[]>([]);
 
   /* ── Live inventory data from shared context ── */
   const { inventoryItems, refreshInventory } = useInventory();
@@ -247,26 +249,59 @@ const Index = () => {
     [addProductBySku, skuQuery],
   );
 
-  useGlobalBarcodeScanner({
-    enabled: true,
-    interKeyThresholdMs: 50,
-    minBarcodeLength: 5,
-    onScan: (barcode) => {
-      handleScannedBarcode(barcode);
-      void addProductBySku(barcode);
-      setSkuQuery("");
-      skuInputRef.current?.focus();
-    },
-  });
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  useEffect(() => {
+    activeBucketIndexRef.current = activeBucketIndex;
+  }, [activeBucketIndex]);
+
+  useEffect(() => {
+    if (cart.length === 0) {
+      setActiveBucketIndex(-1);
+      return;
+    }
+    setActiveBucketIndex((idx) => (idx < 0 ? 0 : Math.min(idx, cart.length - 1)));
+  }, [cart.length]);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
-  // Global POS shortcuts: F2 focus scanner input, Alt+1/Alt+2 switch keyboard scope.
+  // Unified global keyboard manager: scope control, cart navigation, and barcode scanning.
   useEffect(() => {
+    let scannerBuffer = "";
+    let lastKeystrokeTime = 0;
+    const interKeyThresholdMs = 50;
+    const minBarcodeLength = 5;
+
     const handler = (e: KeyboardEvent) => {
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
+
+      // Route A: cart navigation first, then short-circuit.
+      if (e.altKey && e.key === "ArrowUp") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        setActiveBucketIndex((idx) => {
+          const next = idx <= 0 ? 0 : idx - 1;
+          activeBucketIndexRef.current = next;
+          return next;
+        });
+        return;
+      }
+
+      if (e.altKey && e.key === "ArrowDown") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        setActiveBucketIndex((idx) => {
+          const maxIndex = Math.max(cartRef.current.length - 1, 0);
+          const next = idx < 0 ? 0 : Math.min(idx + 1, maxIndex);
+          activeBucketIndexRef.current = next;
+          return next;
+        });
+        return;
+      }
 
       if (e.key === "F2") {
         e.preventDefault();
@@ -286,6 +321,9 @@ const Index = () => {
       if (e.altKey && e.key === "2") {
         e.preventDefault();
         setKeyboardScope("cart");
+        if (cartRef.current.length > 0 && activeBucketIndexRef.current < 0) {
+          setActiveBucketIndex(0);
+        }
         return;
       }
 
@@ -308,11 +346,44 @@ const Index = () => {
           setCart([]);
         }
       }
+
+      // Route B: scanner input (ignore modifier combinations entirely).
+      if (e.ctrlKey || e.altKey || e.metaKey) {
+        return;
+      }
+
+      if (e.isComposing) return;
+
+      if (e.key === "Enter") {
+        const barcode = scannerBuffer.trim();
+        if (barcode.length >= minBarcodeLength) {
+          e.preventDefault();
+          handleScannedBarcode(barcode);
+          void addProductBySku(barcode);
+          setSkuQuery("");
+          skuInputRef.current?.focus();
+        }
+        scannerBuffer = "";
+        lastKeystrokeTime = 0;
+        return;
+      }
+
+      if (e.key.length !== 1) {
+        return;
+      }
+
+      const now = performance.now();
+      if (lastKeystrokeTime > 0 && now - lastKeystrokeTime > interKeyThresholdMs) {
+        scannerBuffer = "";
+      }
+
+      scannerBuffer += e.key;
+      lastKeystrokeTime = now;
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [cart.length, cartOpen, showSuccessPopup]);
+  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, showSuccessPopup]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -366,6 +437,7 @@ const Index = () => {
             onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            activeBucketIndex={activeBucketIndex}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />
@@ -410,6 +482,7 @@ const Index = () => {
             onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            activeBucketIndex={activeBucketIndex}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />
