@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
-  ScanLine,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
+import { BarcodeInput } from "@/components/Products/BarcodeInput";
 import type { Product } from "@/data/product-management";
 import {
   FormRow,
@@ -25,16 +23,11 @@ import {
 } from "@/components/Products/AddProductModal";
 import type { FormFields } from "@/components/Products/AddProductModal";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   EditProductModal
-   Mirrors AddProductModal structure exactly — same overlay, panel, header,
-   input sizing, error colours, and footer button styles.
-   ───────────────────────────────────────────────────────────────────────── */
 export interface EditProductModalProps {
-  isOpen:  boolean;
+  isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onSave:  (updated: Product) => void;
+  onSave: (updated: Product) => void;
 }
 
 export function EditProductModal({
@@ -43,51 +36,30 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
-  const [form,   setForm]   = useState<FormFields>(EMPTY_FORM);
+  const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
-  const [scanStatus, setScanStatus] = useState<"idle" | "captured">("idle");
-  const barcodeRef = useRef<HTMLInputElement>(null);
 
-  /* Pre-fill form fields whenever a product is targeted */
   useEffect(() => {
     if (isOpen && product) {
       setForm({
-        productName:  product.productName,
-        sku:          product.sku ?? "",
-        category:     product.category,
-        buyingPrice:  String(product.buyingPrice),
+        productName: product.productName,
+        sku: product.sku ?? "",
+        category: product.category,
+        buyingPrice: String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
-        unit:         product.unit ?? "",
+        unit: product.unit ?? "",
       });
       setErrors({});
       setSaving(false);
-      setScanStatus("idle");
     }
   }, [isOpen, product]);
 
-  const applyScannedBarcode = useCallback((rawCode: string) => {
-    const code = rawCode.trim();
-    if (!code) return;
-    setForm((prev) => ({ ...prev, sku: code }));
-    setErrors((prev) => ({ ...prev, sku: undefined }));
-    setScanStatus("captured");
-  }, []);
-
-  useGlobalBarcodeScanner({
-    enabled: isOpen,
-    interKeyThresholdMs: 50,
-    minBarcodeLength: 5,
-    onScan: (barcode) => {
-      applyScannedBarcode(barcode);
-      setTimeout(() => barcodeRef.current?.focus(), 0);
-    },
-  });
-
-  /* Close on Escape */
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
@@ -99,21 +71,25 @@ export function EditProductModal({
 
   const handleSave = async () => {
     const err = validateForm(form);
-    if (Object.keys(err).length) { setErrors(err); return; }
+    if (Object.keys(err).length) {
+      setErrors(err);
+      return;
+    }
     if (!product) return;
+
     setSaving(true);
     try {
       await onSave({
-        id:           product.id,
-        productName:  form.productName.trim(),
-        sku:          form.sku.trim(),
-        category:     form.category,
-        buyingPrice:  Number(form.buyingPrice),
+        id: product.id,
+        productName: form.productName.trim(),
+        sku: form.sku.trim(),
+        category: form.category,
+        buyingPrice: Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
-        unit:         form.unit || undefined,
+        unit: form.unit || undefined,
       });
       onClose();
-    } catch (e) {
+    } catch {
       // Handled by parent
     } finally {
       if (isOpen) setSaving(false);
@@ -123,48 +99,39 @@ export function EditProductModal({
   if (!isOpen || !product) return null;
 
   return (
-    /* ── Backdrop ── */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       aria-modal="true"
       role="dialog"
       aria-labelledby="edit-product-title"
     >
-      {/* Dimmed overlay */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* ── Panel ── */}
       <div
         className={cn(
           "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
-        {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
               <Package size={20} />
             </div>
             <div>
-              <h2
-                id="edit-product-title"
-                className="text-base font-bold text-slate-800 leading-tight"
-              >
+              <h2 id="edit-product-title" className="text-base font-bold text-slate-800 leading-tight">
                 Edit Product
               </h2>
               <p className="text-[12px] text-sm text-slate-500 mt-1">
-                Update details for{" "}
-                <span className="font-semibold text-slate-700">{product.productName}</span>.
+                Update details for <span className="font-semibold text-slate-700">{product.productName}</span>.
               </p>
             </div>
           </div>
 
-          {/* Close button */}
           <button
             onClick={onClose}
             aria-label="Close modal"
@@ -174,10 +141,7 @@ export function EditProductModal({
           </button>
         </div>
 
-        {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
-
-          {/* Product Name — full width */}
           <FormRow id="edit-productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
             <Input
               id="edit-productName"
@@ -191,45 +155,15 @@ export function EditProductModal({
             />
           </FormRow>
 
-          {/* Barcode */}
-          <FormRow id="edit-barcode" label="Barcode" icon={ScanLine} error={errors.sku}>
-            <div className="relative">
-              <Input
-                ref={barcodeRef}
-                id="edit-barcode"
-                value={form.sku}
-                onChange={(e) => {
-                  set("sku", e.target.value);
-                  if (!e.target.value) {
-                    setScanStatus("idle");
-                  }
-                }}
-                placeholder="Scan barcode or type manually"
-                className={cn(
-                  "h-10 text-[13px] font-mono pr-9",
-                  scanStatus === "captured" && "border-emerald-500 focus-visible:ring-emerald-400",
-                  errors.sku && "border-red-400 focus-visible:ring-red-400"
-                )}
-                autoComplete="off"
-              />
-              {!!form.sku && (
-                <button
-                  type="button"
-                  aria-label="Clear barcode"
-                  onClick={() => {
-                    set("sku", "");
-                    setScanStatus("idle");
-                    barcodeRef.current?.focus();
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </FormRow>
+          <BarcodeInput
+            mode="update"
+            initialBarcode={form.sku}
+            autoFocus={isOpen}
+            disabled={saving}
+            inputId="edit-product-barcode"
+            onBarcodeChange={(value) => set("sku", value)}
+          />
 
-          {/* Category — side by side on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-category" label="Category" icon={Layers} error={errors.category}>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
@@ -270,7 +204,6 @@ export function EditProductModal({
             </FormRow>
           </div>
 
-          {/* Buying Price  +  Selling Price — side by side on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
@@ -314,10 +247,8 @@ export function EditProductModal({
               </div>
             </FormRow>
           </div>
-
         </div>
 
-        {/* ── Footer ── */}
         <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
           <button
             type="button"
