@@ -3,7 +3,8 @@
 export interface Product {
   id:             number;   // backend Long — maps to numeric JSON id
   productName:    string;
-  sku:            string;   // barcode
+  sku?:           string | null;   // Product ID (manual SKU, e.g. PI00001)
+  barcode?:       string | null;   // Physical barcode string from scanner
   category:       string;
   buyingPrice:    number;
   sellingPrice:   number;

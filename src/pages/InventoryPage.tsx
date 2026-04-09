@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import {
-  Search,
   Plus,
   Pencil,
   Trash2,
@@ -16,6 +16,7 @@ import {
 const MOCK_INVENTORY = [
   {
     id: 1,
+    sku: "PI00001",
     name: "Wireless Mouse",
     category: "Peripherals",
     price: 29.99,
@@ -27,6 +28,7 @@ const MOCK_INVENTORY = [
   },
   {
     id: 2,
+    sku: "PI00002",
     name: "Mechanical Keyboard",
     category: "Peripherals",
     price: 89.99,
@@ -38,6 +40,7 @@ const MOCK_INVENTORY = [
   },
   {
     id: 3,
+    sku: "PI00003",
     name: "USB-C Hub 7-in-1",
     category: "Accessories",
     price: 49.99,
@@ -49,6 +52,7 @@ const MOCK_INVENTORY = [
   },
   {
     id: 4,
+    sku: "PI00004",
     name: '27" IPS Monitor',
     category: "Displays",
     price: 319.99,
@@ -60,6 +64,7 @@ const MOCK_INVENTORY = [
   },
   {
     id: 5,
+    sku: "PI00005",
     name: "Noise Cancelling Headset",
     category: "Audio",
     price: 129.99,
@@ -81,12 +86,9 @@ const InventoryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredInventory = MOCK_INVENTORY.filter((item) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.status.toLowerCase().includes(q)
-    );
+    const suffix = searchQuery.trim();
+    const skuQuery = suffix ? `PI${suffix}`.toLowerCase() : "";
+    return !skuQuery || item.sku.toLowerCase().includes(skuQuery);
   });
 
   return (
@@ -104,25 +106,13 @@ const InventoryPage = () => {
       {/* Search & Action Bar */}
       <div className="flex items-center justify-between gap-4 mb-8">
         {/* Search Input */}
-        <div className="relative w-1/2">
-          <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-          />
-          <input
-            type="text"
+        <div className="w-1/2">
+          <PiPrefixSearchInput
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search products by name, SKU or category..."
-            className="
-              w-full rounded-xl border border-slate-200 bg-white shadow-sm
-              pl-10 pr-4 py-2.5 h-10
-              text-[13px] text-slate-900
-              placeholder:text-slate-400
-              outline-none
-              focus:ring-2 focus:ring-teal-600/20
-              focus:border-teal-600 focus:outline-none
-              transition-all duration-200
-            "
+            onChange={setSearchQuery}
+            placeholder="00001"
+            onClear={() => setSearchQuery("")}
+            className="h-10"
           />
         </div>
 

@@ -68,6 +68,7 @@ export default function ReturnSaleItemsModal({
   if (!isOpen || !saleData) return null;
 
   const hasReturnableItems = returnableRows.length > 0;
+  const transactionId = saleData.transactionId ?? saleData.receiptNo ?? saleData.id;
 
   const handleQtyChange = (saleItemId, value) => {
     setReturnInputs((prev) => ({ ...prev, [saleItemId]: value }));
@@ -126,7 +127,7 @@ export default function ReturnSaleItemsModal({
                 Return Selected Items
               </h2>
               <p className="text-sm text-slate-500">
-                Receipt <span className="font-mono font-semibold text-slate-900">{saleData.receiptNo}</span>
+                Transaction <span className="font-mono font-semibold text-slate-900">{transactionId}</span>
               </p>
             </div>
           </div>

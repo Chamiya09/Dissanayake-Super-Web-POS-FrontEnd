@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/GlobalToastContext";
 import type { Supplier } from "@/data/suppliers";
 
 interface EditSupplierModalProps {
@@ -50,6 +51,7 @@ function FormRow({
 }
 
 export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSupplierModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FormFields>({
     companyName: "",
     contactPerson: "",
@@ -112,6 +114,12 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
       newErrors.leadTime = "Enter a valid number of days (≥ 1).";
     }
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -131,7 +139,9 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
       });
       onClose();
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : "Failed to update supplier.");
+      const message = err instanceof Error ? err.message : "Failed to update supplier.";
+      setApiError(message);
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }

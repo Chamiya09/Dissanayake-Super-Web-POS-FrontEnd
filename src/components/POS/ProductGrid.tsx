@@ -6,7 +6,6 @@ import {
   ShoppingBag, Apple, Milk, Coffee, Wheat, Cookie, Beef, Leaf,
   Flame, Tag, Sparkles, PackageX,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { categories as staticCategories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
@@ -16,13 +15,21 @@ interface ProductGridProps {
   products?: Product[];
   /** Enables keyboard navigation only when the product area is active. */
   keyboardActive?: boolean;
+  /** Shared SKU search suffix from POS checkout search input. */
+  searchSuffix?: string;
 }
 
-export function ProductGrid({ onAddToCart, products: externalProducts, keyboardActive = true }: ProductGridProps) {
+export function ProductGrid({
+  onAddToCart,
+  products: externalProducts,
+  keyboardActive = true,
+  searchSuffix = "",
+}: ProductGridProps) {
   const productList = externalProducts ?? staticProducts;
-  const [search, setSearch] = useState("");
+  const PAGE_SIZE = 24;
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categoryOptions = useMemo(() => {
     if (externalProducts && externalProducts.length > 0) {
@@ -40,11 +47,29 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
     }
   }, [categoryOptions, activeCategory]);
 
-  const filtered = productList.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === "All" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
+
+  const filtered = useMemo(() => {
+    return productList
+      .filter((p) => {
+        const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
+        const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .map((product, index) => ({ product, index }))
+      .sort((a, b) => {
+        const aInStock = (a.product.stock ?? 0) > 0;
+        const bInStock = (b.product.stock ?? 0) > 0;
+
+        if (aInStock && !bInStock) return -1;
+        if (!aInStock && bInStock) return 1;
+        return a.index - b.index;
+      })
+      .map(({ product }) => product);
+  }, [productList, skuQuery, activeCategory]);
+
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   const categoryIcon: Record<string, LucideIcon> = {
     All: ShoppingBag,
@@ -99,19 +124,21 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
   }, []);
 
   const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
-  const isSearching = search.trim().length > 0;
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const isSearching = searchSuffix.trim().length > 0;
   const gridRef   = useRef<HTMLDivElement>(null);
   const cardRefs  = useRef<(HTMLDivElement | null)[]>([]);
 
   // Keep stable refs for use inside event handlers (avoid stale closures)
   const focusedIdxRef = useRef(focusedIndex);
-  const filteredRef   = useRef(filtered);
+  const filteredRef   = useRef(visibleProducts);
   useEffect(() => { focusedIdxRef.current = focusedIndex; }, [focusedIndex]);
-  useEffect(() => { filteredRef.current   = filtered;     });
+  useEffect(() => { filteredRef.current   = visibleProducts; }, [visibleProducts]);
 
   // Reset keyboard focus when the visible list changes
-  useEffect(() => { setFocusedIndex(-1); }, [search, activeCategory]);
+  useEffect(() => {
+    setFocusedIndex(-1);
+    setVisibleCount(PAGE_SIZE);
+  }, [searchSuffix, activeCategory]);
 
   // Scroll focused card into view
   useEffect(() => {
@@ -131,25 +158,12 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
     const handler = (e: KeyboardEvent) => {
       if (!keyboardActive) return;
 
+      // Let global POS shortcuts (e.g., Alt+Arrow cart navigation) pass through.
+      if (e.altKey) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-
-      // F1 → focus search
-      if (e.key === "F1") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
-        return;
-      }
-
-      // ArrowDown from search box → jump to first grid card
-      if (e.key === "ArrowDown" && isInInput) {
-        e.preventDefault();
-        (e.target as HTMLElement).blur();
-        setFocusedIndex(0);
-        return;
-      }
 
       if (isInInput) return; // let the search input handle other keys normally
 
@@ -188,22 +202,6 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* â”€â”€ Search bar â”€â”€ */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search products or scan barcode&hellip;"
-          ref={inputRef}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 rounded-lg border border-border bg-card pl-10 pr-12 text-sm shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 pointer-events-none select-none">
-          F1
-        </kbd>
-      </div>
-
 
       {/* Category pills - slides away while searching */}
       <div
@@ -253,7 +251,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
 
       {/* â”€â”€ Product grid â”€â”€ */}
       <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((product, idx) => {
+        {visibleProducts.map((product, idx) => {
           const outOfStock = product.stock === 0;
           const { label: stockLabel, cls: stockCls } = stockBadge(product.stock);
           const salePrice = product.discount
@@ -392,6 +390,18 @@ export function ProductGrid({ onAddToCart, products: externalProducts, keyboardA
           </div>
         )}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </div>
   );
 }

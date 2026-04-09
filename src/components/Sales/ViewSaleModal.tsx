@@ -9,6 +9,7 @@ const Dash = () => (
 
 export default function ViewSaleModal({ isOpen, onClose, saleData }) {
   if (!isOpen || !saleData) return null;
+  const transactionId = saleData.transactionId ?? saleData.receiptNo ?? saleData.id;
 
   const formatDateTime = (iso) => {
     const d = new Date(iso);
@@ -41,7 +42,7 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Sale Receipt</h2>
-              <p className="text-[11px] text-slate-500 font-medium">{saleData.id}</p>
+              <p className="text-[11px] text-slate-500 font-medium">{transactionId}</p>
             </div>
           </div>
           <button
@@ -72,7 +73,7 @@ export default function ViewSaleModal({ isOpen, onClose, saleData }) {
 
             {/* Receipt metadata */}
             <div className="space-y-0.5 text-[12px]">
-              <MetaRow label="Receipt No" value={saleData.id} bold />
+              <MetaRow label="Transaction ID" value={transactionId} bold />
               <MetaRow label="Date"       value={date} />
               <MetaRow label="Time"       value={time} />
               <MetaRow

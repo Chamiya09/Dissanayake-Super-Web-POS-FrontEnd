@@ -2,9 +2,12 @@
 import { AppHeader } from "@/components/Layout/AppHeader";
 import api from "@/lib/axiosInstance";
 import { inventoryApi } from "@/api/inventoryApi";
+import { createOrder } from "@/api/reorderApi";
 import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import { useInventory } from "@/context/InventoryContext";
+import { useForecastMap } from "@/hooks/useForecast";
 import { InventoryAnalyticsCards } from "@/components/Inventory/InventoryAnalyticsCards";
 import { ImportInventoryCsvModal } from "@/components/Inventory/ImportInventoryCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
@@ -152,14 +155,13 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
-  const validQty  = !isNaN(qtyNum) && qtyNum !== 0;
+  const validQty  = !isNaN(qtyNum) && qtyNum > 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
+  const productSearchQuery = productSearch.trim() ? `PI${productSearch.trim()}`.toLowerCase() : "";
 
   const filteredProducts = products.filter(
-    (p) =>
-      p.productName.toLowerCase().includes(productSearch.toLowerCase()) ||
-      p.sku.toLowerCase().includes(productSearch.toLowerCase())
+    (p) => !productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery)
   );
 
   // -- Handlers
@@ -174,7 +176,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     e.preventDefault();
     const errs = {};
     if (!selectedId)  errs.product = "Please select a product.";
-    if (!validQty)    errs.qty     = "Enter a non-zero quantity (positive to add, negative to remove).";
+    if (!validQty)    errs.qty     = "Enter a quantity greater than zero.";
     if (belowZero)    errs.qty     = "Stock cannot be less than zero.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -182,14 +184,16 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setSubmitting(true);
     setApiError(null);
     try {
-      await api.put(`/api/inventory/add-stock/${selectedId}`, { quantity: qtyNum });
+      const payload = { quantity: Number(qtyNum) };
+      console.log("Restock Payload:", { product_id: selectedId, ...payload });
+      await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
       handleClose();
-        onStockUpdated?.();
-        showToast("Stock updated successfully!", "success");
+      await onStockUpdated?.();
+      showToast("Stock updated successfully!", "success");
     } catch (err) {
       const msg = err.response?.data?.message ?? "Something went wrong. Please try again.";
       setApiError(msg);
-        showToast(msg, "error");
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -313,17 +317,14 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                   <div className="absolute z-20 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                     {/* Search bar inside dropdown */}
                     <div className="px-3 pt-3 pb-2 border-b border-slate-100">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                        <input
-                          autoFocus
-                          type="text"
-                          value={productSearch}
-                          onChange={(e) => setProductSearch(e.target.value)}
-                          placeholder="Type name or SKU..."
-                          className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 text-[13px] text-slate-900 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/20"
-                        />
-                      </div>
+                      <PiPrefixSearchInput
+                        value={productSearch}
+                        onChange={setProductSearch}
+                        placeholder="00001"
+                        autoFocus
+                        onClear={() => setProductSearch("")}
+                        className="h-9 rounded-lg shadow-none"
+                      />
                     </div>
 
                     {/* Options */}
@@ -420,7 +421,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {/* -- Step 3 ┬╖ Quantity to Add ------------------------- */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Quantity to Adjust <span className="text-red-500 normal-case tracking-normal">*</span>
+                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <div className="relative">
                 <Hash
@@ -429,19 +430,20 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 <input
                   type="number"
                   step="any"
+                  min="0.001"
                   value={qtyToAdd}
                   onChange={(e) => {
                     setQtyToAdd(e.target.value);
                     if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
                   }}
-                  placeholder="e.g. 50 or -5"
+                  placeholder="e.g. 1.5"
                   className={`${inputBase} pl-9 ${
                     errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
                   }`}
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Use a negative number (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">-5</code>) to reduce stock.
+                Decimal quantities are supported (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">1.5</code> Kg, <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">2.25</code> L).
               </p>
               {errors.qty && (
                 <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
@@ -454,15 +456,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             {/* -- Step 4 ┬╖ New Total Preview ----------------------- */}
             {(() => {
               // Determine colour theme based on result
-              const theme = belowZero
-                ? { card: "bg-red-50 border-red-200",
-                    total: "text-red-700",
-                    badge: "text-red-700 bg-red-100/50" }
-                : validQty && qtyNum < 0
-                ? { card: "bg-amber-50 border-amber-200",
-                    total: "text-amber-700",
-                    badge: "text-amber-700 bg-amber-100/50" }
-                : newTotal !== null
+                const theme = newTotal !== null
                 ? { card: "bg-emerald-50 border-emerald-200",
                     total: "text-emerald-700",
                     badge: "text-emerald-700 bg-emerald-100/50" }
@@ -487,20 +481,16 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
                     {/* Operator */}
                     <span className="text-xl font-light text-slate-400 pb-3">
-                      {validQty && qtyNum < 0 ? "-" : "+"}
+                      +
                     </span>
 
                     {/* Quantity */}
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className={`text-2xl font-bold tabular-nums ${
-                        validQty && qtyNum < 0
-                          ? "text-red-600"
-                          : "text-slate-800"
-                      }`}>
-                        {validQty ? Math.abs(qtyNum) : "-"}
+                      <span className="text-2xl font-bold tabular-nums text-slate-800">
+                        {validQty ? qtyNum : "-"}
                       </span>
                       <span className="text-[10px] uppercase tracking-widest text-slate-500">
-                        {validQty && qtyNum < 0 ? "Removing" : "Adding"}
+                        Adding
                       </span>
                     </div>
 
@@ -844,6 +834,7 @@ const COLUMNS = [
   { key: "category", label: "Category", sortable: true },
   { key: "price", label: "Price", sortable: true },
   { key: "quantity", label: "Quantity", sortable: true },
+  { key: "predictedDemand", label: "Predicted Demand (Next Month)", sortable: true },
   { key: "status", label: "Status", sortable: true },
   { key: "actions", label: "Actions & AI Insights", sortable: false },
 ];
@@ -869,7 +860,54 @@ const InventoryStock = () => {
   const [deleting,       setDeleting]       = useState(false);
   const [logs,           setLogs]           = useState([]);
 
+  const monthlyForecastQuery = useForecastMap(
+    inventoryItems.map((item) => item.sku ?? item.productId),
+    "monthly",
+  );
+  const forecastMap = monthlyForecastQuery.data ?? {};
+
   const { refreshInventory } = useInventory();
+
+  const handleAiReorder = async (item, predictedDemand) => {
+    const qty = Math.max(1, Math.ceil((predictedDemand ?? 0) - (item.stockQuantity ?? 0)));
+    const timeframe = "monthly";
+
+    if (!item?.supplierEmail) {
+      showToast("Supplier email is missing for this product. Assign a supplier before placing an order.", "error");
+      return;
+    }
+
+    const payload = {
+      product_id: item.productId,
+      quantity: qty,
+      timeframe,
+    };
+    console.log("Order Payload:", payload);
+
+    const orderRef = `PO-${Date.now()}`;
+    const dto = {
+      orderRef,
+      supplierEmail: item.supplierEmail,
+      items: [
+        {
+          productName: item.productName,
+          productId: item.productId ?? null,
+          quantity: qty,
+          unitPrice: Number(item.sellingPrice ?? 0),
+        },
+      ],
+      timeframe,
+      aiOrderPayload: payload,
+    };
+
+    try {
+      await createOrder(dto);
+      showToast(`Order placed for ${qty} ${item.unit ?? "units"}!`, "success");
+    } catch (error) {
+      const msg = error?.response?.data?.message ?? "Failed to place reorder.";
+      showToast(msg, "error");
+    }
+  };
 
   // -- Fetch all products (for AddStockModal dropdown)
   const fetchProducts = () =>
@@ -991,18 +1029,21 @@ const InventoryStock = () => {
   // -- Filtered + Sorted Data (from /api/inventory/status -> inventoryItems only)
   const filtered = inventoryItems
     .filter(({ productName, category, sku }) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        productName.toLowerCase().includes(q) ||
-        category.toLowerCase().includes(q) ||
-        sku.toLowerCase().includes(q);
+      const suffix = search.trim();
+      const skuQuery = suffix ? `PI${suffix}`.toLowerCase() : "";
+      const matchesSearch = !skuQuery || (sku ?? "").toLowerCase().includes(skuQuery);
       const matchesCategory =
         !selectedCategory || category.toLowerCase() === selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
     })
+    .map((item) => ({
+      ...item,
+      predictedDemand:
+        forecastMap[String(item.sku ?? item.productId ?? "").trim()]?.predictedDemand ?? null,
+    }))
     .sort((a, b) => {
-      const valA = a[sortKey];
-      const valB = b[sortKey];
+      const valA = sortKey === "predictedDemand" ? (a.predictedDemand ?? -1) : a[sortKey];
+      const valB = sortKey === "predictedDemand" ? (b.predictedDemand ?? -1) : b[sortKey];
       const cmp  = typeof valA === "string" ? valA.localeCompare(valB) : valA - valB;
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -1074,7 +1115,7 @@ const InventoryStock = () => {
       <AddStockModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        products={availableProducts}
+        products={products}
         inventoryItems={inventoryItems}
         onStockUpdated={refreshAll}
       />
@@ -1177,15 +1218,13 @@ const InventoryStock = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
 
           {/* Search input */}
-          <div className="relative flex-1 min-w-0">
-            <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none"
-            />
-            <Input
+          <div className="flex-1 min-w-0">
+            <PiPrefixSearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, SKU or category..."
-              className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+              onChange={setSearch}
+              placeholder="00001"
+              onClear={() => setSearch("")}
+              className="h-10"
             />
           </div>
 
@@ -1220,6 +1259,13 @@ const InventoryStock = () => {
         </div>
 
         <div className="overflow-x-auto flex-1">
+          {monthlyForecastQuery.isError && (
+            <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm font-semibold text-amber-800">
+                AI Engine Offline. Please start the backend server.
+              </p>
+            </div>
+          )}
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="border-b border-slate-100 sticky top-0 z-10 bg-white">
               <tr>
@@ -1244,7 +1290,7 @@ const InventoryStock = () => {
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-20 text-center">
+                <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-2 text-slate-400">
                     <Package size={36} strokeWidth={1.2} />
                     <p className="text-sm font-medium">No products match your search</p>
@@ -1258,6 +1304,11 @@ const InventoryStock = () => {
                 const status   = deriveStatus(qty, reorder);
                 const isLow    = status !== "In Stock";
                 const isWarning = qty < 10;
+                const predictedDemand = item.predictedDemand;
+                const hasForecast = typeof predictedDemand === "number";
+                const aiRecommendedQty = hasForecast
+                  ? Math.max(1, Math.ceil(predictedDemand - qty))
+                  : Math.max(1, Math.ceil(reorder - qty));
                 const cfg      = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
                 const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
 
@@ -1314,6 +1365,22 @@ const InventoryStock = () => {
                       </div>
                     </td>
 
+                    {/* Predicted Demand */}
+                    <td className="px-6 py-6">
+                      {monthlyForecastQuery.isLoading ? (
+                        <span className="text-xs text-slate-400">Loading...</span>
+                      ) : monthlyForecastQuery.isError ? (
+                        <span className="text-xs text-amber-700">Engine offline</span>
+                      ) : hasForecast ? (
+                        <div className="inline-flex items-center gap-2" title="AI predicted demand for the next month.">
+                          <span className="font-semibold tabular-nums text-indigo-700">{Math.round(predictedDemand)}</span>
+                          <span className="text-xs text-slate-500">{item.unit ?? "units"}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Not available</span>
+                      )}
+                    </td>
+
                     {/* Status */}
                     <td className="px-6 py-6 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.pill}`}>
@@ -1328,11 +1395,12 @@ const InventoryStock = () => {
                         {isLow && (
                           <button
                             type="button"
-                            title="Suggest AI reorder quantity"
+                            title={`AI recommended order quantity: ${aiRecommendedQty}`}
+                            onClick={() => handleAiReorder(item, predictedDemand ?? 0)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
                           >
                             <Sparkles size={14} />
-                            Suggest Order
+                            Reorder {aiRecommendedQty}
                           </button>
                         )}
                         <button

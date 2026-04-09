@@ -3,7 +3,7 @@ import axios from "axios";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
 import api from "@/lib/axiosInstance";
-import { Database, Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Database, Download, FileSpreadsheet, Loader2, BrainCircuit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -83,7 +83,7 @@ const EXPORTS: ExportConfig[] = [
 const COLUMN_ORDER: Record<ExportKey, string[]> = {
   sales: [
     "saleId",
-    "receiptNo",
+    "transactionId",
     "saleDate",
     "paymentMethod",
     "status",
@@ -314,7 +314,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
 
   for (const sale of records) {
     const saleId = String(sale.id ?? "");
-    const receiptNo = String(sale.receiptNo ?? "");
+    const transactionId = String(sale.transactionId ?? sale.receiptNo ?? "");
     const saleDate = String(sale.saleDate ?? "");
     const paymentMethod = String(sale.paymentMethod ?? "");
     const status = String(sale.status ?? "");
@@ -326,7 +326,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
     if (!items.length) {
       rows.push({
         saleId,
-        receiptNo,
+        transactionId,
         saleDate,
         paymentMethod,
         status,
@@ -351,7 +351,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
 
       rows.push({
         saleId,
-        receiptNo,
+        transactionId,
         saleDate,
         paymentMethod,
         status,
@@ -373,6 +373,7 @@ function buildSalesItemRows(records: Array<Record<string, unknown>>): Array<Reco
 
 export default function DataExport() {
   const { showToast } = useToast();
+  const [mlExporting, setMlExporting] = useState(false);
   const [loading, setLoading] = useState<Record<ExportKey, boolean>>({
     sales: false,
     products: false,
@@ -492,6 +493,39 @@ export default function DataExport() {
     }
   };
 
+  const exportMlDataset = async () => {
+    setMlExporting(true);
+    try {
+      const response = await api.get("/api/export-sales", { responseType: "blob" });
+      const datePart = new Date().toISOString().slice(0, 10);
+      const contentDisposition = response.headers["content-disposition"] as string | undefined;
+      const filename =
+        contentDisposition?.match(/filename=\"?([^\";]+)\"?/)?.[1] ??
+        `ml-sales-dataset-${datePart}.csv`;
+
+      const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast({
+        type: "success",
+        title: "Export Complete",
+        message: "ML dataset CSV downloaded successfully.",
+      });
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Failed to export ML dataset.";
+      showToast({ type: "error", title: "Export Failed", message });
+    } finally {
+      setMlExporting(false);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
@@ -518,6 +552,32 @@ export default function DataExport() {
               >
                 {anyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 Export All
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <BrainCircuit className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-emerald-900">Export for ML Retraining</h2>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    Downloads the AI-compatible sales dataset in the exact retraining schema.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={exportMlDataset}
+                disabled={mlExporting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                {mlExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Export ML Dataset
               </button>
             </div>
           </div>

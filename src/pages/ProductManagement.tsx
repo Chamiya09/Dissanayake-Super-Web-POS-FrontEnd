@@ -4,6 +4,7 @@ import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
+import { ViewProductModal } from "@/components/Products/ViewProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
@@ -58,10 +59,18 @@ export default function ProductManagement() {
   const [products,  setProducts]  = useState<Product[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   /* ── Modal state ── */
   const [isAddOpen,    setIsAddOpen]    = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<Product | null>(null);
   const [editTarget,   setEditTarget]   = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -73,18 +82,37 @@ export default function ProductManagement() {
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await productApi.getAll();
-      setProducts(data);
+      const response = await productApi.getPage({
+        page,
+        limit: pageSize,
+        search: debouncedSearch || undefined,
+      });
+      setProducts(response.content);
+      setTotalElements(response.totalElements);
+      setTotalPages(response.totalPages);
     } catch {
       setFetchError("Failed to load products. Make sure the backend is running on port 8080.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, page, pageSize]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  /* ── Sync to localStorage whenever the product list changes ── */
+  /* ── Debounced server-side search ── */
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = window.setTimeout(() => {
+      const typed = searchInput.trim();
+      setDebouncedSearch(typed ? `PI${typed}` : "");
+      setPage(0);
+      setIsSearching(false);
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  /* ── Sync the current page snapshot to localStorage ── */
   useEffect(() => {
     if (!loading) {
       localStorage.setItem("products", JSON.stringify(products));
@@ -94,46 +122,51 @@ export default function ProductManagement() {
   /* ── CRUD handlers ── */
   const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
     try {
-      const created = await productApi.create(data);
-      setProducts((prev) => [...prev, created]);
+      await productApi.create(data);
+      setPage(0);
+      await fetchProducts();
       showToast("Product added successfully!", "success");
     } catch {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to create product.");
     }
-  }, []);
+  }, [fetchProducts, showToast]);
 
   const handleEdit = useCallback(async (updated: Product) => {
     try {
       const { id, ...payload } = updated;
-      const saved = await productApi.update(id, payload);
-      setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
+      await productApi.update(id, payload);
+      await fetchProducts();
       showToast("Product updated successfully!", "success");
     } catch {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to update product.");
     }
-  }, []);
+  }, [fetchProducts, showToast]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
       await productApi.remove(deleteTarget.id);
-      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      if (products.length === 1 && page > 0) {
+        setPage((prev) => Math.max(0, prev - 1));
+      } else {
+        await fetchProducts();
+      }
       showToast("Product deleted successfully!", "success");
     } catch {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error("Failed to delete product.");
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, fetchProducts, page, products.length, showToast]);
 
   const handleCsvImport = useCallback(async (rows: Omit<Product, "id">[]) => {
     try {
       const result = await productApi.bulkImport(rows);
 
       if (result.importedCount > 0) {
-        const refreshed = await productApi.getAll();
-        setProducts(refreshed);
+        setPage(0);
+        await fetchProducts();
       }
 
       if (result.failedCount === 0) {
@@ -161,7 +194,7 @@ export default function ProductManagement() {
       );
       throw error;
     }
-  }, [showToast]);
+  }, [fetchProducts, showToast]);
 
   /* ── Derived stats ── */
   const avgMargin =
@@ -194,7 +227,7 @@ export default function ProductManagement() {
               <p className="text-sm text-slate-500 mt-1">
                 {loading
                   ? "Loading products…"
-                  : `${products.length} product${products.length !== 1 ? "s" : ""} registered`
+                  : `${totalElements} product${totalElements !== 1 ? "s" : ""} registered`
                 }
               </p>
             </div>
@@ -226,7 +259,7 @@ export default function ProductManagement() {
           {[
             {
               label: "Total Products",
-              value: loading ? "—" : products.length,
+              value: loading ? "—" : totalElements,
               bg: "bg-blue-50",
               text: "text-blue-600",
               icon: Package,
@@ -295,6 +328,22 @@ export default function ProductManagement() {
         {!loading && !fetchError && (
           <ProductTable
             products={products}
+            totalElements={totalElements}
+            totalPages={totalPages}
+            page={page}
+            pageSize={pageSize}
+            searchInput={searchInput}
+            isSearching={isSearching}
+            onSearchInputChange={setSearchInput}
+            onPageChange={(nextPage) => {
+              if (nextPage < 0 || nextPage >= Math.max(totalPages, 1)) return;
+              setPage(nextPage);
+            }}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPage(0);
+            }}
+            onView={(p) => setViewTarget(p)}
             onEdit={(p) => setEditTarget(p)}
             onDelete={(p) => setDeleteTarget(p)}
           />
@@ -312,6 +361,11 @@ export default function ProductManagement() {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImport={handleCsvImport}
+      />
+      <ViewProductModal
+        isOpen={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        product={viewTarget}
       />
       <EditProductModal
         isOpen={isEditOpen}

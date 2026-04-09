@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import api from "@/lib/axiosInstance";
 import { getLowStockItems, createOrder, mapHistoryItem } from "@/api/reorderApi";
 import { SkeletonTable } from "@/components/ui/SkeletonTable";
@@ -8,6 +9,7 @@ import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { useInventory }     from "@/context/InventoryContext";
 import { useReorder }       from "@/context/ReorderContext";
 import { useToast }         from "@/context/GlobalToastContext";
+import { useProductForecast } from "@/hooks/useForecast";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
   AlertTriangle,
@@ -23,6 +25,7 @@ import {
   Send,
   TrendingUp,
   Building2,
+  Loader2,
 } from "lucide-react";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -69,10 +72,35 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
-  const aiQty    = Math.max(1, Math.ceil((item.reorderLevel ?? 0) * 1.5 - (item.stockQuantity ?? 0)));
+  const currentStock = Math.max(0, Number(item.stockQuantity ?? 0));
+  const [selectedProductId, setSelectedProductId] = useState(() => String(item.sku ?? item.productId ?? item.id ?? ""));
+  const [timeframe, setTimeframe] = useState("monthly");
+  const [predictedDemand, setPredictedDemand] = useState(0);
+  const forecastQuery = useProductForecast(selectedProductId, timeframe as "weekly" | "monthly");
+  const suggestedOrderQty = Math.max(0, Math.ceil((predictedDemand ?? 0) - currentStock));
+  const isSafeStock = currentStock >= (predictedDemand ?? 0);
   const [step,    setStep]    = useState(1);
   const [stepDir, setStepDir] = useState("fwd");
-  const [qty,     setQty]     = useState(aiQty);
+  const [qty,     setQty]     = useState(suggestedOrderQty);
+
+  useEffect(() => {
+    setSelectedProductId(String(item.sku ?? item.productId ?? item.id ?? ""));
+  }, [item]);
+
+  useEffect(() => {
+    if (forecastQuery.data) {
+      const next = Math.max(0, Math.round(Number(forecastQuery.data.predictedDemand ?? 0)));
+      setPredictedDemand(next);
+      return;
+    }
+    if (forecastQuery.isError) {
+      setPredictedDemand(0);
+    }
+  }, [forecastQuery.data, forecastQuery.isError]);
+
+  useEffect(() => {
+    setQty(suggestedOrderQty);
+  }, [suggestedOrderQty, selectedProductId]);
 
   // Directional navigation — sets animation direction before updating step
   function goTo(n) {
@@ -266,38 +294,130 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
 
               {/* AI recommendation card */}
               <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+                <div className="mb-3 flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
+                    Forecast Period
+                  </label>
+                  <div className="inline-flex w-full rounded-lg border border-blue-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setTimeframe("weekly")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                        timeframe === "weekly"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      Next Week
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeframe("monthly")}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                        timeframe === "monthly"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      Next Month
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="h-4 w-4 text-blue-600 shrink-0" />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-blue-700">
-                    AI Recommended Quantity
+                    AI Forecast
                   </span>
+                  {forecastQuery.isFetching && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Fetching forecast...
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-end gap-2 mb-1.5">
-                  <span className="text-4xl font-black text-slate-900 leading-none">{aiQty}</span>
-                  <span className="text-sm text-slate-500 pb-0.5">{item.unit ?? "units"}</span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
-                  {daysLeft > 0
-                    ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
-                    : " Stock is already depleted."}
-                  {" "}This quantity covers ~45 days of demand.
-                </p>
+                {forecastQuery.isLoading ? (
+                  <div className="animate-pulse rounded-lg border border-blue-100 bg-white/70 px-3 py-3">
+                    <div className="h-3 w-40 rounded bg-blue-100" />
+                    <div className="mt-2 h-3 w-56 rounded bg-blue-100" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-blue-200 bg-white px-3 py-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-blue-700 mb-2">
+                        Reorder Breakdown
+                      </p>
+                      <div className="space-y-1.5 text-[12px]">
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>📦 Current Stock in Hand</span>
+                          <span className="font-bold tabular-nums">{currentStock} {item.unit ?? "units"}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>📈 ML Predicted Demand</span>
+                          <span className="font-bold tabular-nums">{predictedDemand} {item.unit ?? "units"}</span>
+                        </div>
+                        <div className={`mt-2 rounded-lg border px-3 py-2 ${
+                          suggestedOrderQty > 0
+                            ? "border-orange-200 bg-orange-50"
+                            : "border-emerald-200 bg-emerald-50"
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] font-bold text-slate-700">🛒 Suggested Order Quantity</span>
+                            <span className={`text-2xl font-black tabular-nums ${
+                              suggestedOrderQty > 0 ? "text-orange-700" : "text-emerald-700"
+                            }`}>
+                              {suggestedOrderQty}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="mt-2 text-[12px] font-semibold text-slate-700">
+                      {`🤖 AI Forecast: You will need ${predictedDemand} ${item.unit ?? "units"} for the ${timeframe}.`}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
+                      Est. sales velocity ~{velocity} {item.unit ?? "units"}/day.
+                      {daysLeft > 0
+                        ? ` Current stock lasts ~${daysLeft} day${daysLeft !== 1 ? "s" : ""}.`
+                        : " Stock is already depleted."}
+                    </p>
+                    <div className={`mt-2 rounded-lg border px-3 py-2 text-[11px] font-semibold ${
+                      isSafeStock
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-orange-200 bg-orange-50 text-orange-700"
+                    }`}>
+                      {isSafeStock
+                        ? "Safe / Overstocked: current stock already covers the predicted demand. Suggested order is 0."
+                        : "Urgent reorder: predicted demand exceeds current stock. Create a purchase order now."}
+                    </div>
+                    {forecastQuery.isError && (
+                      <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                        Forecast API unavailable. You can still place the order manually.
+                      </p>
+                    )}
+                    {!forecastQuery.isError && predictedDemand === 0 && (
+                      <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                        Forecast returned 0 demand. Please confirm quantity before sending.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Quantity input */}
               <div className="space-y-2">
-                <label className="block text-[13px] font-semibold text-slate-700">
-                  Quantity to Order
+                <label className="flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-700">
+                  <span>Quantity to Order</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    onClick={() => setQty((q) => Math.max(0, q - 1))}
                     className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
                   >−</button>
                   <input
-                    type="number" min="1" value={qty}
-                    onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    type="number" min="0" value={qty}
+                    onChange={(e) => setQty(Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-400 transition-all"
                   />
                   <button
@@ -305,12 +425,15 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
                   >+</button>
                   <button
-                    onClick={() => setQty(aiQty)}
+                    onClick={() => setQty(suggestedOrderQty)}
                     className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2.5 text-[12px] font-bold text-teal-700 hover:bg-teal-100 transition-colors"
                   >
-                    Use AI ({aiQty})
+                    Apply AI Suggestion
                   </button>
                 </div>
+                <p className={`text-[11px] font-semibold ${suggestedOrderQty > 0 ? "text-orange-700" : "text-emerald-700"}`}>
+                  Suggested order quantity: {suggestedOrderQty} {item.unit ?? "units"}
+                </p>
               </div>
             </div>
           )}
@@ -449,13 +572,24 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 Back
               </button>
               <button
-                onClick={() => onSubmit({ item, qty, supplier: assignedSupplier, emailBody })}
-                disabled={!hasSupplier}
-                title={!hasSupplier ? "Assign a supplier to this product before placing an order" : undefined}
-                className="h-10 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
+                onClick={() => onSubmit({
+                  item,
+                  qty,
+                  supplier: assignedSupplier,
+                  emailBody,
+                  timeframe,
+                  predictedDemand,
+                })}
+                disabled={!hasSupplier || qty <= 0}
+                title={!hasSupplier ? "Assign a supplier to this product before placing an order" : qty <= 0 ? "No reorder needed. Increase quantity only if required." : undefined}
+                className={`h-10 inline-flex items-center gap-2 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none ${
+                  qty > 0
+                    ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+                    : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
+                }`}
               >
                 <Send className="h-3.5 w-3.5" />
-                Send Purchase Order
+                {`Create Purchase Order for ${qty} ${item.unit ?? "units"}`}
               </button>
             </>
           )}
@@ -509,11 +643,12 @@ export default function LowStockAlerts() {
   }, [apiAlerts, contextAlerts]);
 
   const visibleAlerts = useMemo(() => {
+    const skuQuery = search.trim() ? `PI${search.trim()}`.toLowerCase() : "";
     return alertSource
       .filter((i) => statusFilter === "all" || i.stockStatus === statusFilter)
       .filter((i) => {
-        const q = search.trim().toLowerCase();
-        return !q || i.productName.toLowerCase().includes(q) || (i.category ?? "").toLowerCase().includes(q);
+        const sku = String(i.sku ?? i.productId ?? i.id ?? "").toLowerCase();
+        return !skuQuery || sku.includes(skuQuery);
       });
   }, [alertSource, statusFilter, search]);
 
@@ -522,8 +657,24 @@ export default function LowStockAlerts() {
   const [orderModal, setOrderModal] = useState(null); // null | item
   const { showToast }               = useToast();
 
-  function handleSubmitOrder({ item, qty, supplier, emailBody }) {
+  async function handleSubmitOrder({ item, qty, supplier, emailBody, timeframe, predictedDemand }) {
+    if (!supplier?.email) {
+      showToast({
+        type: "error",
+        title: "Order Failed",
+        message: "Supplier email is missing. Assign a supplier before placing an order.",
+      });
+      return;
+    }
+
     const orderRef = `PO-${Date.now()}`;
+    const aiOrderPayload = {
+      product_id: item.productId ?? item.sku,
+      quantity: qty,
+      timeframe,
+      predicted_demand: predictedDemand,
+    };
+    console.log("Order Payload:", aiOrderPayload);
 
     // Optimistic entry — visible on history table immediately after redirect
     const optimisticOrder = {
@@ -538,10 +689,7 @@ export default function LowStockAlerts() {
     };
     addReorder(optimisticOrder);
 
-    // 1. Close modal instantly
-    setOrderModal(null);
-
-    // 2. Build ReorderRequestDTO and POST to backend (non-blocking)
+    // Build ReorderRequestDTO and include AI context for debugging/audit.
     const dto = {
       orderRef,
       supplierEmail: supplier.email,
@@ -551,30 +699,32 @@ export default function LowStockAlerts() {
         quantity:    qty,
         unitPrice:   item.sellingPrice ?? 0,
       }],
+      timeframe,
+      aiOrderPayload,
     };
 
-    createOrder(dto)
-      .then((savedDTO) => {
-        // Swap optimistic entry for the real persisted record
-        setReorders((prev) =>
-          prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
-        );
-        showToast({
-          type: "success",
-          title: "Order Confirmed",
-          message: "Purchase order saved and email sent to supplier.",
-        });
-      })
-      .catch((err) => {
-        const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
-        showToast({ type: "error", title: "Order Failed", message: msg });
-        // Roll back the optimistic entry
-        setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+    try {
+      setOrderModal(null);
+      const savedDTO = await createOrder(dto);
+
+      // Swap optimistic entry for the real persisted record
+      setReorders((prev) =>
+        prev.map((o) => (o.id === orderRef ? mapHistoryItem(savedDTO) : o))
+      );
+
+      showToast({
+        type: "success",
+        title: "Order Placed",
+        message: `Order placed for ${qty} ${item.unit ?? "units"}.`,
       });
 
-    // 3. Show redirect toast and navigate
-    showToast({ type: "success", title: "Order Placed", message: "Redirecting to Reorder Management…" });
-    navigate("/reorder");
+      navigate("/reorder");
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
+      showToast({ type: "error", title: "Order Failed", message: msg });
+      // Roll back the optimistic entry
+      setReorders((prev) => prev.filter((o) => o.id !== orderRef));
+    }
   }
 
   return (
@@ -644,13 +794,12 @@ export default function LowStockAlerts() {
           <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search by product or category…"
+                <PiPrefixSearchInput
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white h-10 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-all"
+                  onChange={setSearch}
+                  placeholder="00001"
+                  onClear={() => setSearch("")}
+                  className="h-10"
                 />
               </div>
 
@@ -770,7 +919,7 @@ export default function LowStockAlerts() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 opacity-0 group-hover:opacity-100"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
                         >
                           Place Order
                           <ArrowRight className="h-3.5 w-3.5" />

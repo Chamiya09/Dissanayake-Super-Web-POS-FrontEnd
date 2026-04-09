@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/GlobalToastContext";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -62,6 +63,7 @@ function FormRow({
 }
 
 export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [autoReorder, setAutoReorder] = useState(false);
@@ -112,6 +114,12 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
       newErrors.leadTime = "Enter a valid number of days (≥ 1).";
     }
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -130,7 +138,9 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
       });
       onClose();
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : "Failed to save supplier.");
+      const message = err instanceof Error ? err.message : "Failed to save supplier.";
+      setApiError(message);
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }

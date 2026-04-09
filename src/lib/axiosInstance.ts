@@ -17,8 +17,10 @@ const LS_KEY = "pos_auth_user";
  */
 const api = axios.create({
   // Vite exposes VITE_* variables via import.meta.env.
-  // Fallback to "" so the Vite proxy handles routing in local dev.
-  baseURL: import.meta.env.VITE_API_URL ?? "",
+  // In local dev, keep this empty so calls stay relative (e.g. /api/products)
+  // and are forwarded by vite.config.ts proxy to localhost:8080.
+  // Optional override for direct backend calls: VITE_API_URL or VITE_BACKEND_URL.
+  baseURL: import.meta.env.VITE_API_URL ?? import.meta.env.VITE_BACKEND_URL ?? "",
   headers: { "Content-Type": "application/json" },
 });
 
