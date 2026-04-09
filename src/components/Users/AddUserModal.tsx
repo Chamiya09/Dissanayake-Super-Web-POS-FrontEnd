@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/GlobalToastContext";
 
 const ALLOWED_ROLES = {
   Owner:   ["Manager"],
@@ -84,6 +85,7 @@ function FormRow({ id, label, icon: Icon, error, children }) {
 }
 
 export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
+  const { showToast } = useToast();
   const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
   const isRoleLocked = allowedRoles.length === 1;
 
@@ -111,7 +113,14 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validation = validateForm(form);
-    if (Object.keys(validation).length > 0) { setErrors(validation); return; }
+    if (Object.keys(validation).length > 0) {
+      setErrors(validation);
+      const firstError = Object.values(validation)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+      return;
+    }
     setSaving(true);
     try {
       await onAdd({
@@ -125,6 +134,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
       onClose();
     } catch(err) {
       console.error(err);
+      showToast("Failed to add user. Please try again.", "error");
     } finally {
       setSaving(false);
     }

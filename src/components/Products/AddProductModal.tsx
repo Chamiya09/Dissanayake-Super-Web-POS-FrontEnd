@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BarcodeInput } from "@/components/Products/BarcodeInput";
 import type { Product } from "@/data/product-management";
+import { useToast } from "@/context/GlobalToastContext";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Shared form constants — exported so EditProductModal can reuse them
@@ -133,6 +134,7 @@ export interface AddProductModalProps {
 }
 
 export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProps) {
+  const { showToast } = useToast();
   const [form,          setForm]        = useState<FormFields>(EMPTY_FORM);
   const [errors,        setErrors]      = useState<Partial<FormFields>>({});
   const [saving,        setSaving]      = useState(false);
@@ -162,7 +164,14 @@ export function AddProductModal({ isOpen, onClose, onSave }: AddProductModalProp
 
   const handleSave = async () => {
     const err = validateForm(form);
-    if (Object.keys(err).length) { setErrors(err); return; }
+    if (Object.keys(err).length) {
+      setErrors(err);
+      const firstError = Object.values(err)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+      return;
+    }
     setSaving(true);
     try {
       const sku = form.sku.trim();

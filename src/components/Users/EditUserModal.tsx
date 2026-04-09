@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/GlobalToastContext";
 
 const ALLOWED_ROLES = {
   Owner:   ["Manager", "Staff"],
@@ -66,6 +67,7 @@ function validateForm(form) {
 }
 
 export default function EditUserModal({ user, onClose, onSave, currentUserRole }) {
+  const { showToast } = useToast();
   const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
 
   const [form, setForm] = useState({ fullName: "", memberId: "", username: "", email: "", role: "" });
@@ -100,12 +102,20 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validation = validateForm(form);
-    if (Object.keys(validation).length > 0) { setErrors(validation); return; }
+    if (Object.keys(validation).length > 0) {
+      setErrors(validation);
+      const firstError = Object.values(validation)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+      return;
+    }
     try {
       await onSave({ ...user, ...form });
       onClose();
     } catch (err) {
       console.error(err);
+      showToast("Failed to update user. Please try again.", "error");
     }
   };
 

@@ -22,6 +22,7 @@ import {
   UNITS,
 } from "@/components/Products/AddProductModal";
 import type { FormFields } from "@/components/Products/AddProductModal";
+import { useToast } from "@/context/GlobalToastContext";
 
 export interface EditProductModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
@@ -74,6 +76,10 @@ export function EditProductModal({
     const err = validateForm(form);
     if (Object.keys(err).length) {
       setErrors(err);
+      const firstError = Object.values(err)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
       return;
     }
     if (!product) return;

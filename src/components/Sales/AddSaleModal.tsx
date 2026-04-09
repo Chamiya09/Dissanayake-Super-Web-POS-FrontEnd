@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast } from "@/context/GlobalToastContext";
 
 const PAYMENT_METHODS = ["Cash", "Card"];
 
@@ -9,6 +10,7 @@ const emptyForm = {
 };
 
 export default function AddSaleModal({ isOpen, onClose, onSave }) {
+  const { showToast } = useToast();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
@@ -34,6 +36,10 @@ export default function AddSaleModal({ isOpen, onClose, onSave }) {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      const firstError = Object.values(validationErrors)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
       return;
     }
 

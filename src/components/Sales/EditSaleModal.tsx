@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { useToast } from "@/context/GlobalToastContext";
 
 /* ─────────────────────────────────────────────────────────────────────────
    EditSaleModal
@@ -37,6 +38,7 @@ function FormRow({ id, label, icon: Icon, error, children }) {
    Main component
    ───────────────────────────────────────────────────────────────────────── */
 export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
+  const { showToast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [items, setItems] = useState([]);
   const [errors, setErrors] = useState({});
@@ -113,7 +115,14 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
   /* Save — calls PUT /api/sales/:id with the SaleUpdateRequest shape */
   const handleSave = async () => {
     const err = validate();
-    if (Object.keys(err).length) { setErrors(err); return; }
+    if (Object.keys(err).length) {
+      setErrors(err);
+      const firstError = Object.values(err)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+      return;
+    }
     if (!saleData) return;
 
     setSaving(true);
@@ -140,6 +149,7 @@ export default function EditSaleModal({ isOpen, onClose, saleData, onSave }) {
       console.error("[EditSaleModal] Error response body:", data);
       const msg = data?.detail || data?.message || data?.error || "Failed to update sale. Please try again.";
       setErrors({ api: msg });
+      showToast(msg, "error");
     } finally {
       setSaving(false);
     }
