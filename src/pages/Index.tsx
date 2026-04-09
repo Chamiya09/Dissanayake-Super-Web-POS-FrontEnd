@@ -87,6 +87,7 @@ const Index = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
   const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
 
@@ -302,6 +303,10 @@ const Index = () => {
       const activeEl = document.activeElement as HTMLElement | null;
       const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
 
+      if (isCheckoutModalOpen) {
+        return;
+      }
+
       const currentIndex = activeBucketIndexRef.current;
       const activeItem = currentIndex >= 0 ? cartRef.current[currentIndex] : undefined;
 
@@ -504,7 +509,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
+  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -560,6 +565,7 @@ const Index = () => {
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
+            onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />
@@ -606,6 +612,7 @@ const Index = () => {
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
+            onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
             keyboardActive={keyboardScope === "cart"}
           />

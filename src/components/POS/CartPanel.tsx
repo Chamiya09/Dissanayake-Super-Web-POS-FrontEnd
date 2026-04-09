@@ -1,7 +1,6 @@
 import {
   ShoppingBag, Minus, Plus, Trash2, Loader2,
-  Gift, User, Star, Phone, Search, X, AlertCircle, Check, ChevronDown,
-  Banknote, CreditCard,
+  User, Star, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
@@ -10,9 +9,6 @@ import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } fro
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { PaymentMethodModal } from "./PaymentMethodModal";
-import type { PaymentMethodOption } from "./PaymentMethodModal";
-import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -22,6 +18,7 @@ interface CartPanelProps {
   highlightId?: string | null;
   activeBucketIndex?: number;
   checkoutHotkeyNonce?: number;
+  onCheckoutModalOpenChange?: (isOpen: boolean) => void;
   /** Called with the final charged amount after a successful checkout */
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
   /** Enables cart keyboard shortcuts only when cart area is active. */
@@ -186,16 +183,18 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, checkoutHotkeyNonce = 0, onCheckout, keyboardActive = true }: CartPanelProps) {
-  const { confirm } = useConfirmDialog();
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, checkoutHotkeyNonce = 0, onCheckoutModalOpenChange, onCheckout, keyboardActive = true }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const tenderedInputRef = useRef<HTMLInputElement>(null);
+  const loyaltyInputRef = useRef<HTMLInputElement>(null);
+
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [tenderedAmount, setTenderedAmount] = useState("");
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
+  const [loyaltyNumber, setLoyaltyNumber] = useState("");
 
   /* Loyalty state */
-  const [loyaltyOpen, setLoyaltyOpen]       = useState(false);
-  const [loyaltyInput, setLoyaltyInput]     = useState("");
   const [loyaltyCustomer, setLoyaltyCustomer] = useState<LoyaltyCustomer | null>(null);
   const [loyaltyNotFound, setLoyaltyNotFound] = useState(false);
   const [redeemPoints, setRedeemPoints]     = useState(false);
@@ -204,10 +203,12 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   useEffect(() => {
     if (items.length === 0) {
       setLoyaltyCustomer(null);
-      setLoyaltyOpen(false);
-      setLoyaltyInput("");
+      setLoyaltyNumber("");
       setLoyaltyNotFound(false);
       setRedeemPoints(false);
+      setTenderedAmount("");
+      setCheckoutStep(1);
+      setIsCheckoutModalOpen(false);
     }
   }, [items.length]);
 
@@ -228,62 +229,97 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   const finalTotal        = parseFloat(Math.max(0, total - loyaltyDiscount).toFixed(2));
   const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
 
-  /*  Core checkout executor — called after payment method is confirmed  */
-  const proceedWithCheckout = useCallback(async (method: string) => {
-    const isConfirmed = await confirm({
-      title: "Confirm Sale",
-      message: `Complete this sale for ${formatCurrency(finalTotal)} using ${method}?`,
-      confirmText: "Confirm Sale",
-      cancelText: "Cancel",
-      tone: "default",
-    });
-
-    if (!isConfirmed) return;
-
-    // ── Execute checkout ─────────────────────────────────────────────────────
+  const completeCheckout = useCallback(async () => {
     setProcessing(true);
     try {
-      await onCheckout?.(finalTotal, method);
+      await onCheckout?.(finalTotal, "Cash");
       setLoyaltyCustomer(null);
-      setLoyaltyOpen(false);
-      setLoyaltyInput("");
+      setLoyaltyNumber("");
       setRedeemPoints(false);
-      setPaymentMethod("");
+      setTenderedAmount("");
+      setCheckoutStep(1);
+      setIsCheckoutModalOpen(false);
+      window.print();
     } finally {
       setProcessing(false);
     }
-  }, [confirm, finalTotal, onCheckout]);
+  }, [finalTotal, onCheckout]);
 
-  /*  Payment handler — opens selection modal if no method set, else proceeds  */
-  const handlePayment = useCallback(async () => {
-    if (!paymentMethod) {
-      setPaymentModalOpen(true);
-      return;
-    }
-    await proceedWithCheckout(paymentMethod);
-  }, [paymentMethod, proceedWithCheckout]);
-
-  /*  Called by PaymentMethodModal when the user confirms a method  */
-  const handleModalConfirm = useCallback(async (method: PaymentMethodOption) => {
-    setPaymentMethod(method);
-    setPaymentModalOpen(false);
-    await proceedWithCheckout(method);
-  }, [proceedWithCheckout]);
+  const openCheckoutModal = useCallback(() => {
+    if (items.length === 0 || processing) return;
+    setCheckoutStep(1);
+    setTenderedAmount("");
+    setIsCheckoutModalOpen(true);
+  }, [items.length, processing]);
 
   useEffect(() => {
     if (!checkoutHotkeyNonce) return;
     if (!keyboardActive) return;
     if (items.length === 0) return;
     if (processing) return;
-    void handlePayment();
-  }, [checkoutHotkeyNonce, handlePayment, items.length, keyboardActive, processing]);
+    openCheckoutModal();
+  }, [checkoutHotkeyNonce, items.length, keyboardActive, openCheckoutModal, processing]);
+
+  useEffect(() => {
+    onCheckoutModalOpenChange?.(isCheckoutModalOpen);
+  }, [isCheckoutModalOpen, onCheckoutModalOpenChange]);
+
+  useEffect(() => {
+    if (!isCheckoutModalOpen) return;
+    const timer = window.setTimeout(() => {
+      tenderedInputRef.current?.focus();
+      tenderedInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isCheckoutModalOpen]);
 
   /* Search helper */
   const doSearch = useCallback(() => {
-    const found = findCustomer(loyaltyInput);
+    const found = findCustomer(loyaltyNumber);
     if (found) { setLoyaltyCustomer(found); setLoyaltyNotFound(false); }
     else setLoyaltyNotFound(true);
-  }, [loyaltyInput]);
+  }, [loyaltyNumber]);
+
+  const tenderedValue = parseFloat(tenderedAmount);
+  const safeTendered = Number.isNaN(tenderedValue) ? 0 : tenderedValue;
+  const changeAmount = parseFloat((safeTendered - finalTotal).toFixed(2));
+  const canAdvanceStep = safeTendered >= finalTotal;
+
+  const handleCheckoutModalKeyDown = async (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") {
+      e.preventDefault();
+      const active = document.activeElement;
+      if (active === loyaltyInputRef.current) {
+        tenderedInputRef.current?.focus();
+        tenderedInputRef.current?.select();
+      } else {
+        loyaltyInputRef.current?.focus();
+        loyaltyInputRef.current?.select();
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setIsCheckoutModalOpen(false);
+      setCheckoutStep(1);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (checkoutStep === 1) {
+        if (canAdvanceStep) {
+          setCheckoutStep(2);
+        }
+        return;
+      }
+
+      if (checkoutStep === 2 && canAdvanceStep && !processing) {
+        await completeCheckout();
+      }
+    }
+  };
 
   const categoryEmoji: Record<string, string> = {
     "Auto Care": "🚗",
@@ -398,170 +434,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
       {/* Checkout footer */}
       <div className="border-t border-border p-3 space-y-2.5 bg-card">
-
-        {/*  Loyalty section  */}
-        {items.length > 0 && (
-          <div className="rounded-xl border border-border overflow-hidden">
-
-            {/* State 1: CTA collapsed */}
-            {!loyaltyOpen && !loyaltyCustomer && (
-              <button
-                onClick={() => setLoyaltyOpen(true)}
-                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left hover:bg-primary/5 transition-colors group"
-              >
-                <Gift className="h-3.5 w-3.5 text-primary/60 group-hover:text-primary transition-colors" />
-                <span className="flex-1 text-[12px] text-muted-foreground">Add loyalty member</span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground/40" />
-              </button>
-            )}
-
-            {/* State 2: Input open */}
-            {loyaltyOpen && !loyaltyCustomer && (
-              <div className="p-3 space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <div className="relative flex-1">
-                    <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
-                    <input
-                      autoFocus
-                      value={loyaltyInput}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setLoyaltyInput(v);
-                        setLoyaltyNotFound(false);
-                        if (v.trim().length >= 10) {
-                          const found = findCustomer(v);
-                          if (found) setLoyaltyCustomer(found);
-                          else if (v.trim().length >= 12) setLoyaltyNotFound(true);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { e.preventDefault(); doSearch(); }
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          setLoyaltyOpen(false);
-                          setLoyaltyInput("");
-                          setLoyaltyNotFound(false);
-                        }
-                      }}
-                      placeholder="Phone or Loyalty ID (DSS-XXXXXX)"
-                      className="w-full rounded-lg border border-border bg-background pl-8 pr-2 py-[7px] text-[12.5px] focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground/50"
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-[34px] px-2.5 shrink-0"
-                    onClick={doSearch}
-                  >
-                    <Search className="h-3.5 w-3.5" />
-                  </Button>
-                  <button
-                    onClick={() => { setLoyaltyOpen(false); setLoyaltyInput(""); setLoyaltyNotFound(false); }}
-                    className="flex h-[34px] w-[34px] items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                {loyaltyNotFound && (
-                  <p className="flex items-center gap-1.5 text-[11.5px] text-destructive">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
-                    No member found. Try a different number or ID.
-                  </p>
-                )}
-                <p className="text-[10.5px] text-muted-foreground/50 px-0.5">
-                  e.g. 0712345678&nbsp;&nbsp;or&nbsp;&nbsp;DSS-001234
-                </p>
-              </div>
-            )}
-
-            {/* State 3: Customer found */}
-            {loyaltyCustomer && (
-              <div className="p-3 space-y-2.5">
-
-                {/* Customer info row */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <User className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-bold leading-tight text-foreground truncate">{loyaltyCustomer.name}</p>
-                      <p className="text-[10.5px] text-muted-foreground mt-0.5">
-                        {loyaltyCustomer.id}&nbsp;&middot;&nbsp;{loyaltyCustomer.phone}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <TierBadge tier={loyaltyCustomer.tier} />
-                    <button
-                      onClick={() => {
-                        setLoyaltyCustomer(null);
-                        setLoyaltyInput("");
-                        setRedeemPoints(false);
-                        setLoyaltyOpen(false);
-                      }}
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Points balance + earn preview */}
-                <div className="flex items-center justify-between rounded-lg bg-secondary/30 border border-border px-3 py-2 text-[11.5px]">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400/30" />
-                    <span className="text-muted-foreground">
-                      <span className="font-semibold text-foreground">{loyaltyCustomer.points.toLocaleString()}</span>&nbsp;pts balance
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 font-semibold text-emerald-600">
-                    <span>+{pointsEarned}</span>
-                    <span className="font-normal text-muted-foreground">pts earned</span>
-                  </div>
-                </div>
-
-                {/* Redeem toggle */}
-                {redeemableDollars > 0 ? (
-                  <button
-                    onClick={() => setRedeemPoints((p) => !p)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-[12px] text-left transition-all",
-                      redeemPoints
-                        ? "border-amber-400 bg-amber-50 text-amber-700"
-                        : "border-border bg-card text-muted-foreground hover:border-amber-300 hover:bg-amber-50/50"
-                    )}
-                  >
-                    <Star className={cn(
-                      "h-3.5 w-3.5 shrink-0 transition-colors",
-                      redeemPoints ? "text-amber-500 fill-amber-400/30" : "text-muted-foreground/40"
-                    )} />
-                    <div className="flex-1 leading-tight">
-                      <span>Redeem&nbsp;</span>
-                      <span className="font-semibold">{(redeemableDollars * 100).toLocaleString()}&nbsp;pts</span>
-                      <span className="mx-1 opacity-60">&rarr;</span>
-                      <span className="font-bold text-current">-{formatCurrency(redeemableDollars)}</span>
-                      <span className="ml-1.5 text-[10.5px] opacity-50">max&nbsp;20%</span>
-                    </div>
-                    <div className={cn(
-                      "h-4 w-4 rounded border flex items-center justify-center transition-colors shrink-0",
-                      redeemPoints ? "border-amber-400 bg-amber-400" : "border-border bg-background"
-                    )}>
-                      {redeemPoints && <Check className="h-2.5 w-2.5 text-white" />}
-                    </div>
-                  </button>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground/60 px-0.5 flex items-center gap-1.5">
-                    <Star className="h-3 w-3 text-muted-foreground/30" />
-                    Not enough points to redeem (need 100 pts = LKR 1).
-                  </p>
-                )}
-
-              </div>
-            )}
-          </div>
-        )}
-
         {/*  Totals breakdown  */}
         <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border overflow-hidden text-[12.5px]">
           <div className="flex justify-between items-center px-3 py-2 text-muted-foreground">
@@ -590,85 +462,9 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
           </div>
         </div>
 
-        {/*  Payment method selector  */}
-        <div className="rounded-xl border border-border bg-secondary/30 p-3">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Payment Method
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Cash */}
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("Cash")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
-                paymentMethod === "Cash"
-                  ? "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-500/20"
-                  : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40"
-              )}
-            >
-              <div className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                paymentMethod === "Cash"
-                  ? "bg-emerald-500 text-white"
-                  : "bg-secondary text-muted-foreground"
-              )}>
-                <Banknote className="h-4.5 w-4.5 h-[18px] w-[18px]" />
-              </div>
-              <span className={cn(
-                "text-[12.5px] font-bold transition-colors",
-                paymentMethod === "Cash"
-                  ? "text-emerald-700"
-                  : "text-muted-foreground"
-              )}>
-                Cash
-              </span>
-              {paymentMethod === "Cash" && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500">
-                  <Check className="h-2.5 w-2.5 text-white" />
-                </span>
-              )}
-            </button>
-
-            {/* Card */}
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("Card")}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 py-3.5 transition-all duration-150 active:scale-[0.97]",
-                paymentMethod === "Card"
-                  ? "border-blue-500 bg-blue-50 shadow-md shadow-blue-500/20"
-                  : "border-border bg-card hover:border-blue-300 hover:bg-blue-50/40"
-              )}
-            >
-              <div className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                paymentMethod === "Card"
-                  ? "bg-blue-500 text-white"
-                  : "bg-secondary text-muted-foreground"
-              )}>
-                <CreditCard className="h-[18px] w-[18px]" />
-              </div>
-              <span className={cn(
-                "text-[12.5px] font-bold transition-colors",
-                paymentMethod === "Card"
-                  ? "text-blue-700"
-                  : "text-muted-foreground"
-              )}>
-                Card
-              </span>
-              {paymentMethod === "Card" && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500">
-                  <Check className="h-2.5 w-2.5 text-white" />
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
         {/*  Charge button  */}
         <Button
-          onClick={handlePayment}
+          onClick={openCheckoutModal}
           disabled={items.length === 0 || processing}
           className="relative w-full h-14 rounded-xl bg-emerald-600 text-white font-bold text-[15px] tracking-wide hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150 shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
         >
@@ -676,7 +472,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <><Loader2 className="h-5 w-5 animate-spin mr-2" />Processing&hellip;</>
           ) : (
             <>
-              <span>Charge</span>
+              <span>Checkout</span>
               <span className="ml-2 tabular-nums text-[18px] font-extrabold">{formatCurrency(finalTotal)}</span>
               {loyaltyDiscount > 0 && (
                 <span className="ml-2 rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
@@ -684,7 +480,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
                 </span>
               )}
               <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono text-white/80 select-none">
-                Space
+                Enter x2
               </kbd>
             </>
           )}
@@ -692,12 +488,116 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
       </div>
 
-      {/* ── Payment Method Selection Modal ── */}
-      <PaymentMethodModal
-        open={paymentModalOpen}
-        onConfirm={handleModalConfirm}
-        onClose={() => setPaymentModalOpen(false)}
-      />
+      {isCheckoutModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onKeyDown={handleCheckoutModalKeyDown}>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Checkout</p>
+                <h3 className="text-xl font-bold text-foreground">{formatCurrency(finalTotal)}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCheckoutModalOpen(false)}
+                className="rounded-md p-2 text-muted-foreground hover:bg-secondary"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Loyalty Number
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={loyaltyInputRef}
+                    type="text"
+                    value={loyaltyNumber}
+                    onChange={(e) => {
+                      setLoyaltyNumber(e.target.value);
+                      setLoyaltyNotFound(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        doSearch();
+                      }
+                      void handleCheckoutModalKeyDown(e);
+                    }}
+                    placeholder="Phone or Loyalty ID"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <Button type="button" variant="secondary" onClick={doSearch} className="h-10 px-3">Apply</Button>
+                </div>
+                {loyaltyNotFound && <p className="mt-1 text-xs text-destructive">No loyalty member found.</p>}
+              </div>
+
+              {loyaltyCustomer && (
+                <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-foreground">{loyaltyCustomer.name}</span>
+                    </div>
+                    <TierBadge tier={loyaltyCustomer.tier} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-muted-foreground">
+                    <span>{loyaltyCustomer.points.toLocaleString()} pts</span>
+                    <span>+{pointsEarned} pts</span>
+                  </div>
+                  {redeemableDollars > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRedeemPoints((p) => !p)}
+                      className={cn(
+                        "mt-2 w-full rounded-md border px-2 py-1.5 text-left text-xs font-medium",
+                        redeemPoints ? "border-amber-400 bg-amber-50 text-amber-700" : "border-border bg-background text-muted-foreground"
+                      )}
+                    >
+                      {redeemPoints ? "Remove" : "Apply"} loyalty discount ({formatCurrency(redeemableDollars)})
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Tendered Amount
+                </label>
+                <input
+                  ref={tenderedInputRef}
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={tenderedAmount}
+                  disabled={checkoutStep === 2}
+                  onChange={(e) => setTenderedAmount(e.target.value)}
+                  onKeyDown={(e) => void handleCheckoutModalKeyDown(e)}
+                  placeholder="0.00"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-lg font-semibold tabular-nums outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                />
+              </div>
+
+              <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Change</span>
+                  <span className={cn("font-bold tabular-nums", changeAmount >= 0 ? "text-emerald-600" : "text-red-600")}>{formatCurrency(changeAmount)}</span>
+                </div>
+              </div>
+
+              <div className="pt-1 text-xs text-muted-foreground">
+                {checkoutStep === 1 ? (
+                  <span>Press Enter to confirm amount, then Enter again to complete checkout.</span>
+                ) : (
+                  <span className="font-semibold text-emerald-600">Ready to complete. Press Enter to finalize and print receipt.</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
