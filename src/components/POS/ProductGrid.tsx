@@ -183,7 +183,8 @@ export function ProductGrid({
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setFocusedIndex(cur <= 0 ? 0 : Math.max(cur - cols, 0));
-      } else if (e.key === "Enter" && cur >= 0) {
+      } else if ((e.key === "Enter" || e.code === "NumpadEnter") && cur >= 0) {
+        e.preventDefault();
         const product = filteredRef.current[cur];
         if (product && product.stock > 0) {
           const card = cardRefs.current[cur];

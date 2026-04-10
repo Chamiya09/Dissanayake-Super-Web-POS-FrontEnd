@@ -15,7 +15,8 @@ import { useInventory } from "@/context/InventoryContext";
 interface MgmtProduct {
   id: number;
   productName: string;
-  sku: string;
+  sku: string | null;
+  barcode: string | null;
   category: string;
   buyingPrice: number;
   sellingPrice: number;
@@ -30,7 +31,7 @@ function mapToPOS(p: MgmtProduct): Product {
     price:    p.sellingPrice,
     category: p.category,
     unit:     p.unit ?? "pcs",
-    barcode:  p.sku,
+    barcode:  p.barcode ?? "",
     stock:    50,   // default — management page doesn't track stock yet
   };
 }
@@ -118,7 +119,7 @@ const Index = () => {
           price:    p.sellingPrice,
           category: p.category,
           unit:     p.unit ?? "pcs",
-          barcode:  p.sku,
+          barcode:  p.barcode ?? "",
           stock:    inv ? inv.stockQuantity : 0,
         };
       }),
@@ -211,9 +212,36 @@ const Index = () => {
     return () => window.clearTimeout(timer);
   }, [skuInputValue]);
 
-  const handleScannedBarcode = useCallback((barcode: string) => {
-    console.info("[POS] handleScannedBarcode:", barcode);
-  }, []);
+  const addProductByBarcode = useCallback(
+    (rawBarcode: string) => {
+      const scannedBarcode = String(rawBarcode).trim();
+      if (!scannedBarcode) return;
+
+      const product = posProducts.find(
+        (item) => String(item.barcode ?? "").trim() === scannedBarcode,
+      );
+
+      if (!product) {
+        showToast(`No product found for barcode "${scannedBarcode}"`, "error", "Invalid Barcode");
+        return;
+      }
+
+      addToCart(product);
+      showToast(`Added: ${product.name}`, "success", "Item Added");
+    },
+    [addToCart, posProducts, showToast],
+  );
+
+  const handleScannedBarcode = useCallback(
+    (barcode: string) => {
+      const scannedBarcode = String(barcode).trim();
+      if (!scannedBarcode) return;
+      console.info("[POS] handleScannedBarcode:", scannedBarcode);
+      addProductByBarcode(scannedBarcode);
+      setSkuInputValue("");
+    },
+    [addProductByBarcode],
+  );
 
   const addProductBySku = useCallback(
     async (rawSku: string) => {
@@ -230,7 +258,7 @@ const Index = () => {
           price:    data.sellingPrice,
           category: data.category,
           unit:     data.unit ?? "pcs",
-          barcode:  data.sku,
+          barcode:  data.barcode ?? "",
           stock:    50,
         };
 
@@ -380,6 +408,17 @@ const Index = () => {
         return;
       }
 
+      // Spacebar shortcut: open checkout when user is not typing in any input.
+      if (!isInputFocused && e.code === "Space") {
+        if (cartRef.current.length > 0) {
+          e.preventDefault(); // Prevent page scroll on space press.
+          setKeyboardScope("cart");
+          setCartOpen(true);
+          setCheckoutHotkeyNonce((n) => n + 1);
+        }
+        return;
+      }
+
       // Cart item actions (only when cart scope is active and not typing into inputs).
       if (!isInputFocused && keyboardScope === "cart") {
         const digitKey = /^[0-9]$/.test(e.key) ? e.key : null;
@@ -469,6 +508,10 @@ const Index = () => {
       }
 
       // Route B: scanner input (ignore modifier combinations entirely).
+      if (e.defaultPrevented) {
+        return;
+      }
+
       if (e.ctrlKey || e.altKey || e.metaKey) {
         return;
       }
@@ -476,11 +519,10 @@ const Index = () => {
       if (e.isComposing) return;
 
       if (e.key === "Enter") {
-        const barcode = scannerBuffer.trim();
-        if (barcode.length >= minBarcodeLength) {
+        const scannedBarcode = String(scannerBuffer).trim();
+        if (scannedBarcode.length >= minBarcodeLength) {
           e.preventDefault();
-          handleScannedBarcode(barcode);
-          void addProductBySku(barcode);
+          handleScannedBarcode(scannedBarcode);
           setSkuInputValue("");
           skuInputRef.current?.focus();
         }
@@ -509,7 +551,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -531,7 +573,6 @@ const Index = () => {
               onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
               inputRef={skuInputRef}
-              autoFocus
               placeholder="00001"
               onClear={() => {
                 setSkuInputValue("");

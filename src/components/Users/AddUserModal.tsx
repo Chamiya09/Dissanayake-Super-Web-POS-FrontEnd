@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import {
   X, UserPlus, User, AtSign, Mail, Hash,
-  Lock, ShieldCheck, Info, Eye, EyeOff, Loader2,
+  Lock, ShieldCheck, Info, Eye, EyeOff, Loader2, Phone, MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,16 @@ const ROLE_PILL_STYLES = {
 };
 const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
-const EMPTY_FORM = { fullName: "", memberId: "", username: "", email: "", role: "", password: "" };
+const EMPTY_FORM = {
+  fullName: "",
+  memberId: "",
+  username: "",
+  email: "",
+  phoneNumber: "",
+  address: "",
+  role: "",
+  password: "",
+};
 
 const MEMBER_ID_HELPER = {
   Manager: "Use format MGR### (example: MGR001)",
@@ -128,6 +137,8 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
         memberId: form.memberId.trim().toUpperCase(),
         username: form.username.trim(),
         email:    form.email.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        address: form.address.trim(),
         role:     form.role,
         password: form.password,
       });
@@ -306,6 +317,34 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
                     </SelectContent>
                   </Select>
                 )}
+              </FormRow>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormRow id="phoneNumber" label="Phone Number" icon={Phone} error={errors.phoneNumber}>
+                <Input
+                  id="phoneNumber"
+                  placeholder="e.g. +94 77 123 4567"
+                  value={form.phoneNumber}
+                  onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                  className={cn(
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
+                    errors.phoneNumber && "border-red-400 focus-visible:ring-red-400",
+                  )}
+                />
+              </FormRow>
+
+              <FormRow id="address" label="Address" icon={MapPin} error={errors.address}>
+                <Input
+                  id="address"
+                  placeholder="e.g. Kandy"
+                  value={form.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  className={cn(
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
+                    errors.address && "border-red-400 focus-visible:ring-red-400",
+                  )}
+                />
               </FormRow>
             </div>
 

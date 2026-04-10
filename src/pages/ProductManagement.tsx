@@ -147,18 +147,26 @@ export default function ProductManagement() {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
+      const deletedId = deleteTarget.id;
       await productApi.remove(deleteTarget.id);
+
+      setProducts((prev) => prev.filter((p) => p.id !== deletedId));
+      setTotalElements((prev) => Math.max(0, prev - 1));
+
       if (products.length === 1 && page > 0) {
         setPage((prev) => Math.max(0, prev - 1));
-      } else {
-        await fetchProducts();
       }
+
       showToast("Product deleted successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.response?.data?.error ||
+        "Something went wrong. Please try again.";
+      showToast(message, "error");
       throw new Error("Failed to delete product.");
     }
-  }, [deleteTarget, fetchProducts, page, products.length, showToast]);
+  }, [deleteTarget, page, products.length, showToast]);
 
   const handleCsvImport = useCallback(async (rows: Omit<Product, "id">[]) => {
     try {

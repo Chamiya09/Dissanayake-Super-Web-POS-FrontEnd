@@ -166,6 +166,8 @@ export default function UserManagement() {
         memberId: formData.memberId,
         username: formData.username,
         email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
         role: formData.role,
         password: formData.password,
       });
@@ -184,6 +186,8 @@ export default function UserManagement() {
         memberId: updated.memberId,
         username: updated.username,
         email: updated.email,
+        phoneNumber: updated.phoneNumber,
+        address: updated.address,
         role: updated.role,
       });
       setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
