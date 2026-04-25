@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 import ReturnSaleItemsModal from "@/components/Sales/ReturnSaleItemsModal";
+import SupervisorApprovalModal from "@/components/Sales/SupervisorApprovalModal";
 
 
 const formatDateTime = (iso) => {
@@ -165,6 +166,8 @@ export default function SalesManagement() {
   const [returningId, setReturningId] = useState(null); // tracks in-flight return request
   const [returnSale, setReturnSale] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [pendingReturnPayload, setPendingReturnPayload] = useState(null);
+  const [isApprovalOpen, setIsApprovalOpen] = useState(false);
 
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
@@ -265,27 +268,49 @@ export default function SalesManagement() {
   const closeReturnModal = () => {
     if (returningId !== null) return;
     setIsReturnModalOpen(false);
+    setIsApprovalOpen(false);
+    setPendingReturnPayload(null);
     setReturnSale(null);
   };
 
   const handleReturnItems = async (payload) => {
+    setPendingReturnPayload(payload);
+    setIsApprovalOpen(true);
+  };
+
+  const handleSupervisorApproval = async ({ approverEmail, approverPassword }) => {
     if (!returnSale?.id) return;
+
+    if (!approverEmail || !approverPassword) {
+      showToast("Approval Denied: Approver email and password are required.", "error");
+      return;
+    }
 
     setReturningId(returnSale.id);
     try {
-      await api.post(`${API}/${returnSale.id}/return-items`, payload);
+      await api.post(`${API}/${returnSale.id}/return-items`, {
+        ...(pendingReturnPayload ?? {}),
+        approverEmail,
+        approverPassword,
+      });
 
       // Always refresh from server so totalAmount/status are guaranteed current.
       await fetchSales();
 
       showToast(`Return processed for sale ${getTransactionId(returnSale)}.`, "success");
+      setIsApprovalOpen(false);
+      setPendingReturnPayload(null);
       setIsReturnModalOpen(false);
       setReturnSale(null);
     } catch (err) {
       const status = err?.response?.status;
       const msg = extractApiErrorMessage(err, "Failed to process return. Please try again.");
 
-      if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
+      if (status === 401 || /invalid approver credentials/i.test(msg)) {
+        showToast("Approval Denied: Invalid Credentials", "error");
+      } else if (status === 403 || /unauthorized approver/i.test(msg)) {
+        showToast("Approval Denied: Unauthorized Approver", "error");
+      } else if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
         showToast(
           "Partial return endpoint is not available on backend. Please restart/update backend and try again.",
           "error"
@@ -680,6 +705,17 @@ export default function SalesManagement() {
         onClose={closeReturnModal}
         saleData={returnSale}
         onConfirm={handleReturnItems}
+        isSubmitting={returningId !== null || isApprovalOpen}
+      />
+
+      <SupervisorApprovalModal
+        isOpen={isApprovalOpen}
+        onClose={() => {
+          if (returningId !== null) return;
+          setIsApprovalOpen(false);
+          setPendingReturnPayload(null);
+        }}
+        onSubmit={handleSupervisorApproval}
         isSubmitting={returningId !== null}
       />
     </div>
