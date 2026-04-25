@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/axiosInstance";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { BarChart3, Receipt, UsersRound, RotateCcw, PackageX, Boxes, PlusCircle } from "lucide-react";
+import { BarChart3, Receipt, UsersRound, RotateCcw, PackageX, Boxes, PlusCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/context/GlobalToastContext";
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,6 +14,66 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+
+type ManagerKpis = {
+  todaysSales: number;
+  activeShifts: number;
+  pendingReturnsVoids: number;
+  outOfStockItems: number;
+};
+
+type HourlySalesPoint = {
+  hour: string;
+  amount: number;
+};
+
+type LowStockItem = {
+  productId: number;
+  productName: string;
+  stockQuantity: number;
+  reorderLevel: number;
+};
+
+type ManagerDashboardData = {
+  kpis: ManagerKpis;
+  todaysHourlySales: HourlySalesPoint[];
+  lowStockActionList: LowStockItem[];
+};
+
+const EMPTY_MANAGER_DATA: ManagerDashboardData = {
+  kpis: {
+    todaysSales: 0,
+    activeShifts: 0,
+    pendingReturnsVoids: 0,
+    outOfStockItems: 0,
+  },
+  todaysHourlySales: [],
+  lowStockActionList: [],
+};
+
+const normalizeManagerData = (raw: any): ManagerDashboardData => {
+  const hourlySales = Array.isArray(raw?.todaysHourlySales) ? raw.todaysHourlySales : [];
+  const lowStockList = Array.isArray(raw?.lowStockActionList) ? raw.lowStockActionList : [];
+
+  return {
+    kpis: {
+      todaysSales: Number(raw?.kpis?.todaysSales ?? raw?.todaysSales ?? 0),
+      activeShifts: Number(raw?.kpis?.activeShifts ?? raw?.activeShifts ?? 0),
+      pendingReturnsVoids: Number(raw?.kpis?.pendingReturnsVoids ?? raw?.pendingReturnsVoids ?? 0),
+      outOfStockItems: Number(raw?.kpis?.outOfStockItems ?? raw?.outOfStockItems ?? 0),
+    },
+    todaysHourlySales: hourlySales.map((point: any) => ({
+      hour: String(point?.hour ?? ""),
+      amount: Number(point?.amount ?? 0),
+    })),
+    lowStockActionList: lowStockList.map((item: any) => ({
+      productId: Number(item?.productId ?? 0),
+      productName: String(item?.productName ?? "Unknown Product"),
+      stockQuantity: Number(item?.stockQuantity ?? 0),
+      reorderLevel: Number(item?.reorderLevel ?? 0),
+    })),
+  };
+};
 
 function KpiCard({
   title,
@@ -40,58 +101,30 @@ function KpiCard({
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
-  const [sales, setSales] = useState<any[]>([]);
-  const [shifts, setShifts] = useState<any[]>([]);
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [lowStock, setLowStock] = useState<any[]>([]);
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<ManagerDashboardData>(EMPTY_MANAGER_DATA);
 
   useEffect(() => {
     const run = async () => {
-      const [salesRes, shiftsRes, inventoryRes, lowStockRes] = await Promise.allSettled([
-        api.get("/api/sales"),
-        api.get("/api/shifts/history"),
-        api.get("/api/inventory/status"),
-        api.get("/api/inventory/low-stock"),
-      ]);
+      setLoading(true);
+      setError(null);
 
-      if (salesRes.status === "fulfilled") setSales(Array.isArray(salesRes.value.data) ? salesRes.value.data : []);
-      if (shiftsRes.status === "fulfilled") setShifts(Array.isArray(shiftsRes.value.data) ? shiftsRes.value.data : []);
-      if (inventoryRes.status === "fulfilled") setInventory(Array.isArray(inventoryRes.value.data) ? inventoryRes.value.data : []);
-      if (lowStockRes.status === "fulfilled") setLowStock(Array.isArray(lowStockRes.value.data) ? lowStockRes.value.data : []);
+      try {
+        const response = await api.get("/api/dashboard/manager-stats");
+        setDashboardData(normalizeManagerData(response.data));
+      } catch (err: any) {
+        const message = err?.response?.data?.message || "Failed to load manager dashboard data.";
+        setError(message);
+        showToast(message, "error");
+      } finally {
+        setLoading(false);
+      }
     };
 
     run();
-  }, []);
-
-  const todayKey = new Date().toDateString();
-
-  const todaysSales = useMemo(
-    () => sales.filter((s) => s?.saleDate && new Date(s.saleDate).toDateString() === todayKey && String(s?.status || "").toLowerCase() === "completed"),
-    [sales, todayKey]
-  );
-
-  const todaysRevenue = useMemo(
-    () => todaysSales.reduce((sum, s) => sum + Number(s?.totalAmount || 0), 0),
-    [todaysSales]
-  );
-
-  const hourlySales = useMemo(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => ({ hour: `${String(i).padStart(2, "0")}:00`, amount: 0 }));
-    todaysSales.forEach((s) => {
-      const h = new Date(s.saleDate).getHours();
-      hours[h].amount += Number(s?.totalAmount || 0);
-    });
-    return hours.filter((h) => h.amount > 0);
-  }, [todaysSales]);
-
-  const activeShifts = shifts.filter((s) => String(s?.status || "").toUpperCase() === "OPEN").length;
-
-  const pendingReturnsVoids = sales.filter((s) => {
-    const st = String(s?.status || "").toLowerCase();
-    return st === "voided" || st === "partially returned" || st === "returned";
-  }).length;
-
-  const outOfStock = inventory.filter((item) => Number(item?.stockQuantity || 0) <= 0).length;
+  }, [showToast]);
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
@@ -110,20 +143,35 @@ export default function ManagerDashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title="Today's Sales" value={formatCurrency(todaysRevenue)} icon={Receipt} iconClass="bg-emerald-100 text-emerald-700" />
-            <KpiCard title="Active Shifts" value={String(activeShifts)} icon={UsersRound} iconClass="bg-indigo-100 text-indigo-700" />
-            <KpiCard title="Pending Returns / Voids" value={String(pendingReturnsVoids)} icon={RotateCcw} iconClass="bg-amber-100 text-amber-700" />
-            <KpiCard title="Out of Stock Items" value={String(outOfStock)} icon={PackageX} iconClass="bg-rose-100 text-rose-700" />
+            <KpiCard title="Today's Sales" value={formatCurrency(dashboardData.kpis.todaysSales)} icon={Receipt} iconClass="bg-emerald-100 text-emerald-700" />
+            <KpiCard title="Active Shifts" value={String(dashboardData.kpis.activeShifts)} icon={UsersRound} iconClass="bg-indigo-100 text-indigo-700" />
+            <KpiCard title="Pending Returns / Voids" value={String(dashboardData.kpis.pendingReturnsVoids)} icon={RotateCcw} iconClass="bg-amber-100 text-amber-700" />
+            <KpiCard title="Out of Stock Items" value={String(dashboardData.kpis.outOfStockItems)} icon={PackageX} iconClass="bg-rose-100 text-rose-700" />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          {loading && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md">
+              <div className="flex items-center justify-center gap-3 text-slate-600">
+                <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                <p className="text-sm font-medium">Loading manager dashboard data...</p>
+              </div>
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Today's Hourly Sales</h2>
-              <p className="text-xs text-slate-500">Completed sale values by hour</p>
+              <p className="text-xs text-slate-500">Real-time hourly sales from backend</p>
             </div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourlySales}>
+                <BarChart data={dashboardData.todaysHourlySales}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="hour" tick={{ fontSize: 12, fill: "#64748b" }} />
                   <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
@@ -131,17 +179,17 @@ export default function ManagerDashboard() {
                     formatter={(value: number) => [formatCurrency(Number(value || 0)), "Sales"]}
                     contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
                   />
-                  <Bar dataKey="amount" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="amount" fill="#4f46e5" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            {hourlySales.length === 0 && (
+            {dashboardData.todaysHourlySales.length === 0 && !loading && (
               <p className="mt-2 text-center text-sm text-slate-500">No completed sales recorded today.</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1.4fr]">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
               <h3 className="text-base font-semibold text-slate-900">Quick Actions</h3>
               <p className="mb-4 text-xs text-slate-500">Jump directly to operational tasks</p>
               <div className="grid grid-cols-1 gap-3">
@@ -169,7 +217,7 @@ export default function ManagerDashboard() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
               <h3 className="text-base font-semibold text-slate-900">Low Stock Action List</h3>
               <p className="mb-3 text-xs text-slate-500">Prioritize replenishment actions</p>
               <div className="overflow-hidden rounded-lg border border-slate-100">
@@ -182,10 +230,10 @@ export default function ManagerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lowStock.length === 0 ? (
+                    {dashboardData.lowStockActionList.length === 0 ? (
                       <tr><td colSpan={3} className="px-3 py-5 text-center text-slate-500">All good. No low stock items.</td></tr>
                     ) : (
-                      lowStock.slice(0, 8).map((row: any) => (
+                      dashboardData.lowStockActionList.slice(0, 8).map((row) => (
                         <tr key={row.productId} className="border-t border-slate-100">
                           <td className="px-3 py-2">{row.productName}</td>
                           <td className="px-3 py-2 text-right font-semibold text-rose-700">{row.stockQuantity}</td>

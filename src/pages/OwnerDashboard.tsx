@@ -1,26 +1,118 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ElementType } from "react";
 import api from "@/lib/axiosInstance";
 import { AppHeader } from "@/components/Layout/AppHeader";
+import { useToast } from "@/context/GlobalToastContext";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { TrendingUp, Landmark, Users, AlertTriangle, Crown, ShieldAlert } from "lucide-react";
+import {
+  TrendingUp,
+  Landmark,
+  Users,
+  AlertTriangle,
+  Crown,
+  ShieldAlert,
+  Loader2,
+} from "lucide-react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
 } from "recharts";
 
-const monthKey = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+type OwnerKpis = {
+  totalRevenue: number;
+  netProfit: number;
+  totalUsers: number;
+  lowStockItems: number;
 };
 
-const monthLabel = (key: string) => {
-  const [y, m] = key.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "short" });
+type RevenuePoint = {
+  date: string;
+  revenue: number;
+};
+
+type CategoryPoint = {
+  category: string;
+  value: number;
+};
+
+type TopSellingProduct = {
+  name: string;
+  qty: number;
+};
+
+type RecentAlert = {
+  id: string | number;
+  action: string;
+  timestamp: string;
+};
+
+type OwnerDashboardData = {
+  kpis: OwnerKpis;
+  last30DaysRevenueTrend: RevenuePoint[];
+  salesByCategory: CategoryPoint[];
+  topSellingProducts: TopSellingProduct[];
+  recentAlerts: RecentAlert[];
+};
+
+const PIE_COLORS = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+const EMPTY_OWNER_DATA: OwnerDashboardData = {
+  kpis: {
+    totalRevenue: 0,
+    netProfit: 0,
+    totalUsers: 0,
+    lowStockItems: 0,
+  },
+  last30DaysRevenueTrend: [],
+  salesByCategory: [],
+  topSellingProducts: [],
+  recentAlerts: [],
+};
+
+const formatTrendDate = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+};
+
+const normalizeOwnerData = (raw: any): OwnerDashboardData => {
+  const trend = Array.isArray(raw?.last30DaysRevenueTrend) ? raw.last30DaysRevenueTrend : [];
+  const category = Array.isArray(raw?.salesByCategory) ? raw.salesByCategory : [];
+  const topSelling = Array.isArray(raw?.topSellingProducts) ? raw.topSellingProducts : [];
+  const alerts = Array.isArray(raw?.recentAlerts) ? raw.recentAlerts : [];
+
+  return {
+    kpis: {
+      totalRevenue: Number(raw?.kpis?.totalRevenue ?? raw?.totalRevenue ?? 0),
+      netProfit: Number(raw?.kpis?.netProfit ?? raw?.netProfit ?? 0),
+      totalUsers: Number(raw?.kpis?.totalUsers ?? raw?.totalUsers ?? 0),
+      lowStockItems: Number(raw?.kpis?.lowStockItems ?? raw?.lowStockItems ?? 0),
+    },
+    last30DaysRevenueTrend: trend.map((point: any) => ({
+      date: String(point?.date ?? ""),
+      revenue: Number(point?.revenue ?? 0),
+    })),
+    salesByCategory: category.map((point: any) => ({
+      category: String(point?.category ?? "Uncategorized"),
+      value: Number(point?.value ?? 0),
+    })),
+    topSellingProducts: topSelling.map((product: any, index: number) => ({
+      name: String(product?.name ?? `Product ${index + 1}`),
+      qty: Number(product?.qty ?? product?.quantity ?? 0),
+    })),
+    recentAlerts: alerts.map((alert: any, index: number) => ({
+      id: alert?.id ?? index,
+      action: String(alert?.action ?? "Unknown Action"),
+      timestamp: String(alert?.timestamp ?? ""),
+    })),
+  };
 };
 
 function KpiCard({
@@ -31,11 +123,11 @@ function KpiCard({
 }: {
   title: string;
   value: string;
-  icon: React.ElementType;
+  icon: ElementType;
   iconClass: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-slate-500">{title}</p>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconClass}`}>
@@ -48,107 +140,39 @@ function KpiCard({
 }
 
 export default function OwnerDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [sales, setSales] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [lowStock, setLowStock] = useState<any[]>([]);
-  const [auditRows, setAuditRows] = useState<any[]>([]);
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<OwnerDashboardData>(EMPTY_OWNER_DATA);
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
-      try {
-        const [salesRes, productsRes, usersRes, lowStockRes, auditRes] = await Promise.allSettled([
-          api.get("/api/sales"),
-          api.get("/api/products"),
-          api.get("/api/users"),
-          api.get("/api/inventory/low-stock"),
-          api.get("/api/audit-logs", { params: { page: 0, size: 5 } }),
-        ]);
+      setError(null);
 
-        if (salesRes.status === "fulfilled") {
-          setSales(Array.isArray(salesRes.value.data) ? salesRes.value.data : []);
-        }
-        if (productsRes.status === "fulfilled") {
-          setProducts(Array.isArray(productsRes.value.data) ? productsRes.value.data : []);
-        }
-        if (usersRes.status === "fulfilled") {
-          setUsers(Array.isArray(usersRes.value.data) ? usersRes.value.data : []);
-        }
-        if (lowStockRes.status === "fulfilled") {
-          setLowStock(Array.isArray(lowStockRes.value.data) ? lowStockRes.value.data : []);
-        }
-        if (auditRes.status === "fulfilled") {
-          setAuditRows(auditRes.value.data?.content ?? []);
-        }
+      try {
+        const response = await api.get("/api/dashboard/owner-stats");
+        setDashboardData(normalizeOwnerData(response.data));
+      } catch (err: any) {
+        const message = err?.response?.data?.message || "Failed to load owner dashboard data.";
+        setError(message);
+        showToast(message, "error");
       } finally {
         setLoading(false);
       }
     };
 
     run();
-  }, []);
+  }, [showToast]);
 
-  const completedSales = useMemo(
-    () => sales.filter((s) => String(s?.status || "").toLowerCase() === "completed"),
-    [sales]
+  const trendData = useMemo(
+    () =>
+      dashboardData.last30DaysRevenueTrend.map((point) => ({
+        date: formatTrendDate(point.date),
+        revenue: point.revenue,
+      })),
+    [dashboardData.last30DaysRevenueTrend]
   );
-
-  const totalRevenue = useMemo(
-    () => completedSales.reduce((sum, s) => sum + Number(s?.totalAmount || 0), 0),
-    [completedSales]
-  );
-
-  const netProfit = useMemo(() => {
-    const productMap = new Map<number, any>();
-    products.forEach((p) => productMap.set(Number(p.id), p));
-
-    let profit = 0;
-    completedSales.forEach((sale) => {
-      (sale?.items || []).forEach((item: any) => {
-        const p = productMap.get(Number(item?.productId));
-        const unitSell = Number(item?.unitPrice || 0);
-        const qty = Number(item?.quantity || 0);
-        const unitBuy = Number(p?.buyingPrice || 0);
-        profit += (unitSell - unitBuy) * qty;
-      });
-    });
-
-    return profit;
-  }, [completedSales, products]);
-
-  const monthlyRevenue = useMemo(() => {
-    const bucket = new Map<string, number>();
-    completedSales.forEach((s) => {
-      if (!s?.saleDate) return;
-      const key = monthKey(s.saleDate);
-      bucket.set(key, (bucket.get(key) || 0) + Number(s?.totalAmount || 0));
-    });
-
-    const sorted = Array.from(bucket.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-6)
-      .map(([k, v]) => ({ month: monthLabel(k), revenue: Number(v.toFixed(2)) }));
-
-    return sorted;
-  }, [completedSales]);
-
-  const topSelling = useMemo(() => {
-    const qtyMap = new Map<string, number>();
-
-    completedSales.forEach((sale) => {
-      (sale?.items || []).forEach((item: any) => {
-        const name = String(item?.productName || "Unknown Product");
-        qtyMap.set(name, (qtyMap.get(name) || 0) + Number(item?.quantity || 0));
-      });
-    });
-
-    return Array.from(qtyMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([name, qty]) => ({ name, qty }));
-  }, [completedSales]);
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
@@ -167,38 +191,131 @@ export default function OwnerDashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title="Total Revenue" value={formatCurrency(totalRevenue)} icon={TrendingUp} iconClass="bg-emerald-100 text-emerald-700" />
-            <KpiCard title="Net Profit" value={formatCurrency(netProfit)} icon={Landmark} iconClass="bg-indigo-100 text-indigo-700" />
-            <KpiCard title="Total Users" value={String(users.length)} icon={Users} iconClass="bg-sky-100 text-sky-700" />
-            <KpiCard title="Low Stock Items" value={String(lowStock.length)} icon={AlertTriangle} iconClass="bg-amber-100 text-amber-700" />
+            <KpiCard
+              title="Total Revenue"
+              value={formatCurrency(dashboardData.kpis.totalRevenue)}
+              icon={TrendingUp}
+              iconClass="bg-emerald-100 text-emerald-700"
+            />
+            <KpiCard
+              title="Net Profit"
+              value={formatCurrency(dashboardData.kpis.netProfit)}
+              icon={Landmark}
+              iconClass="bg-indigo-100 text-indigo-700"
+            />
+            <KpiCard
+              title="Total Users"
+              value={String(dashboardData.kpis.totalUsers)}
+              icon={Users}
+              iconClass="bg-sky-100 text-sky-700"
+            />
+            <KpiCard
+              title="Low Stock Items"
+              value={String(dashboardData.kpis.lowStockItems)}
+              icon={AlertTriangle}
+              iconClass="bg-amber-100 text-amber-700"
+            />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Monthly Revenue Trends</h2>
-              <p className="text-xs text-slate-500">Completed sales over recent months</p>
+          {loading && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md">
+              <div className="flex items-center justify-center gap-3 text-slate-600">
+                <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                <p className="text-sm font-medium">Loading owner dashboard data...</p>
+              </div>
             </div>
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(Number(value || 0)), "Revenue"]}
-                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
+          )}
+
+          {error && !loading && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
+              {error}
             </div>
-            {!loading && monthlyRevenue.length === 0 && (
-              <p className="mt-2 text-center text-sm text-slate-500">No monthly sales data available yet.</p>
-            )}
-          </div>
+          )}
+
+          {!loading && (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">Last 30 Days Revenue Trend</h2>
+                  <p className="text-xs text-slate-500">Interactive area chart from real backend revenue data</p>
+                </div>
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trendData}>
+                      <defs>
+                        <linearGradient id="ownerRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#64748b" }} />
+                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                      <Tooltip
+                        formatter={(value: number) => [formatCurrency(Number(value || 0)), "Revenue"]}
+                        contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#4f46e5"
+                        strokeWidth={3}
+                        fill="url(#ownerRevenueGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                {trendData.length === 0 && (
+                  <p className="mt-2 text-center text-sm text-slate-500">No revenue trend data available.</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">Sales by Category</h2>
+                  <p className="text-xs text-slate-500">Category mix with hover details</p>
+                </div>
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dashboardData.salesByCategory}
+                        dataKey="value"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={115}
+                        paddingAngle={3}
+                        label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {dashboardData.salesByCategory.map((entry, index) => (
+                          <Cell
+                            key={`${entry.category}-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, _name, payload) => [
+                          formatCurrency(Number(value || 0)),
+                          payload?.payload?.category || "Category",
+                        ]}
+                        contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                {dashboardData.salesByCategory.length === 0 && (
+                  <p className="mt-2 text-center text-sm text-slate-500">No category sales data available.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
               <h3 className="text-base font-semibold text-slate-900">Top Selling Products</h3>
               <p className="mb-3 text-xs text-slate-500">By sold quantity</p>
               <div className="overflow-hidden rounded-lg border border-slate-100">
@@ -210,10 +327,14 @@ export default function OwnerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {topSelling.length === 0 ? (
-                      <tr><td colSpan={2} className="px-3 py-5 text-center text-slate-500">No sales yet.</td></tr>
+                    {dashboardData.topSellingProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className="px-3 py-5 text-center text-slate-500">
+                          No product performance data yet.
+                        </td>
+                      </tr>
                     ) : (
-                      topSelling.map((row) => (
+                      dashboardData.topSellingProducts.map((row) => (
                         <tr key={row.name} className="border-t border-slate-100">
                           <td className="px-3 py-2">{row.name}</td>
                           <td className="px-3 py-2 text-right font-semibold">{row.qty}</td>
@@ -225,7 +346,7 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
               <h3 className="text-base font-semibold text-slate-900">Recent System Alerts / Audit</h3>
               <p className="mb-3 text-xs text-slate-500">Latest sensitive actions</p>
               <div className="overflow-hidden rounded-lg border border-slate-100">
@@ -237,7 +358,7 @@ export default function OwnerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {auditRows.length === 0 ? (
+                    {dashboardData.recentAlerts.length === 0 ? (
                       <tr>
                         <td colSpan={2} className="px-3 py-5 text-center text-slate-500">
                           <div className="inline-flex items-center gap-2">
@@ -247,10 +368,12 @@ export default function OwnerDashboard() {
                         </td>
                       </tr>
                     ) : (
-                      auditRows.map((row: any) => (
+                      dashboardData.recentAlerts.map((row) => (
                         <tr key={row.id} className="border-t border-slate-100">
                           <td className="px-3 py-2 font-medium text-slate-800">{row.action}</td>
-                          <td className="px-3 py-2 text-slate-600">{new Date(row.timestamp).toLocaleString()}</td>
+                          <td className="px-3 py-2 text-slate-600">
+                            {row.timestamp ? new Date(row.timestamp).toLocaleString() : "--"}
+                          </td>
                         </tr>
                       ))
                     )}
