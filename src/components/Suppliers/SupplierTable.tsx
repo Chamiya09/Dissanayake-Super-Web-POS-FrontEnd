@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Trash2, Mail, Phone, User, Building2, PackageCheck, Package, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,28 @@ function AutoReorderToggle({ enabled }: { enabled: boolean }) {
   );
 }
 
+function SupplierActiveSwitch({
+  active,
+  onChange,
+}: {
+  active: boolean;
+  onChange: (active: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <Switch
+        checked={active}
+        onCheckedChange={onChange}
+        aria-label={active ? "Disable supplier" : "Enable supplier"}
+        className="data-[state=checked]:bg-teal-600"
+      />
+      <span className={cn("text-xs font-semibold", active ? "text-teal-700" : "text-slate-400")}>
+        {active ? "Active" : "Inactive"}
+      </span>
+    </div>
+  );
+}
+
 /* ── Avatar initials for the company ── */
 function CompanyAvatar({ name }: { name: string }) {
   const initials = name
@@ -89,9 +112,10 @@ interface SupplierTableProps {
   onDelete: (supplier: Supplier) => void;
   onAssign: (supplier: Supplier) => void;
   onViewProducts: (supplier: Supplier) => void;
+  onToggleActive: (supplier: Supplier, isActive: boolean) => void;
 }
 
-export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewProducts }: SupplierTableProps) {
+export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewProducts, onToggleActive }: SupplierTableProps) {
   const [search, setSearch]           = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -112,6 +136,8 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
       filterStatus === "normal"       ? s.leadTime >= 3 && s.leadTime <= 5 :
       filterStatus === "slow"         ? s.leadTime > 5 :
       filterStatus === "auto-reorder" ? s.isAutoReorderEnabled :
+      filterStatus === "active"       ? s.isActive :
+      filterStatus === "inactive"     ? !s.isActive :
       true;
 
     return matchesSearch && matchesStatus;
@@ -148,6 +174,8 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               <SelectItem value="normal">Normal (3–5 days)</SelectItem>
               <SelectItem value="slow">Slow (&gt; 5 days)</SelectItem>
               <SelectItem value="auto-reorder">AI Auto-Reorder</SelectItem>
+              <SelectItem value="active">Active Suppliers</SelectItem>
+              <SelectItem value="inactive">Inactive Suppliers</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -186,6 +214,9 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               </th>
               <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Auto-Reorder
+              </th>
+              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
+                Status
               </th>
               <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Actions
@@ -248,6 +279,13 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                   <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
                 </td>
 
+                <td className="px-6 py-6">
+                  <SupplierActiveSwitch
+                    active={supplier.isActive}
+                    onChange={(active) => onToggleActive(supplier, active)}
+                  />
+                </td>
+
                 {/* Actions */}
                 <td className="px-6 py-6">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -306,6 +344,10 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               <div className="flex flex-col items-end gap-2 shrink-0">
                 <LeadTimeBadge days={supplier.leadTime} />
                 <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
+                <SupplierActiveSwitch
+                  active={supplier.isActive}
+                  onChange={(active) => onToggleActive(supplier, active)}
+                />
               </div>
             </div>
 

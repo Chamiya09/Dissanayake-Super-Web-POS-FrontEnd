@@ -20,6 +20,8 @@ interface MgmtProduct {
   category: string;
   buyingPrice: number;
   sellingPrice: number;
+  status?: "ACTIVE" | "DISCONTINUED";
+  stockQuantity?: number;
   unit?: string;
 }
 
@@ -33,6 +35,7 @@ function mapToPOS(p: MgmtProduct): Product {
     unit:     p.unit ?? "pcs",
     barcode:  p.barcode ?? "",
     stock:    50,   // default — management page doesn't track stock yet
+    status:   p.status,
   };
 }
 
@@ -113,6 +116,7 @@ const Index = () => {
     () =>
       rawProducts.map((p) => {
         const inv = inventoryItems.find((i) => i.productId === p.id);
+        const stock = inv ? inv.stockQuantity : p.stockQuantity ?? 0;
         return {
           id:       String(p.id),
           name:     p.productName,
@@ -120,9 +124,10 @@ const Index = () => {
           category: p.category,
           unit:     p.unit ?? "pcs",
           barcode:  p.barcode ?? "",
-          stock:    inv ? inv.stockQuantity : 0,
+          stock,
+          status:   p.status,
         };
-      }),
+      }).filter((product) => product.status !== "DISCONTINUED" || product.stock > 0),
     [rawProducts, inventoryItems]
   );
 
@@ -259,12 +264,18 @@ const Index = () => {
           category: data.category,
           unit:     data.unit ?? "pcs",
           barcode:  data.barcode ?? "",
-          stock:    50,
+          stock:    data.stockQuantity ?? 0,
+          status:   data.status,
         };
 
         // Override stock from live inventory if available.
         const inv = inventoryItems.find((i) => i.productId === data.id);
         if (inv) product.stock = inv.stockQuantity;
+
+        if (product.status === "DISCONTINUED" && product.stock <= 0) {
+          showToast(`Product "${data.productName}" is discontinued and out of stock.`, "error", "Unavailable");
+          return;
+        }
 
         addToCart(product);
         showToast(`Added: ${data.productName}`, "success", "Item Added");

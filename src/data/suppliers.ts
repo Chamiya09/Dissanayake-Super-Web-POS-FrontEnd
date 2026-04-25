@@ -6,6 +6,7 @@ export interface Supplier {
   phone: string;
   leadTime: number; // days
   isAutoReorderEnabled: boolean;
+  isActive: boolean;
   createdAt?: string;
 }
 
@@ -18,6 +19,7 @@ export const suppliers: Supplier[] = [
     phone: "0112 345 678",
     leadTime: 2,
     isAutoReorderEnabled: true,
+    isActive: true,
   },
   {
     id: "SUP-002",
@@ -27,6 +29,7 @@ export const suppliers: Supplier[] = [
     phone: "0117 891 234",
     leadTime: 1,
     isAutoReorderEnabled: true,
+    isActive: true,
   },
   {
     id: "SUP-003",
@@ -36,6 +39,7 @@ export const suppliers: Supplier[] = [
     phone: "0113 456 789",
     leadTime: 3,
     isAutoReorderEnabled: false,
+    isActive: true,
   },
   {
     id: "SUP-004",
@@ -45,6 +49,7 @@ export const suppliers: Supplier[] = [
     phone: "0114 567 890",
     leadTime: 1,
     isAutoReorderEnabled: false,
+    isActive: true,
   },
   {
     id: "SUP-005",
@@ -54,5 +59,6 @@ export const suppliers: Supplier[] = [
     phone: "0115 678 901",
     leadTime: 5,
     isAutoReorderEnabled: true,
+    isActive: true,
   },
 ];

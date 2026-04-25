@@ -166,7 +166,7 @@ export default function Suppliers() {
   }, []);
 
   /* ── POST ── */
-  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
+  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt" | "isActive">) => {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
@@ -177,10 +177,32 @@ export default function Suppliers() {
     }
   }, [fetchSuppliers]);
 
+  const handleToggleActive = useCallback(async (supplier: Supplier, isActive: boolean) => {
+    setSuppliers((prev) =>
+      prev.map((item) => (item.id === supplier.id ? { ...item, isActive } : item))
+    );
+
+    try {
+      const updated = await supplierApi.updateStatus(supplier.id, isActive);
+      setSuppliers((prev) =>
+        prev.map((item) => (item.id === supplier.id ? updated : item))
+      );
+      showToast(
+        `${supplier.companyName} ${isActive ? "enabled" : "disabled"} successfully.`,
+        "success"
+      );
+    } catch (err) {
+      setSuppliers((prev) =>
+        prev.map((item) => (item.id === supplier.id ? { ...item, isActive: supplier.isActive } : item))
+      );
+      showToast(extractApiError(err), "error");
+    }
+  }, [showToast]);
+
   /* ── PUT ── */
   const handleEdit = useCallback(async (updated: Supplier) => {
     try {
-      const { id, createdAt: _createdAt, ...payload } = updated;
+      const { id, createdAt: _createdAt, isActive: _isActive, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
       showToast("Supplier updated successfully!", "success");
@@ -319,6 +341,7 @@ export default function Suppliers() {
             onDelete={(s) => setDeleteTarget(s)}
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
+            onToggleActive={handleToggleActive}
           />        </div>
         </main>
 

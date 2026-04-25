@@ -3,7 +3,7 @@ import type { Supplier } from "@/data/suppliers";
 
 const BASE = "/api/suppliers";
 
-type SupplierPayload = Omit<Supplier, "id" | "createdAt">;
+type SupplierPayload = Omit<Supplier, "id" | "createdAt" | "isActive">;
 
 export const supplierApi = {
   /** GET /api/suppliers */
@@ -24,6 +24,11 @@ export const supplierApi = {
   /** DELETE /api/suppliers/:id */
   remove(id: number): Promise<void> {
     return api.delete(`${BASE}/${id}`).then(() => undefined);
+  },
+
+  /** PATCH /api/suppliers/:id/status */
+  updateStatus(id: number, isActive: boolean): Promise<Supplier> {
+    return api.patch<Supplier>(`${BASE}/${id}/status`, { isActive }).then((r) => r.data);
   },
 
   /** POST /api/suppliers/:id/products — assign a list of product IDs to a supplier */
