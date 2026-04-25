@@ -160,6 +160,7 @@ export default function SalesManagement() {
   const { confirm } = useConfirmDialog();
   const { user } = useAuth();
   const isStaffView = user?.role === "Staff";
+  const canReturnWithoutApproval = user?.role === "Owner" || user?.role === "Manager";
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -276,26 +277,12 @@ export default function SalesManagement() {
     setReturnSale(null);
   };
 
-  const handleReturnItems = async (payload) => {
-    setPendingReturnPayload(payload);
-    setIsApprovalOpen(true);
-  };
-
-  const handleSupervisorApproval = async ({ approverEmail, approverPassword }) => {
+  const submitReturnRequest = async (payload) => {
     if (!returnSale?.id) return;
-
-    if (!approverEmail || !approverPassword) {
-      showToast("Approval Denied: Approver email and password are required.", "error");
-      return;
-    }
 
     setReturningId(returnSale.id);
     try {
-      await api.post(`${API}/${returnSale.id}/return-items`, {
-        ...(pendingReturnPayload ?? {}),
-        approverEmail,
-        approverPassword,
-      });
+      await api.post(`${API}/${returnSale.id}/return-items`, payload);
 
       // Always refresh from server so totalAmount/status are guaranteed current.
       await fetchSales();
@@ -325,6 +312,29 @@ export default function SalesManagement() {
     } finally {
       setReturningId(null);
     }
+  };
+
+  const handleReturnItems = async (payload) => {
+    if (canReturnWithoutApproval) {
+      await submitReturnRequest(payload);
+      return;
+    }
+
+    setPendingReturnPayload(payload);
+    setIsApprovalOpen(true);
+  };
+
+  const handleSupervisorApproval = async ({ approverId, approverPassword }) => {
+    if (!approverId || !approverPassword) {
+      showToast("Approval Denied: Manager ID and password are required.", "error");
+      return;
+    }
+
+    await submitReturnRequest({
+      ...(pendingReturnPayload ?? {}),
+      approverId,
+      approverPassword,
+    });
   };
 
   /* ── Stats ── */

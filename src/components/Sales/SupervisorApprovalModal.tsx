@@ -11,17 +11,17 @@ export default function SupervisorApprovalModal({
   onSubmit,
   isSubmitting,
 }) {
-  const [approverEmail, setApproverEmail] = useState("");
+  const [approverId, setApproverId] = useState("");
   const [approverPassword, setApproverPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const emailRef = useRef(null);
+  const idRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    setApproverEmail("");
+    setApproverId("");
     setApproverPassword("");
     setShowPassword(false);
-    setTimeout(() => emailRef.current?.focus(), 80);
+    setTimeout(() => idRef.current?.focus(), 80);
   }, [isOpen]);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function SupervisorApprovalModal({
   const handleSubmit = (event) => {
     event.preventDefault();
     onSubmit?.({
-      approverEmail: approverEmail.trim(),
+      approverId: approverId.trim(),
       approverPassword,
     });
   };
@@ -83,17 +83,18 @@ export default function SupervisorApprovalModal({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 px-6 py-5">
             <div className="space-y-1.5">
-              <Label htmlFor="approverEmail" className="text-[13px] font-semibold text-slate-900">
-                Approver's Email
+              <Label htmlFor="approverId" className="text-[13px] font-semibold text-slate-900">
+                Manager ID
               </Label>
               <Input
-                id="approverEmail"
-                ref={emailRef}
-                type="email"
-                value={approverEmail}
-                onChange={(event) => setApproverEmail(event.target.value)}
-                placeholder="manager@example.com"
+                id="approverId"
+                ref={idRef}
+                type="text"
+                value={approverId}
+                onChange={(event) => setApproverId(event.target.value.toUpperCase())}
+                placeholder="MGR001"
                 disabled={isSubmitting}
+                autoComplete="username"
                 className="h-11 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-300"
               />
             </div>
@@ -110,6 +111,7 @@ export default function SupervisorApprovalModal({
                   onChange={(event) => setApproverPassword(event.target.value)}
                   placeholder="Enter password"
                   disabled={isSubmitting}
+                  autoComplete="current-password"
                   className="h-11 rounded-xl border-slate-200 pr-11 text-sm focus-visible:ring-indigo-300"
                 />
                 <button
