@@ -74,6 +74,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/profile"         element={<UserProfile />} />
+                <Route path="/dashboard"  element={<Dashboard />} />
 
                 <Route element={<ProtectedRoute allowedRoles={["Manager", "Staff"]} />}>
                   <Route path="/" element={<Index />} />
@@ -82,7 +83,6 @@ const App = () => (
 
                 {/* ── Shared management routes (Owner + Manager) ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
-                  <Route path="/dashboard"  element={<Dashboard />} />
                   <Route path="/products"   element={<ProductManagement />} />
                   <Route path="/inventory"  element={<InventoryStock />} />
                   <Route path="/sales"      element={<SalesManagement />} />
