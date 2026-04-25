@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, Boxes, ClipboardList, AlertTriangle, Mail, Database, Brain, Clock3, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, Boxes, ClipboardList, AlertTriangle, Mail, Database, Brain, Clock3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -25,7 +25,6 @@ const NAV_BY_ROLE = {
     { title: "Mail Box",           url: "/mailbox",         icon: Mail },
     { title: "Data Export",        url: "/data-export",     icon: Database },
     { title: "Users",              url: "/users",           icon: Users },
-    { title: "Audit Logs",         url: "/audit-logs",      icon: ShieldCheck },
   ],
   Manager: [
     { title: "Dashboard",          url: "/dashboard",       icon: LayoutDashboard },

@@ -689,7 +689,7 @@ export default function LowStockAlerts() {
     };
     addReorder(optimisticOrder);
 
-    // Build ReorderRequestDTO and include AI context for debugging/audit.
+    // Build ReorderRequestDTO and include AI context for diagnostics.
     const dto = {
       orderRef,
       supplierEmail: supplier.email,

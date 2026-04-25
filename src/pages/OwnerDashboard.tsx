@@ -9,7 +9,6 @@ import {
   Users,
   AlertTriangle,
   Crown,
-  ShieldAlert,
   Loader2,
 } from "lucide-react";
 import {
@@ -47,18 +46,11 @@ type TopSellingProduct = {
   qty: number;
 };
 
-type RecentAlert = {
-  id: string | number;
-  action: string;
-  timestamp: string;
-};
-
 type OwnerDashboardData = {
   kpis: OwnerKpis;
   last30DaysRevenueTrend: RevenuePoint[];
   salesByCategory: CategoryPoint[];
   topSellingProducts: TopSellingProduct[];
-  recentAlerts: RecentAlert[];
 };
 
 const PIE_COLORS = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -73,7 +65,6 @@ const EMPTY_OWNER_DATA: OwnerDashboardData = {
   last30DaysRevenueTrend: [],
   salesByCategory: [],
   topSellingProducts: [],
-  recentAlerts: [],
 };
 
 const formatTrendDate = (dateString: string) => {
@@ -86,7 +77,6 @@ const normalizeOwnerData = (raw: any): OwnerDashboardData => {
   const trend = Array.isArray(raw?.last30DaysRevenueTrend) ? raw.last30DaysRevenueTrend : [];
   const category = Array.isArray(raw?.salesByCategory) ? raw.salesByCategory : [];
   const topSelling = Array.isArray(raw?.topSellingProducts) ? raw.topSellingProducts : [];
-  const alerts = Array.isArray(raw?.recentAlerts) ? raw.recentAlerts : [];
 
   return {
     kpis: {
@@ -106,11 +96,6 @@ const normalizeOwnerData = (raw: any): OwnerDashboardData => {
     topSellingProducts: topSelling.map((product: any, index: number) => ({
       name: String(product?.name ?? `Product ${index + 1}`),
       qty: Number(product?.qty ?? product?.quantity ?? 0),
-    })),
-    recentAlerts: alerts.map((alert: any, index: number) => ({
-      id: alert?.id ?? index,
-      action: String(alert?.action ?? "Unknown Action"),
-      timestamp: String(alert?.timestamp ?? ""),
     })),
   };
 };
@@ -314,7 +299,7 @@ export default function OwnerDashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
               <h3 className="text-base font-semibold text-slate-900">Top Selling Products</h3>
               <p className="mb-3 text-xs text-slate-500">By sold quantity</p>
@@ -338,42 +323,6 @@ export default function OwnerDashboard() {
                         <tr key={row.name} className="border-t border-slate-100">
                           <td className="px-3 py-2">{row.name}</td>
                           <td className="px-3 py-2 text-right font-semibold">{row.qty}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-              <h3 className="text-base font-semibold text-slate-900">Recent System Alerts / Audit</h3>
-              <p className="mb-3 text-xs text-slate-500">Latest sensitive actions</p>
-              <div className="overflow-hidden rounded-lg border border-slate-100">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2">Action</th>
-                      <th className="px-3 py-2">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboardData.recentAlerts.length === 0 ? (
-                      <tr>
-                        <td colSpan={2} className="px-3 py-5 text-center text-slate-500">
-                          <div className="inline-flex items-center gap-2">
-                            <ShieldAlert className="h-4 w-4 text-slate-400" />
-                            No alerts found.
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      dashboardData.recentAlerts.map((row) => (
-                        <tr key={row.id} className="border-t border-slate-100">
-                          <td className="px-3 py-2 font-medium text-slate-800">{row.action}</td>
-                          <td className="px-3 py-2 text-slate-600">
-                            {row.timestamp ? new Date(row.timestamp).toLocaleString() : "--"}
-                          </td>
                         </tr>
                       ))
                     )}

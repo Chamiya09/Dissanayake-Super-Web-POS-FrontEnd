@@ -731,7 +731,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                   <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
-                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit..." rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after count..." rows={3} maxLength={500} className={`${inputCls} resize-none`} />
                   <div className="flex items-center justify-between">
                     {errors.notes ? (
                       <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>

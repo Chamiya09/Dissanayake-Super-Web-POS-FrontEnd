@@ -26,7 +26,6 @@ import MailBox from "./pages/MailBox";
 import DataExport from "./pages/DataExport";
 import InventoryForecastDashboard from "./pages/InventoryForecastDashboard";
 import ShiftManagement from "./pages/ShiftManagement";
-import AuditLogs from "./pages/AuditLogs";
 
 const queryClient = new QueryClient();
 
@@ -98,7 +97,6 @@ const App = () => (
                   <Route path="/ai-reorder" element={<InventoryForecastDashboard />} />
                   <Route path="/data-export" element={<DataExport />} />
                   <Route path="/users"      element={<UserManagement />} />
-                  <Route path="/audit-logs" element={<AuditLogs />} />
                 </Route>
               </Route>
             </Route>
