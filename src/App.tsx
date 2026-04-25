@@ -80,11 +80,14 @@ const App = () => (
                   <Route path="/shift-management" element={<ShiftManagement />} />
                 </Route>
 
+                <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager", "Staff"]} />}>
+                  <Route path="/sales" element={<SalesManagement />} />
+                </Route>
+
                 {/* ── Shared management routes (Owner + Manager) ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
                   <Route path="/products"   element={<ProductManagement />} />
                   <Route path="/inventory"  element={<InventoryStock />} />
-                  <Route path="/sales"      element={<SalesManagement />} />
                   <Route path="/low-stock"  element={<LowStockAlerts />} />
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />

@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { useToast } from "@/context/GlobalToastContext";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { useAuth } from "@/context/AuthContext";
 
 const API = "/api/sales";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,8 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
 export default function SalesManagement() {
   const { showToast } = useToast();
   const { confirm } = useConfirmDialog();
+  const { user } = useAuth();
+  const isStaffView = user?.role === "Staff";
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -345,9 +348,12 @@ export default function SalesManagement() {
                 <ReceiptText size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Ledger</h1>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {isStaffView ? "My Sales & Returns" : "Sales Ledger"}
+                </h1>
                 <p className="text-sm text-slate-500 mt-1">
-                  {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
+                  {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded
+                  {isStaffView ? " for your cashier account" : " across the store"}
                 </p>
               </div>
             </div>

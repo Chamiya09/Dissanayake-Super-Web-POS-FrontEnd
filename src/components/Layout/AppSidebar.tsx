@@ -40,6 +40,7 @@ const NAV_BY_ROLE = {
   ],
   Staff: [
     { title: "POS Checkout",       url: "/",                icon: ShoppingCart },
+    { title: "My Sales & Returns", url: "/sales",           icon: ReceiptText },
     { title: "Shift Management",   url: "/shift-management", icon: Clock3 },
   ],
 } as const;
