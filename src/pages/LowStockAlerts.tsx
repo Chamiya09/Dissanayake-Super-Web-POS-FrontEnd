@@ -73,11 +73,18 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
   const orderingBlocked = item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED";
+  const { showToast } = useToast();
+  const assignedSupplier = {
+    companyName:   item.supplierName  ?? item.supplier?.companyName ?? null,
+    email:         item.supplierEmail ?? item.supplier?.email ?? null,
+    isActive:      item.supplierActive ?? item.supplier?.isActive ?? null,
+  };
+  const isSupplierDisabled = assignedSupplier.isActive === false;
   const currentStock = Math.max(0, Number(item.stockQuantity ?? 0));
   const [selectedProductId, setSelectedProductId] = useState(() => String(item.sku ?? item.productId ?? item.id ?? ""));
   const [timeframe, setTimeframe] = useState("monthly");
   const [predictedDemand, setPredictedDemand] = useState(0);
-  const forecastQuery = useProductForecast(selectedProductId, timeframe as "weekly" | "monthly");
+  const forecastQuery = useProductForecast(isSupplierDisabled ? null : selectedProductId, timeframe as "weekly" | "monthly");
   const suggestedOrderQty = Math.max(0, Math.ceil((predictedDemand ?? 0) - currentStock));
   const isSafeStock = currentStock >= (predictedDemand ?? 0);
   const [step,    setStep]    = useState(1);
@@ -111,11 +118,11 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
 
   // Supplier details come from the real API (supplierName / supplierEmail on the item).
   // Both fields are nullable — a product with no assigned supplier shows a warning.
-  const assignedSupplier = {
-    companyName:   item.supplierName  ?? null,
-    email:         item.supplierEmail ?? null,
-  };
   const hasSupplier = Boolean(assignedSupplier.email);
+
+  function blockInactiveSupplier() {
+    showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+  }
 
   const gap      = Math.max(0, (item.reorderLevel ?? 0) - (item.stockQuantity ?? 0));
   const velocity = Math.max(1, Math.round((item.reorderLevel ?? 10) / 3));
@@ -238,6 +245,14 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   <p className="text-sm font-bold text-slate-900 leading-tight">{item.productName}</p>
                   {item.sku && <p className="text-[11px] font-mono text-slate-400 mt-0.5">{item.sku}</p>}
                   {item.category && <p className="text-[11px] text-slate-400">{item.category}</p>}
+                  {isSupplierDisabled && (
+                    <span
+                      title="Cannot place order: This supplier is currently inactive"
+                      className="mt-2 inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                    >
+                      Supplier Inactive
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -426,8 +441,16 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                     className="h-10 w-10 flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold text-xl leading-none transition-colors"
                   >+</button>
                   <button
-                    onClick={() => setQty(suggestedOrderQty)}
-                    className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2.5 text-[12px] font-bold text-teal-700 hover:bg-teal-100 transition-colors"
+                    onClick={() => {
+                      if (isSupplierDisabled) {
+                        blockInactiveSupplier();
+                        return;
+                      }
+                      setQty(suggestedOrderQty);
+                    }}
+                    disabled={isSupplierDisabled}
+                    title={isSupplierDisabled ? "Cannot place order: This supplier is currently inactive" : "Apply AI Suggestion"}
+                    className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2.5 text-[12px] font-bold text-teal-700 hover:bg-teal-100 transition-colors disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     Apply AI Suggestion
                   </button>
@@ -573,17 +596,25 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 Back
               </button>
               <button
-                onClick={() => onSubmit({
-                  item,
-                  qty,
-                  supplier: assignedSupplier,
-                  emailBody,
-                  timeframe,
-                  predictedDemand,
-                })}
-                disabled={orderingBlocked || !hasSupplier || qty <= 0}
+                onClick={() => {
+                  if (isSupplierDisabled) {
+                    blockInactiveSupplier();
+                    return;
+                  }
+                  onSubmit({
+                    item,
+                    qty,
+                    supplier: assignedSupplier,
+                    emailBody,
+                    timeframe,
+                    predictedDemand,
+                  });
+                }}
+                disabled={orderingBlocked || isSupplierDisabled || !hasSupplier || qty <= 0}
                 title={
-                  orderingBlocked
+                  isSupplierDisabled
+                    ? "Cannot place order: This supplier is currently inactive"
+                    : orderingBlocked
                     ? "Ordering Blocked - Discontinued"
                     : !hasSupplier
                       ? "Assign a supplier to this product before placing an order"
@@ -598,7 +629,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 }`}
               >
                 <Send className="h-3.5 w-3.5" />
-                {orderingBlocked ? "Ordering Blocked - Discontinued" : `Create Purchase Order for ${qty} ${item.unit ?? "units"}`}
+                {isSupplierDisabled ? "Supplier Inactive" : orderingBlocked ? "Ordering Blocked - Discontinued" : `Create Purchase Order for ${qty} ${item.unit ?? "units"}`}
               </button>
             </>
           )}
@@ -671,6 +702,11 @@ export default function LowStockAlerts() {
   const { showToast }               = useToast();
 
   async function handleSubmitOrder({ item, qty, supplier, emailBody, timeframe, predictedDemand }) {
+    if (supplier?.isActive === false || item.supplierActive === false || item.supplier?.isActive === false) {
+      showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+      return;
+    }
+
     if (item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED") {
       showToast("Ordering is disabled for discontinued products", "warning");
       return;
@@ -739,7 +775,9 @@ export default function LowStockAlerts() {
       navigate("/reorder");
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
-      if (String(msg).toLowerCase().includes("discontinued")) {
+      if (String(msg).toLowerCase().includes("supplier is inactive")) {
+        showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+      } else if (String(msg).toLowerCase().includes("discontinued")) {
         showToast("Ordering is disabled for discontinued products", "warning");
       } else {
         showToast({ type: "error", title: "Order Failed", message: msg });
@@ -934,28 +972,51 @@ export default function LowStockAlerts() {
 
                       {/* Status Badge */}
                       <td className="px-6 py-4 text-center">
-                        <StatusBadge status={item.stockStatus} />
+                        <div className="inline-flex flex-col items-center gap-1.5">
+                          <StatusBadge status={item.stockStatus} />
+                          {(item.supplierActive === false || item.supplier?.isActive === false) && (
+                            <span
+                              title="Cannot place order: This supplier is currently inactive"
+                              className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                            >
+                              Supplier Inactive
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Action */}
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => {
+                            if (item.supplierActive === false || item.supplier?.isActive === false) {
+                              showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+                              return;
+                            }
                             if (item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED") {
                               showToast("Ordering is disabled for discontinued products", "warning");
                               return;
                             }
                             setOrderModal(item);
                           }}
-                          disabled={item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"}
+                          disabled={
+                            item.productStatus === "DISCONTINUED" ||
+                            item.status === "DISCONTINUED" ||
+                            item.supplierActive === false ||
+                            item.supplier?.isActive === false
+                          }
                           title={
-                            item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
+                            item.supplierActive === false || item.supplier?.isActive === false
+                              ? "Cannot place order: This supplier is currently inactive"
+                              : item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
                               ? "Ordering Blocked - Discontinued"
                               : "Place Order"
                           }
                           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
+                          {item.supplierActive === false || item.supplier?.isActive === false
+                            ? "Supplier Inactive"
+                            : item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
                             ? "Ordering Blocked - Discontinued"
                             : "Place Order"}
                           <ArrowRight className="h-3.5 w-3.5" />

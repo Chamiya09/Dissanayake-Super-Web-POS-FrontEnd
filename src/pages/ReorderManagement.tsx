@@ -549,7 +549,10 @@ export default function ReorderManagement() {
       : 1
   );
 
-  const forecastQuery = useProductForecast(selectedProductId, timeframe as "weekly" | "monthly");
+  const forecastQuery = useProductForecast(
+    product?.supplierActive === false || product?.supplier?.isActive === false ? null : selectedProductId,
+    timeframe as "weekly" | "monthly"
+  );
 
   useEffect(() => {
     if (product) {
@@ -809,10 +812,26 @@ export default function ReorderManagement() {
   const expectedPct   = Math.min(100, (expectedStock / scaleMax) * 100);
   const reorderPct    = product ? Math.min(100, ((product.reorderLevel ?? 0) / scaleMax) * 100) : 0;
   const isDiscontinuedProduct = product?.productStatus === "DISCONTINUED" || product?.status === "DISCONTINUED";
+  const associatedSupplier = product?.supplierEmail
+    ? suppliers.find((supplier) => normalizeEmail(supplier.email) === normalizeEmail(product.supplierEmail))
+    : null;
+  const isSupplierDisabled =
+    associatedSupplier?.isActive === false ||
+    selectedSupplier?.isActive === false ||
+    product?.supplierActive === false ||
+    product?.supplier?.isActive === false;
+
+  function blockInactiveSupplier() {
+    showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+  }
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handlePrepareEmail() {
     if (!product) return;
+    if (isSupplierDisabled) {
+      blockInactiveSupplier();
+      return;
+    }
     if (isDiscontinuedProduct) {
       showToast("Ordering is disabled for discontinued products", "warning");
       return;
@@ -855,6 +874,10 @@ export default function ReorderManagement() {
   async function handleCreateReorder(e) {
     e?.preventDefault();
     if (!product || isSubmitting) return;
+    if (isSupplierDisabled) {
+      blockInactiveSupplier();
+      return;
+    }
     if (isDiscontinuedProduct) {
       showToast("Ordering is disabled for discontinued products", "warning");
       return;
@@ -919,7 +942,9 @@ export default function ReorderManagement() {
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
-      if (String(msg).toLowerCase().includes("discontinued")) {
+      if (String(msg).toLowerCase().includes("supplier is inactive")) {
+        showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+      } else if (String(msg).toLowerCase().includes("discontinued")) {
         showToast("Ordering is disabled for discontinued products", "warning");
       } else {
         showToast({ type: "error", title: "Order Failed", message: msg });
@@ -1082,6 +1107,14 @@ export default function ReorderManagement() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isSupplierDisabled && (
+                        <span
+                          title="Cannot place order: This supplier is currently inactive"
+                          className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700"
+                        >
+                          Supplier Inactive
+                        </span>
+                      )}
                       {isDiscontinuedProduct && (
                         <span
                           title="Ordering Blocked - Discontinued"
@@ -1219,9 +1252,16 @@ export default function ReorderManagement() {
                               </p>
                               <button
                                 type="button"
-                                onClick={() => setOrderQty(Math.max(1, Math.round(predictedDemand || aiSuggestedQty)))}
-                                disabled={isDiscontinuedProduct}
-                                className="inline-flex items-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-bold text-teal-700 hover:bg-teal-100"
+                                onClick={() => {
+                                  if (isSupplierDisabled) {
+                                    blockInactiveSupplier();
+                                    return;
+                                  }
+                                  setOrderQty(Math.max(1, Math.round(predictedDemand || aiSuggestedQty)));
+                                }}
+                                disabled={isDiscontinuedProduct || isSupplierDisabled}
+                                title={isSupplierDisabled ? "Cannot place order: This supplier is currently inactive" : "Apply AI Suggestion"}
+                                className="inline-flex items-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-bold text-teal-700 hover:bg-teal-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 Apply AI Suggestion
                               </button>
@@ -1277,8 +1317,14 @@ export default function ReorderManagement() {
                     <button
                       type="button"
                       onClick={handlePrepareEmail}
-                      disabled={isDiscontinuedProduct}
-                      title={isDiscontinuedProduct ? "Ordering Blocked - Discontinued" : "Next: Review Email"}
+                      disabled={isDiscontinuedProduct || isSupplierDisabled}
+                      title={
+                        isSupplierDisabled
+                          ? "Cannot place order: This supplier is currently inactive"
+                          : isDiscontinuedProduct
+                            ? "Ordering Blocked - Discontinued"
+                            : "Next: Review Email"
+                      }
                       className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Next: Review Email
@@ -1296,8 +1342,14 @@ export default function ReorderManagement() {
                       <button
                         type="button"
                         onClick={handleSend}
-                        disabled={sending || isSubmitting || isDiscontinuedProduct}
-                        title={isDiscontinuedProduct ? "Ordering Blocked - Discontinued" : "Send Purchase Order"}
+                        disabled={sending || isSubmitting || isDiscontinuedProduct || isSupplierDisabled}
+                        title={
+                          isSupplierDisabled
+                            ? "Cannot place order: This supplier is currently inactive"
+                            : isDiscontinuedProduct
+                              ? "Ordering Blocked - Discontinued"
+                              : "Send Purchase Order"
+                        }
                         className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {(sending || isSubmitting) && <Loader2 className="h-4 w-4 animate-spin" />}

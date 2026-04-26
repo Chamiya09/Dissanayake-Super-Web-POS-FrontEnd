@@ -29,6 +29,7 @@ export interface InventoryItem {
   unit:          string | null;
   stockStatus:   string;   // "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK"
   productStatus?: string | null;
+  supplierActive?: boolean | null;
   lastUpdated:   string;
 }
 
