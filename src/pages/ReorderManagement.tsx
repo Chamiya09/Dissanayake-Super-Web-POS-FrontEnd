@@ -40,6 +40,7 @@ import {
 
 const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 const AUTH_LS_KEY = "pos_auth_user";
+const INACTIVE_SUPPLIER_TOAST = "Action Blocked: Associated supplier is currently inactive";
 
 const authVerifyClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "",
@@ -822,7 +823,7 @@ export default function ReorderManagement() {
     product?.supplier?.isActive === false;
 
   function blockInactiveSupplier() {
-    showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+    showToast(INACTIVE_SUPPLIER_TOAST, "error");
   }
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -942,8 +943,8 @@ export default function ReorderManagement() {
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
-      if (String(msg).toLowerCase().includes("supplier is inactive")) {
-        showToast("This supplier is inactive. Please enable the supplier to proceed.", "error");
+      if (String(msg).toLowerCase().includes("supplier")) {
+        showToast(INACTIVE_SUPPLIER_TOAST, "error");
       } else if (String(msg).toLowerCase().includes("discontinued")) {
         showToast("Ordering is disabled for discontinued products", "warning");
       } else {
