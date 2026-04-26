@@ -7,7 +7,7 @@ import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { ViewProductModal } from "@/components/Products/ViewProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
-import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
+import { Package, PlusCircle, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
@@ -271,8 +271,8 @@ export default function ProductManagement() {
               disabled={loading}
               className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              <Plus size={16} strokeWidth={2.5} />
-              Add New Product
+              <PlusCircle size={16} strokeWidth={2.5} />
+              Add Product
             </button>
           </div>
         </div>
