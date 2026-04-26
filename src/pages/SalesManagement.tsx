@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/Layout/AppHeader";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 import { useToast } from "@/context/GlobalToastContext";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { useAuth } from "@/context/AuthContext";
 
 const API = "/api/sales";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import ViewSaleModal from "@/components/Sales/ViewSaleModal";
 import ReturnSaleItemsModal from "@/components/Sales/ReturnSaleItemsModal";
+import SupervisorApprovalModal from "@/components/Sales/SupervisorApprovalModal";
 
 
 const formatDateTime = (iso) => {
@@ -156,6 +158,9 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
 export default function SalesManagement() {
   const { showToast } = useToast();
   const { confirm } = useConfirmDialog();
+  const { user } = useAuth();
+  const isStaffView = user?.role === "Staff";
+  const canReturnWithoutApproval = user?.role === "Owner" || user?.role === "Manager";
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -165,6 +170,8 @@ export default function SalesManagement() {
   const [returningId, setReturningId] = useState(null); // tracks in-flight return request
   const [returnSale, setReturnSale] = useState(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [pendingReturnPayload, setPendingReturnPayload] = useState(null);
+  const [isApprovalOpen, setIsApprovalOpen] = useState(false);
 
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
@@ -265,10 +272,12 @@ export default function SalesManagement() {
   const closeReturnModal = () => {
     if (returningId !== null) return;
     setIsReturnModalOpen(false);
+    setIsApprovalOpen(false);
+    setPendingReturnPayload(null);
     setReturnSale(null);
   };
 
-  const handleReturnItems = async (payload) => {
+  const submitReturnRequest = async (payload) => {
     if (!returnSale?.id) return;
 
     setReturningId(returnSale.id);
@@ -279,13 +288,19 @@ export default function SalesManagement() {
       await fetchSales();
 
       showToast(`Return processed for sale ${getTransactionId(returnSale)}.`, "success");
+      setIsApprovalOpen(false);
+      setPendingReturnPayload(null);
       setIsReturnModalOpen(false);
       setReturnSale(null);
     } catch (err) {
       const status = err?.response?.status;
       const msg = extractApiErrorMessage(err, "Failed to process return. Please try again.");
 
-      if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
+      if (status === 401 || /invalid approver credentials/i.test(msg)) {
+        showToast("Approval Denied: Invalid Credentials", "error");
+      } else if (status === 403 || /unauthorized approver/i.test(msg)) {
+        showToast("Approval Denied: Unauthorized Approver", "error");
+      } else if (status === 404 && !/sale\s+not\s+found|not\s+found\s+with\s+id/i.test(msg)) {
         showToast(
           "Partial return endpoint is not available on backend. Please restart/update backend and try again.",
           "error"
@@ -297,6 +312,29 @@ export default function SalesManagement() {
     } finally {
       setReturningId(null);
     }
+  };
+
+  const handleReturnItems = async (payload) => {
+    if (canReturnWithoutApproval) {
+      await submitReturnRequest(payload);
+      return;
+    }
+
+    setPendingReturnPayload(payload);
+    setIsApprovalOpen(true);
+  };
+
+  const handleSupervisorApproval = async ({ approverId, approverPassword }) => {
+    if (!approverId || !approverPassword) {
+      showToast("Approval Denied: Manager ID and password are required.", "error");
+      return;
+    }
+
+    await submitReturnRequest({
+      ...(pendingReturnPayload ?? {}),
+      approverId,
+      approverPassword,
+    });
   };
 
   /* ── Stats ── */
@@ -320,9 +358,12 @@ export default function SalesManagement() {
                 <ReceiptText size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Ledger</h1>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {isStaffView ? "My Sales & Returns" : "Sales Ledger"}
+                </h1>
                 <p className="text-sm text-slate-500 mt-1">
-                  {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded · read-only
+                  {sales.length} transaction{sales.length !== 1 ? "s" : ""} recorded
+                  {isStaffView ? " for your cashier account" : " across the store"}
                 </p>
               </div>
             </div>
@@ -680,6 +721,17 @@ export default function SalesManagement() {
         onClose={closeReturnModal}
         saleData={returnSale}
         onConfirm={handleReturnItems}
+        isSubmitting={returningId !== null || isApprovalOpen}
+      />
+
+      <SupervisorApprovalModal
+        isOpen={isApprovalOpen}
+        onClose={() => {
+          if (returningId !== null) return;
+          setIsApprovalOpen(false);
+          setPendingReturnPayload(null);
+        }}
+        onSubmit={handleSupervisorApproval}
         isSubmitting={returningId !== null}
       />
     </div>

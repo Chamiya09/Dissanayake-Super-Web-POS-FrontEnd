@@ -1,14 +1,12 @@
 import {
   ShoppingBag, Minus, Plus, Trash2, Loader2,
-  User, Star, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/data/products";
-import type { LoyaltyCustomer } from "@/data/loyalty";
-import { findCustomer, computeRedeemable, computePointsEarned, TIER_CONFIG } from "@/data/loyalty";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/utils/formatCurrency";
+import CheckoutModal from "@/components/POS/CheckoutModal";
 
 interface CartPanelProps {
   items: CartItem[];
@@ -23,22 +21,6 @@ interface CartPanelProps {
   onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
   /** Enables cart keyboard shortcuts only when cart area is active. */
   keyboardActive?: boolean;
-}
-
-/*  Tier badge  */
-function TierBadge({ tier }: { tier: LoyaltyCustomer["tier"] }) {
-  const cfg = TIER_CONFIG[tier];
-  const color: Record<string, string> = {
-    Bronze:   "bg-amber-100  text-amber-700  border-amber-200",
-    Silver:   "bg-slate-100  text-slate-500  border-slate-200",
-    Gold:     "bg-yellow-50  text-yellow-600 border-yellow-200",
-    Platinum: "bg-sky-50     text-sky-500    border-sky-200",
-  };
-  return (
-    <span className={cn("inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", color[tier])}>
-      {cfg.icon} {cfg.label}
-    </span>
-  );
 }
 
 /*  Swipeable row  */
@@ -186,28 +168,12 @@ function SwipeableItem({
 export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, checkoutHotkeyNonce = 0, onCheckoutModalOpenChange, onCheckout, keyboardActive = true }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const tenderedInputRef = useRef<HTMLInputElement>(null);
-  const loyaltyInputRef = useRef<HTMLInputElement>(null);
 
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [tenderedAmount, setTenderedAmount] = useState("");
-  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
-  const [loyaltyNumber, setLoyaltyNumber] = useState("");
 
-  /* Loyalty state */
-  const [loyaltyCustomer, setLoyaltyCustomer] = useState<LoyaltyCustomer | null>(null);
-  const [loyaltyNotFound, setLoyaltyNotFound] = useState(false);
-  const [redeemPoints, setRedeemPoints]     = useState(false);
-
-  /* Reset focus + loyalty when cart empties */
+  /* Reset checkout state when cart empties */
   useEffect(() => {
     if (items.length === 0) {
-      setLoyaltyCustomer(null);
-      setLoyaltyNumber("");
-      setLoyaltyNotFound(false);
-      setRedeemPoints(false);
-      setTenderedAmount("");
-      setCheckoutStep(1);
       setIsCheckoutModalOpen(false);
     }
   }, [items.length]);
@@ -222,24 +188,13 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   /*  Totals  */
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const total = subtotal;
+  const finalTotal = total;
 
-  /*  Loyalty computations  */
-  const redeemableDollars = loyaltyCustomer ? computeRedeemable(loyaltyCustomer, total) : 0;
-  const loyaltyDiscount   = redeemPoints && loyaltyCustomer ? redeemableDollars : 0;
-  const finalTotal        = parseFloat(Math.max(0, total - loyaltyDiscount).toFixed(2));
-  const pointsEarned      = loyaltyCustomer ? computePointsEarned(finalTotal) : 0;
-
-  const completeCheckout = useCallback(async () => {
+  const completeCheckout = useCallback(async (method: string) => {
     setProcessing(true);
     try {
-      await onCheckout?.(finalTotal, "Cash");
-      setLoyaltyCustomer(null);
-      setLoyaltyNumber("");
-      setRedeemPoints(false);
-      setTenderedAmount("");
-      setCheckoutStep(1);
+      await onCheckout?.(finalTotal, method);
       setIsCheckoutModalOpen(false);
-      window.print();
     } finally {
       setProcessing(false);
     }
@@ -247,8 +202,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   const openCheckoutModal = useCallback(() => {
     if (items.length === 0 || processing) return;
-    setCheckoutStep(1);
-    setTenderedAmount("");
     setIsCheckoutModalOpen(true);
   }, [items.length, processing]);
 
@@ -263,63 +216,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   useEffect(() => {
     onCheckoutModalOpenChange?.(isCheckoutModalOpen);
   }, [isCheckoutModalOpen, onCheckoutModalOpenChange]);
-
-  useEffect(() => {
-    if (!isCheckoutModalOpen) return;
-    const timer = window.setTimeout(() => {
-      tenderedInputRef.current?.focus();
-      tenderedInputRef.current?.select();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [isCheckoutModalOpen]);
-
-  /* Search helper */
-  const doSearch = useCallback(() => {
-    const found = findCustomer(loyaltyNumber);
-    if (found) { setLoyaltyCustomer(found); setLoyaltyNotFound(false); }
-    else setLoyaltyNotFound(true);
-  }, [loyaltyNumber]);
-
-  const tenderedValue = parseFloat(tenderedAmount);
-  const safeTendered = Number.isNaN(tenderedValue) ? 0 : tenderedValue;
-  const changeAmount = parseFloat((safeTendered - finalTotal).toFixed(2));
-  const canAdvanceStep = safeTendered >= finalTotal;
-
-  const handleCheckoutModalKeyDown = async (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") {
-      e.preventDefault();
-      const active = document.activeElement;
-      if (active === loyaltyInputRef.current) {
-        tenderedInputRef.current?.focus();
-        tenderedInputRef.current?.select();
-      } else {
-        loyaltyInputRef.current?.focus();
-        loyaltyInputRef.current?.select();
-      }
-      return;
-    }
-
-    if (e.key === "Escape") {
-      e.preventDefault();
-      setIsCheckoutModalOpen(false);
-      setCheckoutStep(1);
-      return;
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (checkoutStep === 1) {
-        if (canAdvanceStep) {
-          setCheckoutStep(2);
-        }
-        return;
-      }
-
-      if (checkoutStep === 2 && canAdvanceStep && !processing) {
-        await completeCheckout();
-      }
-    }
-  };
 
   const categoryEmoji: Record<string, string> = {
     "Auto Care": "🚗",
@@ -440,23 +336,9 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <span>Subtotal</span>
             <span className="tabular-nums font-semibold text-foreground">{formatCurrency(subtotal)}</span>
           </div>
-          {loyaltyDiscount > 0 && (
-            <div className="flex justify-between items-center px-3 py-2 bg-amber-50/60">
-              <span className="flex items-center gap-1.5 text-amber-600">
-                <Star className="h-3 w-3 fill-amber-400/30" />
-                Loyalty Discount
-              </span>
-              <span className="tabular-nums font-bold text-amber-600">
-                -{formatCurrency(loyaltyDiscount)}
-              </span>
-            </div>
-          )}
           <div className="flex justify-between items-center px-3 py-2.5 bg-blue-50 border-t border-blue-100">
             <span className="text-[13px] font-bold text-foreground">Total</span>
             <div className="flex items-baseline gap-1.5">
-              {loyaltyDiscount > 0 && (
-                <span className="text-[11px] line-through text-muted-foreground tabular-nums">{formatCurrency(total)}</span>
-              )}
               <span className="tabular-nums text-[15px] font-extrabold text-primary">{formatCurrency(finalTotal)}</span>
             </div>
           </div>
@@ -474,13 +356,8 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
             <>
               <span>Checkout</span>
               <span className="ml-2 tabular-nums text-[18px] font-extrabold">{formatCurrency(finalTotal)}</span>
-              {loyaltyDiscount > 0 && (
-                <span className="ml-2 rounded-full bg-amber-400/25 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
-                  &#9733; -{formatCurrency(loyaltyDiscount)} off
-                </span>
-              )}
               <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono text-white/80 select-none">
-                Enter x2
+                Space / Enter
               </kbd>
             </>
           )}
@@ -488,116 +365,14 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
       </div>
 
-      {isCheckoutModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onKeyDown={handleCheckoutModalKeyDown}>
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Checkout</p>
-                <h3 className="text-xl font-bold text-foreground">{formatCurrency(finalTotal)}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCheckoutModalOpen(false)}
-                className="rounded-md p-2 text-muted-foreground hover:bg-secondary"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Loyalty Number
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    ref={loyaltyInputRef}
-                    type="text"
-                    value={loyaltyNumber}
-                    onChange={(e) => {
-                      setLoyaltyNumber(e.target.value);
-                      setLoyaltyNotFound(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        doSearch();
-                      }
-                      void handleCheckoutModalKeyDown(e);
-                    }}
-                    placeholder="Phone or Loyalty ID"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  <Button type="button" variant="secondary" onClick={doSearch} className="h-10 px-3">Apply</Button>
-                </div>
-                {loyaltyNotFound && <p className="mt-1 text-xs text-destructive">No loyalty member found.</p>}
-              </div>
-
-              {loyaltyCustomer && (
-                <div className="rounded-lg border border-border bg-secondary/30 p-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
-                      <span className="font-semibold text-foreground">{loyaltyCustomer.name}</span>
-                    </div>
-                    <TierBadge tier={loyaltyCustomer.tier} />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-muted-foreground">
-                    <span>{loyaltyCustomer.points.toLocaleString()} pts</span>
-                    <span>+{pointsEarned} pts</span>
-                  </div>
-                  {redeemableDollars > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setRedeemPoints((p) => !p)}
-                      className={cn(
-                        "mt-2 w-full rounded-md border px-2 py-1.5 text-left text-xs font-medium",
-                        redeemPoints ? "border-amber-400 bg-amber-50 text-amber-700" : "border-border bg-background text-muted-foreground"
-                      )}
-                    >
-                      {redeemPoints ? "Remove" : "Apply"} loyalty discount ({formatCurrency(redeemableDollars)})
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Tendered Amount
-                </label>
-                <input
-                  ref={tenderedInputRef}
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={tenderedAmount}
-                  disabled={checkoutStep === 2}
-                  onChange={(e) => setTenderedAmount(e.target.value)}
-                  onKeyDown={(e) => void handleCheckoutModalKeyDown(e)}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-lg font-semibold tabular-nums outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                />
-              </div>
-
-              <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Change</span>
-                  <span className={cn("font-bold tabular-nums", changeAmount >= 0 ? "text-emerald-600" : "text-red-600")}>{formatCurrency(changeAmount)}</span>
-                </div>
-              </div>
-
-              <div className="pt-1 text-xs text-muted-foreground">
-                {checkoutStep === 1 ? (
-                  <span>Press Enter to confirm amount, then Enter again to complete checkout.</span>
-                ) : (
-                  <span className="font-semibold text-emerald-600">Ready to complete. Press Enter to finalize and print receipt.</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        totalAmount={finalTotal}
+        onCompleteSale={async (payload: { method: "CASH" | "CARD"; tendered?: number; balance?: number }) => {
+          await completeCheckout(payload.method);
+        }}
+      />
     </div>
   );
 }

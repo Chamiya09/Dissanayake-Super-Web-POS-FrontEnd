@@ -59,7 +59,7 @@ export function BarcodeInput({
         return;
       }
 
-      if (e.key.length !== 1) return;
+      if (typeof e.key !== "string" || e.key.length !== 1) return;
 
       const now = Date.now();
       const delta = now - lastKeyTime.current;

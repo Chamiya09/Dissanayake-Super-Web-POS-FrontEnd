@@ -85,6 +85,18 @@ const EMPTY_STOCK_FORM = {
 
 // --- Reason presets ------------------------------------------------------------
 const REASON_PRESETS = ["New Shipment", "Return / Refund", "Stock Correction", "Supplier Restock", "Damaged Replacement"];
+const normalizeEmail = (value) => String(value ?? "").trim().toLowerCase();
+const isInactiveSupplier = (item) =>
+  item?.supplierActive === false ||
+  item?.supplier?.isActive === false ||
+  item?.supplier?.active === false ||
+  item?.product?.supplierActive === false ||
+  item?.product?.supplier?.isActive === false ||
+  item?.product?.supplier?.active === false ||
+  item?.productStatus === "DISCONTINUED" ||
+  item?.status === "DISCONTINUED" ||
+  item?.product?.status === "DISCONTINUED";
+const INACTIVE_SUPPLIER_TOAST = "Action Blocked: Associated supplier is currently inactive";
 
 // --- Field helper -------------------------------------------------------------
 const Field = ({ label, error, icon: Icon, children }) => (
@@ -120,10 +132,25 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Current stock resolved from inventoryItems (no extra API call needed)
   const [currentStock, setCurrentStock] = useState(null);
-  const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
+  const inventoryByProductId = new Map(
+    inventoryItems.map((item) => [Number(item.productId), item])
+  );
+  const productsWithInventory = products.map((product) => {
+    const tracked = inventoryByProductId.get(Number(product.id));
+    if (!tracked) return product;
+    return {
+      ...product,
+      stockQuantity: Number(tracked.stockQuantity ?? product.stockQuantity ?? 0),
+      reorderLevel: Number(tracked.reorderLevel ?? product.reorderLevel ?? 10),
+      unit: tracked.unit ?? product.unit,
+    };
+  });
+  const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
+  const selectedUnit = selectedProduct?.unit ?? "units";
 
   // -- Manual quantity input
   const [qtyToAdd, setQtyToAdd] = useState("");
+  const [reorderLevel, setReorderLevel] = useState("");
 
   // -- Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -146,27 +173,41 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Resolve current stock from inventoryItems when a product is selected
   useEffect(() => {
-    if (!selectedId) { setCurrentStock(null); return; }
-    const tracked = inventoryItems.find((item) => item.productId === selectedId);
+    if (!selectedId) {
+      setCurrentStock(null);
+      setReorderLevel("");
+      return;
+    }
+    const tracked = inventoryItems.find((item) => Number(item.productId) === Number(selectedId));
+    const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
     setCurrentStock(tracked ? Number(tracked.stockQuantity ?? 0) : 0);
-  }, [selectedId, inventoryItems]); // eslint-disable-line react-hooks/exhaustive-deps
+    setReorderLevel(String(tracked?.reorderLevel ?? selectedProduct?.reorderLevel ?? 10));
+  }, [selectedId, inventoryItems, products]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
   // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
+  const reorderLevelNum = parseFloat(reorderLevel);
   const validQty  = !isNaN(qtyNum) && qtyNum > 0;
+  const validReorderLevel = !isNaN(reorderLevelNum) && reorderLevelNum >= 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
   const productSearchQuery = productSearch.trim() ? `PI${productSearch.trim()}`.toLowerCase() : "";
 
-  const filteredProducts = products.filter(
-    (p) => !productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery)
+  const filteredProducts = productsWithInventory.filter(
+    (p) =>
+      p.supplierActive !== false &&
+      (!productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery))
   );
 
   // -- Handlers
   const selectProduct = (p) => {
-    setSelectedId(p.id);
+    if (p.supplierActive === false) {
+      showToast(INACTIVE_SUPPLIER_TOAST, "error");
+      return;
+    }
+    setSelectedId(Number(p.id));
     setProductSearch("");
     setDropdownOpen(false);
     setErrors((e) => ({ ...e, product: undefined }));
@@ -177,23 +218,41 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     const errs = {};
     if (!selectedId)  errs.product = "Please select a product.";
     if (!validQty)    errs.qty     = "Enter a quantity greater than zero.";
+    if (!validReorderLevel) errs.reorderLevel = "Enter a reorder level of 0 or greater.";
     if (belowZero)    errs.qty     = "Stock cannot be less than zero.";
+    const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
+    if (selectedProduct?.supplierActive === false) {
+      errs.product = "Supplier is inactive.";
+    }
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      if (selectedProduct?.supplierActive === false) {
+        showToast(INACTIVE_SUPPLIER_TOAST, "error");
+      }
+      return;
+    }
 
     setSubmitting(true);
     setApiError(null);
     try {
-      const payload = { quantity: Number(qtyNum) };
+      const payload = {
+        quantity: Number(qtyNum),
+        reorderLevel: Number(reorderLevelNum),
+      };
       console.log("Restock Payload:", { product_id: selectedId, ...payload });
-      await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
+      const { data: updatedInventory } = await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
+      if (updatedInventory?.inventoryId) {
+        await api.put(`/api/inventory/edit/${updatedInventory.inventoryId}`, {
+          reorderLevel: Number(reorderLevelNum),
+        });
+      }
       handleClose();
       await onStockUpdated?.();
       showToast("Stock updated successfully!", "success");
     } catch (err) {
       const msg = err.response?.data?.message ?? "Something went wrong. Please try again.";
       setApiError(msg);
-      showToast(msg, "error");
+      showToast(String(msg).toLowerCase().includes("supplier") ? INACTIVE_SUPPLIER_TOAST : msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -205,6 +264,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setDropdownOpen(false);
     setCurrentStock(null);
     setQtyToAdd("");
+    setReorderLevel("");
     setErrors({});
     setApiError(null);
     setSuccess(false);
@@ -218,9 +278,9 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     "outline-none focus:ring-2 focus:ring-teal-600/20 " +
     "focus:border-teal-600 transition-all duration-150";
 
-  const selectedMeta  = selectedId ? getCategoryMeta(products.find((p) => p.id === selectedId)?.category ?? "") : null;
+  const selectedMeta  = selectedId ? getCategoryMeta(selectedProduct?.category ?? "") : null;
   const SelectedIcon  = selectedMeta?.icon;
-  const selectedProductObj = products.find((p) => p.id === selectedId);
+  const selectedProductObj = selectedProduct;
 
   return (
     <div
@@ -244,7 +304,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 Add Inventory Stock
               </h2>
               <p className="text-[13px] text-slate-500 mt-1">
-                Enter a positive value to add stock, or negative to correct a mistake.
+                Add stock and set the reorder threshold for this inventory item.
               </p>
             </div>
           </div>
@@ -419,38 +479,71 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             </div>
 
             {/* -- Step 3 ┬╖ Quantity to Add ------------------------- */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
-              <div className="relative">
-                <Hash
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  min="0.001"
-                  value={qtyToAdd}
-                  onChange={(e) => {
-                    setQtyToAdd(e.target.value);
-                    if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
-                  }}
-                  placeholder="e.g. 1.5"
-                  className={`${inputBase} pl-9 ${
-                    errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
-                  }`}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <div className="relative">
+                  <Hash
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.001"
+                    value={qtyToAdd}
+                    onChange={(e) => {
+                      setQtyToAdd(e.target.value);
+                      if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
+                    }}
+                    placeholder="e.g. 1.5"
+                    className={`${inputBase} pl-9 ${
+                      errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
+                    }`}
+                  />
+                </div>
+                {errors.qty && (
+                  <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                    <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
+                    {errors.qty}
+                  </p>
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <div className="relative">
+                  <SlidersHorizontal
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={reorderLevel}
+                    onChange={(e) => {
+                      setReorderLevel(e.target.value);
+                      if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined }));
+                    }}
+                    placeholder="e.g. 10"
+                    className={`${inputBase} pl-9 ${
+                      errors.reorderLevel ? "border-red-400 ring-2 ring-red-100" : ""
+                    }`}
+                  />
+                </div>
+                {errors.reorderLevel && (
+                  <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                    <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
+                    {errors.reorderLevel}
+                  </p>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5 sm:col-span-2">
                 Decimal quantities are supported (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">1.5</code> Kg, <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">2.25</code> L).
               </p>
-              {errors.qty && (
-                <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
-                  <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
-                  {errors.qty}
-                </p>
-              )}
             </div>
 
             {/* -- Step 4 ┬╖ New Total Preview ----------------------- */}
@@ -607,6 +700,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
   const rlChanged = Number(reorderLevel) !== Number(item.reorderLevel ?? 10);
   const unitChanged = (unit.trim() || null) !== (item.unit || null);
   const settingsChanged = rlChanged || unitChanged;
+  const supplierBlocked = isInactiveSupplier(item);
 
   const inputCls =
     "w-full px-3 py-2.5 rounded-xl border bg-slate-50 text-slate-900 placeholder:text-slate-400 text-sm outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-400 transition-all duration-150 border-slate-200";
@@ -614,6 +708,10 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (supplierBlocked) {
+      showToast(INACTIVE_SUPPLIER_TOAST, "error");
+      return;
+    }
     const errs = {};
     if (hasAdjustment && isNegativeResult)
       errs.amount = `Cannot reduce by more than current stock (${currentQty}).`;
@@ -672,6 +770,14 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
             <div>
               <h2 className="text-base font-bold text-slate-900 leading-tight">Edit Inventory</h2>
               <p className="text-xs text-slate-500 mt-0.5">{item.productName}</p>
+              {supplierBlocked && (
+                <span
+                  title="Cannot update inventory: This supplier is currently inactive"
+                  className="mt-2 inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700"
+                >
+                  Supplier Inactive
+                </span>
+              )}
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
@@ -683,6 +789,11 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
         <div className="overflow-y-auto flex-1 min-h-0">
           <form id="editInventoryForm" onSubmit={handleSubmit} noValidate>
             <div className="px-6 py-5 space-y-5">
+              {supplierBlocked && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700">
+                  Inventory updates are blocked because this product's supplier is inactive.
+                </div>
+              )}
 
               {/* Current Stock (read-only) */}
               <div>
@@ -705,7 +816,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                 <p className="text-xs text-slate-400 -mt-0.5">Use positive to add stock, negative to remove.</p>
                 <div className="relative">
                   <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input type="number" step="any" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} placeholder="e.g. +10 or -5" className={`${inputCls} pl-10 ${errors.amount ? errorCls : ""}`} />
+                  <input type="number" step="any" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} disabled={supplierBlocked} placeholder="e.g. +10 or -5" className={`${inputCls} pl-10 ${errors.amount ? errorCls : ""} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`} />
                 </div>
                 {errors.amount && (
                   <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.amount}</p>
@@ -731,7 +842,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                   <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Reason / Notes <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
-                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} placeholder="e.g. Damaged goods removed, Stock correction after audit..." rows={3} maxLength={500} className={`${inputCls} resize-none`} />
+                  <textarea value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} disabled={supplierBlocked} placeholder="e.g. Damaged goods removed, Stock correction after count..." rows={3} maxLength={500} className={`${inputCls} resize-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`} />
                   <div className="flex items-center justify-between">
                     {errors.notes ? (
                       <p className="text-xs text-red-500 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.notes}</p>
@@ -754,7 +865,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
                   Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
                 </label>
-                <input type="number" min="0" step="0.01" value={reorderLevel} onChange={(e) => { setReorderLevel(e.target.value); if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined })); }} className={`${inputCls} ${errors.reorderLevel ? errorCls : ""}`} required />
+                <input type="number" min="0" step="0.01" value={reorderLevel} onChange={(e) => { setReorderLevel(e.target.value); if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined })); }} disabled={supplierBlocked} className={`${inputCls} ${errors.reorderLevel ? errorCls : ""} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`} required />
                 {errors.reorderLevel ? (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500 inline-block" />{errors.reorderLevel}</p>
                 ) : (
@@ -767,7 +878,7 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
                   Unit <span className="text-slate-400 normal-case tracking-normal font-normal">(optional)</span>
                 </label>
-                <input type="text" maxLength={20} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. kg, pcs, L" className={inputCls} />
+                <input type="text" maxLength={20} value={unit} onChange={(e) => setUnit(e.target.value)} disabled={supplierBlocked} placeholder="e.g. kg, pcs, L" className={`${inputCls} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`} />
               </div>
 
               {/* General error */}
@@ -787,7 +898,8 @@ const EditInventoryModal = ({ item, onClose, onSaved }) => {
           <button
             type="submit"
             form="editInventoryForm"
-            disabled={saving}
+            disabled={saving || supplierBlocked}
+            title={supplierBlocked ? "Cannot update inventory: This supplier is currently inactive" : "Update Inventory"}
             className="
               inline-flex items-center gap-2
               px-6 py-2.5 rounded-xl text-sm font-semibold
@@ -859,6 +971,8 @@ const InventoryStock = () => {
   const [deleteTarget,   setDeleteTarget]   = useState(null);   // inventory item to delete
   const [deleting,       setDeleting]       = useState(false);
   const [logs,           setLogs]           = useState([]);
+  const [supplierActivityById, setSupplierActivityById] = useState({});
+  const [supplierActivityByEmail, setSupplierActivityByEmail] = useState({});
 
   const monthlyForecastQuery = useForecastMap(
     inventoryItems.map((item) => item.sku ?? item.productId),
@@ -869,6 +983,11 @@ const InventoryStock = () => {
   const { refreshInventory } = useInventory();
 
   const handleAiReorder = async (item, predictedDemand) => {
+    if (isInactiveSupplier(item)) {
+      showToast(INACTIVE_SUPPLIER_TOAST, "error");
+      return;
+    }
+
     const qty = Math.max(1, Math.ceil((predictedDemand ?? 0) - (item.stockQuantity ?? 0)));
     const timeframe = "monthly";
 
@@ -905,35 +1024,65 @@ const InventoryStock = () => {
       showToast(`Order placed for ${qty} ${item.unit ?? "units"}!`, "success");
     } catch (error) {
       const msg = error?.response?.data?.message ?? "Failed to place reorder.";
-      showToast(msg, "error");
+      showToast(String(msg).toLowerCase().includes("supplier") ? INACTIVE_SUPPLIER_TOAST : msg, "error");
     }
   };
 
+  const fetchSupplierActivity = () =>
+    api.get("/api/suppliers")
+      .then((res) => {
+        const rows = Array.isArray(res.data) ? res.data : [];
+        const byId = {};
+        const byEmail = {};
+        rows.forEach((supplier) => {
+          byId[supplier.id] = supplier.isActive !== false;
+          const email = normalizeEmail(supplier.email);
+          if (email) byEmail[email] = supplier.isActive !== false;
+        });
+        setSupplierActivityById(byId);
+        setSupplierActivityByEmail(byEmail);
+        return { byId, byEmail };
+      })
+      .catch(() => ({ byId: {}, byEmail: {} }));
+
+  const resolveSupplierActive = (row, activity = { byId: supplierActivityById, byEmail: supplierActivityByEmail }) => {
+    const byId = activity.byId ?? {};
+    const byEmail = activity.byEmail ?? {};
+    const email = normalizeEmail(row.supplierEmail ?? row.supplier?.email);
+    return row.supplierActive ?? row.supplier?.isActive ?? byId[row.supplierId] ?? byEmail[email] ?? null;
+  };
+
   // -- Fetch all products (for AddStockModal dropdown)
-  const fetchProducts = () =>
+  const fetchProducts = (activity) =>
     api.get("/api/products").then((res) => {
       setProducts(
-        res.data.map((p) => ({
-          ...p,
-          sellingPrice:  Number(p.sellingPrice),
-          buyingPrice:   Number(p.buyingPrice),
-          stockQuantity: p.stockQuantity != null ? Number(p.stockQuantity) : 0,
-          reorderLevel:  p.reorderLevel  != null ? Number(p.reorderLevel)  : 10,
-        }))
+        res.data
+          .map((p) => ({
+            ...p,
+            supplierActive: resolveSupplierActive(p, activity),
+            sellingPrice:  Number(p.sellingPrice),
+            buyingPrice:   Number(p.buyingPrice),
+            stockQuantity: p.stockQuantity != null ? Number(p.stockQuantity) : 0,
+            reorderLevel:  p.reorderLevel  != null ? Number(p.reorderLevel)  : 10,
+          }))
+          .filter((p) => p.supplierActive !== false)
       );
     });
 
   // -- Fetch products not yet in inventory (for AddStockModal - new entries only)
-  const fetchAvailableProducts = () =>
+  const fetchAvailableProducts = (activity) =>
     api.get("/api/products/available-for-inventory").then((res) => {
       setAvailableProducts(
-        res.data.map((p) => ({
-          ...p,
-          sellingPrice:  Number(p.sellingPrice),
-          buyingPrice:   Number(p.buyingPrice),
-          stockQuantity: 0,
-          reorderLevel:  p.reorderLevel != null ? Number(p.reorderLevel) : 10,
-        }))
+        res.data
+          .map((p) => ({
+            ...p,
+            supplierActive: resolveSupplierActive(p, activity),
+            sellingPrice:  Number(p.sellingPrice),
+            buyingPrice:   Number(p.buyingPrice),
+            stockQuantity: 0,
+            reorderLevel:  p.reorderLevel != null ? Number(p.reorderLevel) : 10,
+          }))
+          .filter((p) => p.supplierActive !== false)
       );
     });
 
@@ -942,11 +1091,12 @@ const InventoryStock = () => {
     api.get("/api/inventory/logs").then((res) => setLogs(res.data));
 
   // -- Fetch tracked inventory items (for the table)
-  const fetchInventory = () =>
+  const fetchInventory = (activity) =>
     api.get("/api/inventory/status").then((res) => {
       setInventoryItems(
         res.data.map((item) => ({
           ...item,
+          supplierActive: resolveSupplierActive(item, activity),
           sellingPrice:  Number(item.sellingPrice  ?? 0),
           stockQuantity: Number(item.stockQuantity ?? 0),
           reorderLevel:  Number(item.reorderLevel  ?? 10),
@@ -958,7 +1108,8 @@ const InventoryStock = () => {
   const refreshAll = () => {
     setLoading(true);
     setFetchError(null);
-    Promise.all([fetchProducts(), fetchAvailableProducts(), fetchInventory(), fetchLogs()])
+    fetchSupplierActivity()
+      .then((activity) => Promise.all([fetchProducts(activity), fetchAvailableProducts(activity), fetchInventory(activity), fetchLogs()]))
       .then(() => refreshInventory())   // keep context analytics in sync
       .catch(() => setFetchError("Failed to load inventory. Please check your connection and try again."))
       .finally(() => setLoading(false));
@@ -1086,7 +1237,7 @@ const InventoryStock = () => {
           {/* Retry button */}
           <button
             type="button"
-            onClick={fetchProducts}
+            onClick={refreshAll}
             className="
               inline-flex items-center gap-2
               px-6 py-3 rounded-xl text-[13px] font-semibold
@@ -1311,6 +1462,7 @@ const InventoryStock = () => {
                   : Math.max(1, Math.ceil(reorder - qty));
                 const cfg      = STATUS_CONFIG[status] ?? STATUS_CONFIG["In Stock"];
                 const { icon: Icon, color: iconColor, bg: iconBg } = getCategoryMeta(item.category);
+                const supplierBlocked = isInactiveSupplier(item);
 
                 return (
                   <tr
@@ -1395,18 +1547,41 @@ const InventoryStock = () => {
                         {isLow && (
                           <button
                             type="button"
-                            title={`AI recommended order quantity: ${aiRecommendedQty}`}
-                            onClick={() => handleAiReorder(item, predictedDemand ?? 0)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap"
+                            title={supplierBlocked ? "Cannot place order: This supplier is currently inactive" : `AI recommended order quantity: ${aiRecommendedQty}`}
+                            onClick={() => {
+                              if (supplierBlocked) {
+                                showToast(INACTIVE_SUPPLIER_TOAST, "error");
+                                return;
+                              }
+                              handleAiReorder(item, predictedDemand ?? 0);
+                            }}
+                            disabled={supplierBlocked}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:ring-slate-200"
                           >
                             <Sparkles size={14} />
                             Reorder {aiRecommendedQty}
                           </button>
                         )}
+                        {supplierBlocked && (
+                          <span
+                            title="Cannot place order: This supplier is currently inactive"
+                            className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700"
+                          >
+                            Supplier Inactive
+                          </span>
+                        )}
                         <button
-                          onClick={() => setEditTarget(item)}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Inventory"
+                          type="button"
+                          onClick={() => {
+                            if (supplierBlocked) {
+                              showToast(INACTIVE_SUPPLIER_TOAST, "error");
+                              return;
+                            }
+                            setEditTarget(item);
+                          }}
+                          disabled={supplierBlocked}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                          title={supplierBlocked ? "Cannot update inventory: This supplier is currently inactive" : "Edit Inventory"}
                         >
                           <Pencil size={18} />
                         </button>

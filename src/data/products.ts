@@ -10,6 +10,7 @@ export interface Product {
   isPromo?: boolean;
   isNew?: boolean;
   stock: number;
+  status?: "ACTIVE" | "DISCONTINUED";
 }
 
 export interface CartItem {

@@ -87,12 +87,10 @@ export function EditProductModal({
     setSaving(true);
     try {
       const productId = product.id;
-      const sku = form.sku.trim();
       const barcode = form.barcode.trim();
       await onSave({
-        // Keep id and barcode strictly independent in update payload.
         id: productId,
-        sku: sku,
+        sku: product.sku ?? null,
         productName: form.productName.trim(),
         barcode: barcode,
         category: form.category,
@@ -154,20 +152,6 @@ export function EditProductModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          <FormRow id="edit-product-sku" label="Product ID (SKU)" icon={Tag} error={errors.sku}>
-            <Input
-              id="edit-product-sku"
-              value={form.sku}
-              onChange={(e) => set("sku", e.target.value)}
-              placeholder="e.g. PI00001"
-              autoComplete="off"
-              className={cn(
-                "h-10 text-[13px] font-mono",
-                errors.sku && "border-red-400 focus-visible:ring-red-400"
-              )}
-            />
-          </FormRow>
-
           <FormRow id="edit-productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
             <Input
               id="edit-productName"

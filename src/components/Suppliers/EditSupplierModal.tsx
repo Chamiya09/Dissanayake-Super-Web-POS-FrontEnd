@@ -130,12 +130,14 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
     try {
       await onSave({
         id:                   supplier!.id,
+        supplierCode:         supplier!.supplierCode ?? null,
         companyName:          form.companyName.trim(),
         contactPerson:        form.contactPerson.trim(),
         email:                form.email.trim(),
         phone:                form.phone.trim(),
         leadTime:             Number(form.leadTime),
         isAutoReorderEnabled: autoReorder,
+        isActive:             supplier!.isActive,
       });
       onClose();
     } catch (err) {

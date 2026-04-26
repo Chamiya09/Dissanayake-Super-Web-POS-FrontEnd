@@ -7,11 +7,22 @@ import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { ViewProductModal } from "@/components/Products/ViewProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
-import { Package, Plus, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
+import { Package, PlusCircle, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
 export type { Product };
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const apiMessage = (error as any)?.response?.data?.message;
+  const apiError = (error as any)?.response?.data?.error;
+  const genericMessage = (error as any)?.message;
+
+  if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+  if (typeof apiError === "string" && apiError.trim()) return apiError;
+  if (typeof genericMessage === "string" && genericMessage.trim()) return genericMessage;
+  return fallback;
+}
 
 function SummaryCard({
   icon: Icon,
@@ -126,8 +137,10 @@ export default function ProductManagement() {
       setPage(0);
       await fetchProducts();
       showToast("Product added successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to add product.");
+      console.error("Failed to create product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to create product.");
     }
   }, [fetchProducts, showToast]);
@@ -138,8 +151,10 @@ export default function ProductManagement() {
       await productApi.update(id, payload);
       await fetchProducts();
       showToast("Product updated successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to update product.");
+      console.error("Failed to update product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to update product.");
     }
   }, [fetchProducts, showToast]);
@@ -147,18 +162,26 @@ export default function ProductManagement() {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
+      const deletedId = deleteTarget.id;
       await productApi.remove(deleteTarget.id);
+
+      setProducts((prev) => prev.filter((p) => p.id !== deletedId));
+      setTotalElements((prev) => Math.max(0, prev - 1));
+
       if (products.length === 1 && page > 0) {
         setPage((prev) => Math.max(0, prev - 1));
-      } else {
-        await fetchProducts();
       }
+
       showToast("Product deleted successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.response?.data?.error ||
+        "Something went wrong. Please try again.";
+      showToast(message, "error");
       throw new Error("Failed to delete product.");
     }
-  }, [deleteTarget, fetchProducts, page, products.length, showToast]);
+  }, [deleteTarget, page, products.length, showToast]);
 
   const handleCsvImport = useCallback(async (rows: Omit<Product, "id">[]) => {
     try {
@@ -248,8 +271,8 @@ export default function ProductManagement() {
               disabled={loading}
               className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              <Plus size={16} strokeWidth={2.5} />
-              Add New Product
+              <PlusCircle size={16} strokeWidth={2.5} />
+              Add Product
             </button>
           </div>
         </div>

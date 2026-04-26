@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import {
   X, UserPlus, User, AtSign, Mail, Hash,
-  Lock, ShieldCheck, Info, Eye, EyeOff, Loader2,
+  Lock, ShieldCheck, Info, Eye, EyeOff, Loader2, Phone, MapPin, BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,26 +13,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/GlobalToastContext";
 
-const ALLOWED_ROLES = {
-  Owner:   ["Manager"],
-  Manager: ["Staff"],
-};
+const ROLE_OPTIONS = ["MANAGER", "STAFF"];
 
 const ROLE_PILL_STYLES = {
   Owner:   "bg-red-50 text-red-600 border-red-200",
   Manager: "bg-blue-50 text-blue-600 border-blue-200",
   Staff:   "bg-emerald-50 text-emerald-600 border-emerald-200",
+  MANAGER: "bg-blue-50 text-blue-600 border-blue-200",
+  STAFF:   "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
-const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
+const ROLE_DOT = {
+  Owner: "bg-red-500",
+  Manager: "bg-blue-500",
+  Staff: "bg-emerald-500",
+  MANAGER: "bg-blue-500",
+  STAFF: "bg-emerald-500",
+};
 
-const EMPTY_FORM = { fullName: "", memberId: "", username: "", email: "", role: "", password: "" };
+const EMPTY_FORM = {
+  fullName: "",
+  memberId: "",
+  username: "",
+  email: "",
+  phoneNumber: "",
+  address: "",
+  role: "MANAGER",
+  password: "",
+  isSenior: false,
+};
 
 const MEMBER_ID_HELPER = {
-  Manager: "Use format MGR### (example: MGR001)",
-  Staff: "Use format STF### (example: STF001)",
+  MANAGER: "Use format MGR### (example: MGR001)",
+  STAFF: "Use format STF### (example: STF001)",
 };
 
 function validateForm(form) {
@@ -40,9 +56,9 @@ function validateForm(form) {
   if (!form.fullName.trim())  errors.fullName  = "Full name is required.";
   if (!form.memberId.trim()) {
     errors.memberId = "Member ID is required.";
-  } else if (form.role === "Manager" && !/^MGR\d{3,}$/i.test(form.memberId.trim())) {
+  } else if (form.role === "MANAGER" && !/^MGR\d{3,}$/i.test(form.memberId.trim())) {
     errors.memberId = "Manager ID must follow MGR###.";
-  } else if (form.role === "Staff" && !/^STF\d{3,}$/i.test(form.memberId.trim())) {
+  } else if (form.role === "STAFF" && !/^STF\d{3,}$/i.test(form.memberId.trim())) {
     errors.memberId = "Staff ID must follow STF###.";
   }
   if (!form.email.trim()) {
@@ -86,13 +102,8 @@ function FormRow({ id, label, icon: Icon, error, children }) {
 
 export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
   const { showToast } = useToast();
-  const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
-  const isRoleLocked = allowedRoles.length === 1;
 
-  const [form,   setForm]   = useState({
-    ...EMPTY_FORM,
-    role: isRoleLocked ? allowedRoles[0] : "",
-  });
+  const [form,   setForm]   = useState({ ...EMPTY_FORM });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -106,7 +117,13 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
   }, [onClose]);
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "role" && value !== "STAFF") {
+        next.isSenior = false;
+      }
+      return next;
+    });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -128,8 +145,11 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
         memberId: form.memberId.trim().toUpperCase(),
         username: form.username.trim(),
         email:    form.email.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        address: form.address.trim(),
         role:     form.role,
         password: form.password,
+        isSenior: form.role === "STAFF" && form.isSenior,
       });
       onClose();
     } catch(err) {
@@ -157,14 +177,14 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
       {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl",
+          "relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-md",
           "animate-in fade-in-0 zoom-in-95 duration-200",
         )}
       >
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shrink-0 border border-indigo-100">
               <UserPlus size={20} />
             </div>
             <div>
@@ -193,14 +213,14 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
           <div className="px-6 py-5 space-y-5">
 
             {/* Permission notice */}
-            <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-              <p className="text-[12px] text-blue-700 leading-relaxed font-medium">
+            <div className="flex items-start gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+              <p className="text-[12px] text-indigo-700 leading-relaxed font-medium">
                 Signed in as <RolePill role={currentUserRole} />. You can only create{" "}
-                {allowedRoles.map((r, i) => (
+                {ROLE_OPTIONS.map((r, i) => (
                   <span key={r}>
                     <RolePill role={r} />
-                    {i < allowedRoles.length - 1 ? " or " : ""}
+                    {i < ROLE_OPTIONS.length - 1 ? " or " : ""}
                   </span>
                 ))}{" "}
                 accounts.
@@ -235,7 +255,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
               <FormRow id="memberId" label="Staff / Manager ID" icon={Hash} error={errors.memberId}>
                 <Input
                   id="memberId"
-                  placeholder={form.role === "Manager" ? "e.g. MGR001" : "e.g. STF001"}
+                  placeholder={form.role === "MANAGER" ? "e.g. MGR001" : "e.g. STF001"}
                   value={form.memberId}
                   onChange={(e) => handleChange("memberId", e.target.value.toUpperCase())}
                   className={cn(
@@ -280,34 +300,80 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
               </FormRow>
 
               <FormRow id="role" label="Role" icon={ShieldCheck} error={errors.role}>
-                {isRoleLocked ? (
-                  <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 gap-2">
-                    <RolePill role={allowedRoles[0]} />
-                  </div>
-                ) : (
-                  <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
-                    <SelectTrigger
-                      id="role"
-                      className={cn(
-                        "h-10 text-[13px] bg-white border-slate-200 focus:ring-slate-300",
-                        errors.role && "border-red-400 focus:ring-red-400",
-                      )}
-                    >
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedRoles.map((r) => (
-                        <SelectItem key={r} value={r} className="text-[13px]">
-                          <div className="flex items-center gap-2">
-                            <RolePill role={r} />
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
+                  <SelectTrigger
+                    id="role"
+                    className={cn(
+                      "h-10 text-[13px] bg-white border-slate-200 focus:ring-indigo-300",
+                      errors.role && "border-red-400 focus:ring-red-400",
+                    )}
+                  >
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map((r) => (
+                      <SelectItem key={r} value={r} className="text-[13px] font-medium">
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormRow>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormRow id="phoneNumber" label="Phone Number" icon={Phone} error={errors.phoneNumber}>
+                <Input
+                  id="phoneNumber"
+                  placeholder="e.g. +94 77 123 4567"
+                  value={form.phoneNumber}
+                  onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                  className={cn(
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
+                    errors.phoneNumber && "border-red-400 focus-visible:ring-red-400",
+                  )}
+                />
+              </FormRow>
+
+              <FormRow id="address" label="Address" icon={MapPin} error={errors.address}>
+                <Input
+                  id="address"
+                  placeholder="e.g. Kandy"
+                  value={form.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  className={cn(
+                    "h-10 text-[13px] bg-white border-slate-200 focus-visible:ring-slate-300",
+                    errors.address && "border-red-400 focus-visible:ring-red-400",
+                  )}
+                />
+              </FormRow>
+            </div>
+
+            {form.role === "STAFF" && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
+                      <BadgeCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <Label htmlFor="isSenior" className="text-[13px] font-semibold text-emerald-950">
+                        Assign Senior Cashier Privileges
+                      </Label>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-emerald-700">
+                        Allows this staff member to approve sales returns as a supervisor.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="isSenior"
+                    checked={form.isSenior}
+                    onCheckedChange={(checked) => handleChange("isSenior", checked)}
+                    className="data-[state=checked]:bg-emerald-600"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Password — full width with show/hide toggle */}
             <FormRow id="password" label="Password" icon={Lock} error={errors.password}>
@@ -350,17 +416,17 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
             >
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Adding...
+                  Saving...
                 </>
               ) : (
                 <>
                   <UserPlus className="h-4 w-4" />
-                  Add User
+                  Save
                 </>
               )}
             </button>

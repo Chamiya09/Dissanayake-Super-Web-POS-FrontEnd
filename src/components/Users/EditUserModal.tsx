@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
-import { X, Pencil, User, Mail, ShieldCheck, Info, Hash } from "lucide-react";
+import { X, Pencil, User, Mail, ShieldCheck, Info, Hash, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/context/GlobalToastContext";
 
@@ -70,7 +71,7 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
   const { showToast } = useToast();
   const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
 
-  const [form, setForm] = useState({ fullName: "", memberId: "", username: "", email: "", role: "" });
+  const [form, setForm] = useState({ fullName: "", memberId: "", username: "", email: "", role: "", isSenior: false });
   const [errors, setErrors] = useState({});
   const firstInputRef = useRef(null);
 
@@ -82,6 +83,7 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
         username: user.username,
         email: user.email,
         role: user.role,
+        isSenior: user.role === "Staff" && Boolean(user.isSenior),
       });
       setErrors({});
       setTimeout(() => firstInputRef.current?.focus(), 80);
@@ -95,7 +97,13 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
   }, [onClose]);
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "role" && value !== "Staff") {
+        next.isSenior = false;
+      }
+      return next;
+    });
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
@@ -210,6 +218,32 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
                 </Select>
               )}
             </FormRow>
+
+            {form.role === "Staff" && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
+                      <BadgeCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-isSenior" className="text-[13px] font-semibold text-emerald-950">
+                        Assign Senior Cashier Privileges
+                      </Label>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-emerald-700">
+                        Allows this staff member to approve sales returns as a supervisor.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="edit-isSenior"
+                    checked={form.isSenior}
+                    onCheckedChange={(checked) => handleChange("isSenior", checked)}
+                    className="data-[state=checked]:bg-emerald-600"
+                  />
+                </div>
+              </div>
+            )}
 
           </div>
 

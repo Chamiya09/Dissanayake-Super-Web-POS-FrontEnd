@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Mail,
   SlidersHorizontal,
+  BadgeCheck,
 } from "lucide-react";
 import {
   Select,
@@ -45,7 +46,7 @@ const MANAGEABLE_ROLES = {
 };
 
 /* ── Role badge colours ── */
-function RoleBadge({ role }) {
+function RoleBadge({ role, isSenior = false }) {
   const isOwner = role === "Owner";
   const isManager = role === "Manager";
   // Staff fallback
@@ -67,6 +68,12 @@ function RoleBadge({ role }) {
     >
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
       {label}
+      {role === "Staff" && isSenior && (
+        <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+          <BadgeCheck className="h-3 w-3" />
+          Senior
+        </span>
+      )}
     </span>
   );
 }
@@ -166,8 +173,11 @@ export default function UserManagement() {
         memberId: formData.memberId,
         username: formData.username,
         email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
         role: formData.role,
         password: formData.password,
+        isSenior: formData.role === "STAFF" && Boolean(formData.isSenior),
       });
       setUsers((prev) => [created, ...prev]);
       showToast(`${created.fullName} has been added successfully!`, "success");
@@ -184,7 +194,10 @@ export default function UserManagement() {
         memberId: updated.memberId,
         username: updated.username,
         email: updated.email,
+        phoneNumber: updated.phoneNumber,
+        address: updated.address,
         role: updated.role,
+        isSenior: updated.role === "Staff" && Boolean(updated.isSenior),
       });
       setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
       showToast(`${saved.fullName} has been updated successfully!`, "success");
@@ -389,7 +402,7 @@ export default function UserManagement() {
                             </div>
                           </td>
                           <td className="px-6 py-6">
-                            <RoleBadge role={u.role} />
+                            <RoleBadge role={u.role} isSenior={u.isSenior} />
                           </td>
                           <td className="px-6 py-6 text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -452,7 +465,7 @@ export default function UserManagement() {
                             <p className="text-xs text-slate-400 mt-0.5 font-mono">{u.memberId || `@${u.username}`}</p>
                           </div>
                         </div>
-                        <RoleBadge role={u.role} />
+                        <RoleBadge role={u.role} isSenior={u.isSenior} />
                       </div>
 
                       <div className="flex items-center gap-2 text-slate-500 text-sm">

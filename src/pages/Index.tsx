@@ -15,10 +15,13 @@ import { useInventory } from "@/context/InventoryContext";
 interface MgmtProduct {
   id: number;
   productName: string;
-  sku: string;
+  sku: string | null;
+  barcode: string | null;
   category: string;
   buyingPrice: number;
   sellingPrice: number;
+  status?: "ACTIVE" | "DISCONTINUED";
+  stockQuantity?: number;
   unit?: string;
 }
 
@@ -30,8 +33,9 @@ function mapToPOS(p: MgmtProduct): Product {
     price:    p.sellingPrice,
     category: p.category,
     unit:     p.unit ?? "pcs",
-    barcode:  p.sku,
+    barcode:  p.barcode ?? "",
     stock:    50,   // default — management page doesn't track stock yet
+    status:   p.status,
   };
 }
 
@@ -112,20 +116,27 @@ const Index = () => {
     () =>
       rawProducts.map((p) => {
         const inv = inventoryItems.find((i) => i.productId === p.id);
+        const stock = inv ? inv.stockQuantity : p.stockQuantity ?? 0;
         return {
           id:       String(p.id),
           name:     p.productName,
           price:    p.sellingPrice,
           category: p.category,
           unit:     p.unit ?? "pcs",
-          barcode:  p.sku,
-          stock:    inv ? inv.stockQuantity : 0,
+          barcode:  p.barcode ?? "",
+          stock,
+          status:   p.status,
         };
-      }),
+      }).filter((product) => product.status !== "DISCONTINUED"),
     [rawProducts, inventoryItems]
   );
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
+    if (product.status === "DISCONTINUED") {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -145,7 +156,7 @@ const Index = () => {
       const dot = { id: Date.now(), x: e.clientX, y: e.clientY };
       setFlyDots((prev) => [...prev, dot]);
     }
-  }, []);
+  }, [showToast]);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
@@ -211,9 +222,36 @@ const Index = () => {
     return () => window.clearTimeout(timer);
   }, [skuInputValue]);
 
-  const handleScannedBarcode = useCallback((barcode: string) => {
-    console.info("[POS] handleScannedBarcode:", barcode);
-  }, []);
+  const addProductByBarcode = useCallback(
+    (rawBarcode: string) => {
+      const scannedBarcode = String(rawBarcode).trim();
+      if (!scannedBarcode) return;
+
+      const product = posProducts.find(
+        (item) => String(item.barcode ?? "").trim() === scannedBarcode,
+      );
+
+      if (!product) {
+        showToast(`No product found for barcode "${scannedBarcode}"`, "error", "Invalid Barcode");
+        return;
+      }
+
+      addToCart(product);
+      showToast(`Added: ${product.name}`, "success", "Item Added");
+    },
+    [addToCart, posProducts, showToast],
+  );
+
+  const handleScannedBarcode = useCallback(
+    (barcode: string) => {
+      const scannedBarcode = String(barcode).trim();
+      if (!scannedBarcode) return;
+      console.info("[POS] handleScannedBarcode:", scannedBarcode);
+      addProductByBarcode(scannedBarcode);
+      setSkuInputValue("");
+    },
+    [addProductByBarcode],
+  );
 
   const addProductBySku = useCallback(
     async (rawSku: string) => {
@@ -230,13 +268,19 @@ const Index = () => {
           price:    data.sellingPrice,
           category: data.category,
           unit:     data.unit ?? "pcs",
-          barcode:  data.sku,
-          stock:    50,
+          barcode:  data.barcode ?? "",
+          stock:    data.stockQuantity ?? 0,
+          status:   data.status,
         };
 
         // Override stock from live inventory if available.
         const inv = inventoryItems.find((i) => i.productId === data.id);
         if (inv) product.stock = inv.stockQuantity;
+
+        if (product.status === "DISCONTINUED") {
+          showToast("Ordering is disabled for discontinued products", "warning");
+          return;
+        }
 
         addToCart(product);
         showToast(`Added: ${data.productName}`, "success", "Item Added");
@@ -380,6 +424,17 @@ const Index = () => {
         return;
       }
 
+      // Spacebar shortcut: open checkout when user is not typing in any input.
+      if (!isInputFocused && e.code === "Space") {
+        if (cartRef.current.length > 0) {
+          e.preventDefault(); // Prevent page scroll on space press.
+          setKeyboardScope("cart");
+          setCartOpen(true);
+          setCheckoutHotkeyNonce((n) => n + 1);
+        }
+        return;
+      }
+
       // Cart item actions (only when cart scope is active and not typing into inputs).
       if (!isInputFocused && keyboardScope === "cart") {
         const digitKey = /^[0-9]$/.test(e.key) ? e.key : null;
@@ -469,6 +524,10 @@ const Index = () => {
       }
 
       // Route B: scanner input (ignore modifier combinations entirely).
+      if (e.defaultPrevented) {
+        return;
+      }
+
       if (e.ctrlKey || e.altKey || e.metaKey) {
         return;
       }
@@ -476,11 +535,10 @@ const Index = () => {
       if (e.isComposing) return;
 
       if (e.key === "Enter") {
-        const barcode = scannerBuffer.trim();
-        if (barcode.length >= minBarcodeLength) {
+        const scannedBarcode = String(scannerBuffer).trim();
+        if (scannedBarcode.length >= minBarcodeLength) {
           e.preventDefault();
-          handleScannedBarcode(barcode);
-          void addProductBySku(barcode);
+          handleScannedBarcode(scannedBarcode);
           setSkuInputValue("");
           skuInputRef.current?.focus();
         }
@@ -509,7 +567,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [addProductBySku, cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -531,7 +589,6 @@ const Index = () => {
               onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
               inputRef={skuInputRef}
-              autoFocus
               placeholder="00001"
               onClear={() => {
                 setSkuInputValue("");

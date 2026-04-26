@@ -17,7 +17,6 @@ import Suppliers from "./pages/Suppliers";
 import ProductManagement from "./pages/ProductManagement";
 import SalesManagement from "./pages/SalesManagement";
 import UserManagement from "./pages/UserManagement";
-import StaffDashboard from "./pages/StaffDashboard";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 import InventoryStock from "./pages/InventoryStock";
@@ -72,23 +71,32 @@ const App = () => (
             {/* ── All-role routes (Staff + Admin) ── */}
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/"                element={<Index />} />
-                <Route path="/staff-dashboard" element={<StaffDashboard />} />
                 <Route path="/profile"         element={<UserProfile />} />
+                <Route path="/dashboard"  element={<Dashboard />} />
 
-                {/* ── Admin-only routes (Owner + Manager) ── */}
+                <Route element={<ProtectedRoute allowedRoles={["Manager", "Staff"]} />}>
+                  <Route path="/" element={<Index />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager", "Staff"]} />}>
+                  <Route path="/sales" element={<SalesManagement />} />
+                </Route>
+
+                {/* ── Shared management routes (Owner + Manager) ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
-                  <Route path="/dashboard"  element={<Dashboard />} />
                   <Route path="/products"   element={<ProductManagement />} />
                   <Route path="/inventory"  element={<InventoryStock />} />
-                  <Route path="/sales"      element={<SalesManagement />} />
-                  <Route path="/ai-reorder" element={<InventoryForecastDashboard />} />
                   <Route path="/low-stock"  element={<LowStockAlerts />} />
                   <Route path="/reorder"    element={<ReorderManagement />} />
                   <Route path="/suppliers"  element={<Suppliers />} />
                   <Route path="/mailbox"    element={<MailBox />} />
-                  <Route path="/data-export" element={<DataExport />} />
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
+                </Route>
+
+                {/* ── Owner-only routes ── */}
+                <Route element={<ProtectedRoute allowedRoles={["Owner"]} />}>
+                  <Route path="/ai-reorder" element={<InventoryForecastDashboard />} />
+                  <Route path="/data-export" element={<DataExport />} />
                   <Route path="/users"      element={<UserManagement />} />
                 </Route>
               </Route>

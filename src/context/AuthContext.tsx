@@ -11,7 +11,7 @@ export const LS_KEY = "pos_auth_user";
 export const ROLE_HOME = {
   Owner:   "/dashboard",
   Manager: "/dashboard",
-  Staff:   "/staff-dashboard",
+  Staff:   "/",
 };
 
 /**

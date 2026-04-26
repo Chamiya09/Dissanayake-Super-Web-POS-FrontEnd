@@ -8,7 +8,7 @@ import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
-import { Plus, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
+import { PlusCircle, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
@@ -166,7 +166,7 @@ export default function Suppliers() {
   }, []);
 
   /* ── POST ── */
-  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt">) => {
+  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "supplierCode" | "createdAt" | "isActive">) => {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
@@ -177,10 +177,32 @@ export default function Suppliers() {
     }
   }, [fetchSuppliers]);
 
+  const handleToggleActive = useCallback(async (supplier: Supplier, isActive: boolean) => {
+    setSuppliers((prev) =>
+      prev.map((item) => (item.id === supplier.id ? { ...item, isActive } : item))
+    );
+
+    try {
+      const updated = await supplierApi.updateStatus(supplier.id, isActive);
+      setSuppliers((prev) =>
+        prev.map((item) => (item.id === supplier.id ? updated : item))
+      );
+      showToast(
+        `${supplier.companyName} ${isActive ? "enabled" : "disabled"} successfully.`,
+        "success"
+      );
+    } catch (err) {
+      setSuppliers((prev) =>
+        prev.map((item) => (item.id === supplier.id ? { ...item, isActive: supplier.isActive } : item))
+      );
+      showToast(extractApiError(err), "error");
+    }
+  }, [showToast]);
+
   /* ── PUT ── */
   const handleEdit = useCallback(async (updated: Supplier) => {
     try {
-      const { id, createdAt: _createdAt, ...payload } = updated;
+      const { id, supplierCode: _supplierCode, createdAt: _createdAt, isActive: _isActive, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
       showToast("Supplier updated successfully!", "success");
@@ -266,10 +288,10 @@ export default function Suppliers() {
 
               <button
                 onClick={() => setIsAddOpen(true)}
-                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 shrink-0"
+                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 shrink-0"
               >
-                <Plus size={16} strokeWidth={2.5} />
-                <span className="sm:hidden">Add</span>
+                <PlusCircle size={16} strokeWidth={2.5} />
+                Add Supplier
               </button>
             </div>
           </div>
@@ -319,6 +341,7 @@ export default function Suppliers() {
             onDelete={(s) => setDeleteTarget(s)}
             onAssign={(s) => setAssignTarget(s)}
             onViewProducts={(s) => setViewTarget(s)}
+            onToggleActive={handleToggleActive}
           />        </div>
         </main>
 
