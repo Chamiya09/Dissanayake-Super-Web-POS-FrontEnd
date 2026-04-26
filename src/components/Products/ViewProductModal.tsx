@@ -12,7 +12,7 @@ export interface ViewProductModalProps {
 export function ViewProductModal({ isOpen, onClose, product }: ViewProductModalProps) {
   if (!isOpen || !product) return null;
 
-  const barcodeValue = (product.sku ?? "").trim();
+  const barcodeValue = (product.barcode ?? "").trim();
 
   return (
     <div

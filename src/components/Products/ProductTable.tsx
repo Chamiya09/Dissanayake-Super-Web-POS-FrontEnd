@@ -49,12 +49,18 @@ function ProductRow({ index, style, products, onView, onEdit, onDelete }: RowCom
       style={style as CSSProperties}
       className={cn(
         "grid items-center border-b border-slate-100 px-6",
-        "grid-cols-[1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr]"
+        "grid-cols-[0.9fr_1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr]"
       )}
     >
       <div className="pr-4">
         <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-          {product.sku || "No Barcode"}
+          {product.id}
+        </span>
+      </div>
+
+      <div className="pr-4">
+        <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
+          {product.barcode || "No Barcode"}
         </span>
       </div>
 
@@ -153,7 +159,8 @@ export function ProductTable({
       </div>
 
       <div className="hidden md:block">
-        <div className="grid grid-cols-[1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr] border-b border-slate-100 bg-slate-50 px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+        <div className="grid grid-cols-[0.9fr_1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr] border-b border-slate-100 bg-slate-50 px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+          <span>Product ID</span>
           <span>Barcode</span>
           <span>Product Name</span>
           <span>Category</span>
@@ -190,8 +197,12 @@ export function ProductTable({
 
               <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px]">
                 <div>
+                  <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Product ID</p>
+                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.id}</span>
+                </div>
+                <div>
                   <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Barcode</p>
-                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.sku || "No Barcode"}</span>
+                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.barcode || "No Barcode"}</span>
                 </div>
                 <div>
                   <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Unit</p>

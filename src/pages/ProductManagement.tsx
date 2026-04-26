@@ -13,6 +13,17 @@ import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
 export type { Product };
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const apiMessage = (error as any)?.response?.data?.message;
+  const apiError = (error as any)?.response?.data?.error;
+  const genericMessage = (error as any)?.message;
+
+  if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+  if (typeof apiError === "string" && apiError.trim()) return apiError;
+  if (typeof genericMessage === "string" && genericMessage.trim()) return genericMessage;
+  return fallback;
+}
+
 function SummaryCard({
   icon: Icon,
   iconBg,
@@ -126,8 +137,10 @@ export default function ProductManagement() {
       setPage(0);
       await fetchProducts();
       showToast("Product added successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to add product.");
+      console.error("Failed to create product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to create product.");
     }
   }, [fetchProducts, showToast]);
@@ -138,8 +151,10 @@ export default function ProductManagement() {
       await productApi.update(id, payload);
       await fetchProducts();
       showToast("Product updated successfully!", "success");
-    } catch {
-      showToast("Something went wrong. Please try again.", "error");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to update product.");
+      console.error("Failed to update product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to update product.");
     }
   }, [fetchProducts, showToast]);
