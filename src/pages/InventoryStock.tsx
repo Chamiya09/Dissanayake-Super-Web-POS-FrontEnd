@@ -132,10 +132,25 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Current stock resolved from inventoryItems (no extra API call needed)
   const [currentStock, setCurrentStock] = useState(null);
-  const selectedUnit = products.find((p) => p.id === selectedId)?.unit ?? "units";
+  const inventoryByProductId = new Map(
+    inventoryItems.map((item) => [Number(item.productId), item])
+  );
+  const productsWithInventory = products.map((product) => {
+    const tracked = inventoryByProductId.get(Number(product.id));
+    if (!tracked) return product;
+    return {
+      ...product,
+      stockQuantity: Number(tracked.stockQuantity ?? product.stockQuantity ?? 0),
+      reorderLevel: Number(tracked.reorderLevel ?? product.reorderLevel ?? 10),
+      unit: tracked.unit ?? product.unit,
+    };
+  });
+  const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
+  const selectedUnit = selectedProduct?.unit ?? "units";
 
   // -- Manual quantity input
   const [qtyToAdd, setQtyToAdd] = useState("");
+  const [reorderLevel, setReorderLevel] = useState("");
 
   // -- Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -158,21 +173,29 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
 
   // -- Resolve current stock from inventoryItems when a product is selected
   useEffect(() => {
-    if (!selectedId) { setCurrentStock(null); return; }
-    const tracked = inventoryItems.find((item) => item.productId === selectedId);
+    if (!selectedId) {
+      setCurrentStock(null);
+      setReorderLevel("");
+      return;
+    }
+    const tracked = inventoryItems.find((item) => Number(item.productId) === Number(selectedId));
+    const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
     setCurrentStock(tracked ? Number(tracked.stockQuantity ?? 0) : 0);
-  }, [selectedId, inventoryItems]); // eslint-disable-line react-hooks/exhaustive-deps
+    setReorderLevel(String(tracked?.reorderLevel ?? selectedProduct?.reorderLevel ?? 10));
+  }, [selectedId, inventoryItems, products]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
   // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
+  const reorderLevelNum = parseFloat(reorderLevel);
   const validQty  = !isNaN(qtyNum) && qtyNum > 0;
+  const validReorderLevel = !isNaN(reorderLevelNum) && reorderLevelNum >= 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
   const productSearchQuery = productSearch.trim() ? `PI${productSearch.trim()}`.toLowerCase() : "";
 
-  const filteredProducts = products.filter(
+  const filteredProducts = productsWithInventory.filter(
     (p) =>
       p.supplierActive !== false &&
       (!productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery))
@@ -184,7 +207,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
       showToast(INACTIVE_SUPPLIER_TOAST, "error");
       return;
     }
-    setSelectedId(p.id);
+    setSelectedId(Number(p.id));
     setProductSearch("");
     setDropdownOpen(false);
     setErrors((e) => ({ ...e, product: undefined }));
@@ -195,8 +218,9 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     const errs = {};
     if (!selectedId)  errs.product = "Please select a product.";
     if (!validQty)    errs.qty     = "Enter a quantity greater than zero.";
+    if (!validReorderLevel) errs.reorderLevel = "Enter a reorder level of 0 or greater.";
     if (belowZero)    errs.qty     = "Stock cannot be less than zero.";
-    const selectedProduct = products.find((p) => p.id === selectedId);
+    const selectedProduct = productsWithInventory.find((p) => Number(p.id) === Number(selectedId));
     if (selectedProduct?.supplierActive === false) {
       errs.product = "Supplier is inactive.";
     }
@@ -211,9 +235,17 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setSubmitting(true);
     setApiError(null);
     try {
-      const payload = { quantity: Number(qtyNum) };
+      const payload = {
+        quantity: Number(qtyNum),
+        reorderLevel: Number(reorderLevelNum),
+      };
       console.log("Restock Payload:", { product_id: selectedId, ...payload });
-      await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
+      const { data: updatedInventory } = await api.put(`/api/inventory/add-stock/${selectedId}`, payload);
+      if (updatedInventory?.inventoryId) {
+        await api.put(`/api/inventory/edit/${updatedInventory.inventoryId}`, {
+          reorderLevel: Number(reorderLevelNum),
+        });
+      }
       handleClose();
       await onStockUpdated?.();
       showToast("Stock updated successfully!", "success");
@@ -232,6 +264,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setDropdownOpen(false);
     setCurrentStock(null);
     setQtyToAdd("");
+    setReorderLevel("");
     setErrors({});
     setApiError(null);
     setSuccess(false);
@@ -245,9 +278,9 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     "outline-none focus:ring-2 focus:ring-teal-600/20 " +
     "focus:border-teal-600 transition-all duration-150";
 
-  const selectedMeta  = selectedId ? getCategoryMeta(products.find((p) => p.id === selectedId)?.category ?? "") : null;
+  const selectedMeta  = selectedId ? getCategoryMeta(selectedProduct?.category ?? "") : null;
   const SelectedIcon  = selectedMeta?.icon;
-  const selectedProductObj = products.find((p) => p.id === selectedId);
+  const selectedProductObj = selectedProduct;
 
   return (
     <div
@@ -271,7 +304,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                 Add Inventory Stock
               </h2>
               <p className="text-[13px] text-slate-500 mt-1">
-                Enter a positive value to add stock, or negative to correct a mistake.
+                Add stock and set the reorder threshold for this inventory item.
               </p>
             </div>
           </div>
@@ -446,38 +479,71 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
             </div>
 
             {/* -- Step 3 ┬╖ Quantity to Add ------------------------- */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
-              <div className="relative">
-                <Hash
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  min="0.001"
-                  value={qtyToAdd}
-                  onChange={(e) => {
-                    setQtyToAdd(e.target.value);
-                    if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
-                  }}
-                  placeholder="e.g. 1.5"
-                  className={`${inputBase} pl-9 ${
-                    errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
-                  }`}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Quantity to Add <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <div className="relative">
+                  <Hash
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.001"
+                    value={qtyToAdd}
+                    onChange={(e) => {
+                      setQtyToAdd(e.target.value);
+                      if (errors.qty) setErrors((x) => ({ ...x, qty: undefined }));
+                    }}
+                    placeholder="e.g. 1.5"
+                    className={`${inputBase} pl-9 ${
+                      errors.qty ? "border-red-400 ring-2 ring-red-100" : ""
+                    }`}
+                  />
+                </div>
+                {errors.qty && (
+                  <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                    <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
+                    {errors.qty}
+                  </p>
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  Reorder Level <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <div className="relative">
+                  <SlidersHorizontal
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={reorderLevel}
+                    onChange={(e) => {
+                      setReorderLevel(e.target.value);
+                      if (errors.reorderLevel) setErrors((x) => ({ ...x, reorderLevel: undefined }));
+                    }}
+                    placeholder="e.g. 10"
+                    className={`${inputBase} pl-9 ${
+                      errors.reorderLevel ? "border-red-400 ring-2 ring-red-100" : ""
+                    }`}
+                  />
+                </div>
+                {errors.reorderLevel && (
+                  <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
+                    <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
+                    {errors.reorderLevel}
+                  </p>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5 sm:col-span-2">
                 Decimal quantities are supported (e.g.&nbsp;<code className="font-mono bg-slate-100 px-1 py-0.5 rounded">1.5</code> Kg, <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">2.25</code> L).
               </p>
-              {errors.qty && (
-                <p className="text-[12px] text-red-500 flex items-center gap-1.5 mt-0.5">
-                  <span className="h-1 w-1 rounded-full bg-red-500 inline-block" />
-                  {errors.qty}
-                </p>
-              )}
             </div>
 
             {/* -- Step 4 ┬╖ New Total Preview ----------------------- */}

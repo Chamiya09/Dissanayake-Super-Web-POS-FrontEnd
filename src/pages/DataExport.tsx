@@ -39,9 +39,9 @@ const EXPORTS: ExportConfig[] = [
   {
     key: "sales",
     title: "Sales Data",
-    description: "All sales records, statuses, and totals.",
-    endpoint: "/api/sales",
-    filenamePrefix: "pos-sales-item-report",
+    description: "Sales item rows in the AI/ML retraining column schema.",
+    endpoint: "/api/export-sales",
+    filenamePrefix: "ml-sales-dataset",
   },
   {
     key: "products",
@@ -82,20 +82,19 @@ const EXPORTS: ExportConfig[] = [
 
 const COLUMN_ORDER: Record<ExportKey, string[]> = {
   sales: [
-    "saleId",
-    "transactionId",
-    "saleDate",
-    "paymentMethod",
-    "status",
-    "cashier",
-    "saleTotal",
-    "itemNo",
-    "itemName",
-    "itemSku",
-    "itemQuantity",
-    "itemUnitPrice",
-    "itemLineTotal",
-    "itemReturnedQuantity",
+    "TransactionID",
+    "Date",
+    "Time",
+    "ProductID",
+    "ProductName",
+    "Category",
+    "PricingUnit",
+    "UnitPrice",
+    "BuyingPrice",
+    "SellingPrice",
+    "Quantity",
+    "Total_LKR",
+    "Payment Method",
   ],
   products: [
     "id",
@@ -393,12 +392,30 @@ export default function DataExport() {
   const runExport = async (cfg: ExportConfig) => {
     setLoading((prev) => ({ ...prev, [cfg.key]: true }));
     try {
+      if (cfg.key === "sales") {
+        const response = await api.get(cfg.endpoint, { responseType: "blob" });
+        const datePart = new Date().toISOString().slice(0, 10);
+        const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${cfg.filenamePrefix}-${datePart}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast({
+          type: "success",
+          title: "Export Complete",
+          message: `${cfg.title} exported in AI/ML schema.`,
+        });
+        return;
+      }
+
       const { data } = await api.get(cfg.endpoint);
       const records = normalizeArrayPayload(data);
-      const flattened =
-        cfg.key === "sales"
-          ? buildSalesItemRows(records)
-          : records.map((r) => flattenRecord(r));
+      const flattened = records.map((r) => flattenRecord(r));
       const csv = toCsv(flattened, COLUMN_ORDER[cfg.key]);
 
       if (!csv) {
