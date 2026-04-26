@@ -32,6 +32,7 @@ type LowStockItem = {
   productName: string;
   stockQuantity: number;
   reorderLevel: number;
+  productStatus?: string | null;
 };
 
 type ManagerDashboardData = {
@@ -71,7 +72,8 @@ const normalizeManagerData = (raw: any): ManagerDashboardData => {
       productName: String(item?.productName ?? "Unknown Product"),
       stockQuantity: Number(item?.stockQuantity ?? 0),
       reorderLevel: Number(item?.reorderLevel ?? 0),
-    })),
+      productStatus: item?.productStatus ?? item?.status ?? null,
+    })).filter((item: LowStockItem) => item.productStatus !== "DISCONTINUED"),
   };
 };
 

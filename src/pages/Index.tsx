@@ -127,11 +127,16 @@ const Index = () => {
           stock,
           status:   p.status,
         };
-      }).filter((product) => product.status !== "DISCONTINUED" || product.stock > 0),
+      }).filter((product) => product.status !== "DISCONTINUED"),
     [rawProducts, inventoryItems]
   );
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
+    if (product.status === "DISCONTINUED") {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -151,7 +156,7 @@ const Index = () => {
       const dot = { id: Date.now(), x: e.clientX, y: e.clientY };
       setFlyDots((prev) => [...prev, dot]);
     }
-  }, []);
+  }, [showToast]);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
@@ -272,8 +277,8 @@ const Index = () => {
         const inv = inventoryItems.find((i) => i.productId === data.id);
         if (inv) product.stock = inv.stockQuantity;
 
-        if (product.status === "DISCONTINUED" && product.stock <= 0) {
-          showToast(`Product "${data.productName}" is discontinued and out of stock.`, "error", "Unavailable");
+        if (product.status === "DISCONTINUED") {
+          showToast("Ordering is disabled for discontinued products", "warning");
           return;
         }
 

@@ -82,6 +82,7 @@ export function mapLowStockItem(dto) {
     sellingPrice:  dto.sellingPrice ?? 0,
     supplierName:  dto.supplierName  ?? null,
     supplierEmail: dto.supplierEmail ?? null,
+    productStatus: dto.productStatus ?? dto.status ?? "ACTIVE",
   };
 }
 

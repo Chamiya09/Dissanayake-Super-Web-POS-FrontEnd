@@ -808,10 +808,15 @@ export default function ReorderManagement() {
   const currentPct    = product ? Math.min(100, ((product.stockQuantity ?? 0) / scaleMax) * 100) : 0;
   const expectedPct   = Math.min(100, (expectedStock / scaleMax) * 100);
   const reorderPct    = product ? Math.min(100, ((product.reorderLevel ?? 0) / scaleMax) * 100) : 0;
+  const isDiscontinuedProduct = product?.productStatus === "DISCONTINUED" || product?.status === "DISCONTINUED";
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handlePrepareEmail() {
     if (!product) return;
+    if (isDiscontinuedProduct) {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
     const recipientEmail = selectedSupplier?.email ?? product?.supplierEmail;
     if (!recipientEmail) {
       showToast({
@@ -850,6 +855,10 @@ export default function ReorderManagement() {
   async function handleCreateReorder(e) {
     e?.preventDefault();
     if (!product || isSubmitting) return;
+    if (isDiscontinuedProduct) {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
 
     const recipientEmailRaw = selectedSupplier?.email ?? product?.supplierEmail;
     const recipientEmail = (recipientEmailRaw ?? "").trim();
@@ -910,7 +919,11 @@ export default function ReorderManagement() {
       });
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to create purchase order.";
-      showToast({ type: "error", title: "Order Failed", message: msg });
+      if (String(msg).toLowerCase().includes("discontinued")) {
+        showToast("Ordering is disabled for discontinued products", "warning");
+      } else {
+        showToast({ type: "error", title: "Order Failed", message: msg });
+      }
       // Roll back the optimistic row
       setReorders((prev) => prev.filter((o) => o.id !== orderRef));
     } finally {
@@ -1069,6 +1082,14 @@ export default function ReorderManagement() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isDiscontinuedProduct && (
+                        <span
+                          title="Ordering Blocked - Discontinued"
+                          className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700"
+                        >
+                          Ordering Blocked - Discontinued
+                        </span>
+                      )}
                       <StatusBadge status={product.stockStatus} />
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                         Stock: {product.stockQuantity ?? 0} {product.unit ?? "units"}
@@ -1128,6 +1149,7 @@ export default function ReorderManagement() {
                             <button
                               type="button"
                               onClick={() => setOrderQty((q) => Math.max(1, q - 1))}
+                              disabled={isDiscontinuedProduct}
                               className="h-11 w-11 rounded-lg border border-slate-200 bg-white text-lg font-bold text-slate-600 hover:bg-slate-50"
                             >
                               -
@@ -1137,11 +1159,13 @@ export default function ReorderManagement() {
                               min="1"
                               value={orderQty}
                               onChange={(e) => setOrderQty(Math.max(1, Number.parseInt(e.target.value, 10) || 1))}
+                              disabled={isDiscontinuedProduct}
                               className="h-11 w-28 rounded-lg border border-slate-200 bg-white px-3 text-center text-[15px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-200"
                             />
                             <button
                               type="button"
                               onClick={() => setOrderQty((q) => q + 1)}
+                              disabled={isDiscontinuedProduct}
                               className="h-11 w-11 rounded-lg border border-slate-200 bg-white text-lg font-bold text-slate-600 hover:bg-slate-50"
                             >
                               +
@@ -1196,6 +1220,7 @@ export default function ReorderManagement() {
                               <button
                                 type="button"
                                 onClick={() => setOrderQty(Math.max(1, Math.round(predictedDemand || aiSuggestedQty)))}
+                                disabled={isDiscontinuedProduct}
                                 className="inline-flex items-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-bold text-teal-700 hover:bg-teal-100"
                               >
                                 Apply AI Suggestion
@@ -1252,7 +1277,9 @@ export default function ReorderManagement() {
                     <button
                       type="button"
                       onClick={handlePrepareEmail}
-                      className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+                      disabled={isDiscontinuedProduct}
+                      title={isDiscontinuedProduct ? "Ordering Blocked - Discontinued" : "Next: Review Email"}
+                      className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Next: Review Email
                       <ChevronRight className="h-4 w-4" />
@@ -1269,8 +1296,9 @@ export default function ReorderManagement() {
                       <button
                         type="button"
                         onClick={handleSend}
-                        disabled={sending || isSubmitting}
-                        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                        disabled={sending || isSubmitting || isDiscontinuedProduct}
+                        title={isDiscontinuedProduct ? "Ordering Blocked - Discontinued" : "Send Purchase Order"}
+                        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {(sending || isSubmitting) && <Loader2 className="h-4 w-4 animate-spin" />}
                         Send Purchase Order

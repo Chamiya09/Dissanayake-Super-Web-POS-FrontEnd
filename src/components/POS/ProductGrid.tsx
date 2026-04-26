@@ -254,6 +254,8 @@ export function ProductGrid({
       <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visibleProducts.map((product, idx) => {
           const outOfStock = product.stock === 0;
+          const orderingBlocked = product.status === "DISCONTINUED";
+          const unavailable = outOfStock || orderingBlocked;
           const { label: stockLabel, cls: stockCls } = stockBadge(product.stock);
           const salePrice = product.discount
             ? product.price * (1 - product.discount / 100)
@@ -266,11 +268,11 @@ export function ProductGrid({
             ref={(el) => { cardRefs.current[idx] = el; }}
             className={cn(
               "group flex flex-col rounded-xl border-t-[3px] border border-border bg-card shadow-sm overflow-hidden transition-all duration-150",
-              outOfStock
+              unavailable
                 ? "opacity-60 cursor-not-allowed border-t-gray-300"
                 : "hover:shadow-md hover:border-primary/30 cursor-pointer",
-              !outOfStock && (categoryBorder[product.category] ?? "border-t-primary"),
-              isFocused && !outOfStock && "ring-2 ring-primary ring-offset-2 shadow-lg"
+              !unavailable && (categoryBorder[product.category] ?? "border-t-primary"),
+              isFocused && !unavailable && "ring-2 ring-primary ring-offset-2 shadow-lg"
             )}
           >
             {/* Compact image strip */}
@@ -286,20 +288,22 @@ export function ProductGrid({
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
                 className={cn(
                   "h-full w-full object-cover transition-transform duration-200",
-                  !outOfStock && "group-hover:scale-105"
+                  !unavailable && "group-hover:scale-105"
                 )}
               />
 
-              {/* Out-of-stock overlay */}
-              {outOfStock && (
+              {/* Unavailable overlay */}
+              {unavailable && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
                   <PackageX className="h-5 w-5 text-gray-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Out of Stock</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                    {orderingBlocked ? "Ordering Blocked" : "Out of Stock"}
+                  </span>
                 </div>
               )}
 
               {/* Promo badge — top left */}
-              {product.isPromo && !outOfStock && (
+              {product.isPromo && !unavailable && (
                 <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Flame className="h-2.5 w-2.5" />
                   HOT
@@ -307,7 +311,7 @@ export function ProductGrid({
               )}
 
               {/* New badge */}
-              {!product.isPromo && product.isNew && !outOfStock && (
+              {!product.isPromo && product.isNew && !unavailable && (
                 <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Sparkles className="h-2.5 w-2.5" />
                   NEW
@@ -315,7 +319,7 @@ export function ProductGrid({
               )}
 
               {/* Discount badge — top right */}
-              {product.discount && !outOfStock && (
+              {product.discount && !unavailable && (
                 <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Tag className="h-2.5 w-2.5" />
                   -{product.discount}%
@@ -323,7 +327,7 @@ export function ProductGrid({
               )}
 
               {/* Quick-add button on hover */}
-              {!outOfStock && (
+              {!unavailable && (
                 <button
                   onClick={(e) => onAddToCart(product, e)}
                   className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-md opacity-0 translate-y-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-accent"
@@ -338,6 +342,14 @@ export function ProductGrid({
               <p className="truncate text-[11.5px] font-semibold text-foreground leading-tight">
                 {product.name}
               </p>
+              {orderingBlocked && (
+                <span
+                  title="Ordering Blocked - Discontinued"
+                  className="self-start rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none text-red-700"
+                >
+                  Ordering Blocked - Discontinued
+                </span>
+              )}
 
               {/* Price row */}
               <div className="flex items-center justify-between gap-1">
@@ -362,17 +374,18 @@ export function ProductGrid({
 
             {/* Add to Cart footer */}
             <button
-              disabled={outOfStock}
-              onClick={(e) => !outOfStock && onAddToCart(product, e)}
+              disabled={unavailable}
+              title={orderingBlocked ? "Ordering Blocked - Discontinued" : undefined}
+              onClick={(e) => !unavailable && onAddToCart(product, e)}
               className={cn(
                 "mt-auto flex items-center justify-center gap-1 border-t border-border py-1.5 text-[11px] font-semibold transition-colors duration-150 shrink-0",
-                outOfStock
+                unavailable
                   ? "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed"
                   : "bg-secondary/50 text-muted-foreground hover:bg-primary hover:text-white"
               )}
             >
               <Plus className="h-3 w-3 stroke-[2.5]" />
-              {outOfStock ? "Unavailable" : "Add to Cart"}
+              {orderingBlocked ? "Ordering Blocked" : outOfStock ? "Unavailable" : "Add to Cart"}
             </button>
           </div>
           );

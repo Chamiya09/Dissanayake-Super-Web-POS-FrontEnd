@@ -72,6 +72,7 @@ const SYSTEM_SENDER_EMAIL = "dissanayakasuperorder@gmail.com";
 // ─── Place-Order Modal (Two-Step Wizard) ────────────────────────────────────
 
 function PlaceOrderModal({ item, onClose, onSubmit }) {
+  const orderingBlocked = item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED";
   const currentStock = Math.max(0, Number(item.stockQuantity ?? 0));
   const [selectedProductId, setSelectedProductId] = useState(() => String(item.sku ?? item.productId ?? item.id ?? ""));
   const [timeframe, setTimeframe] = useState("monthly");
@@ -580,8 +581,16 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                   timeframe,
                   predictedDemand,
                 })}
-                disabled={!hasSupplier || qty <= 0}
-                title={!hasSupplier ? "Assign a supplier to this product before placing an order" : qty <= 0 ? "No reorder needed. Increase quantity only if required." : undefined}
+                disabled={orderingBlocked || !hasSupplier || qty <= 0}
+                title={
+                  orderingBlocked
+                    ? "Ordering Blocked - Discontinued"
+                    : !hasSupplier
+                      ? "Assign a supplier to this product before placing an order"
+                      : qty <= 0
+                        ? "No reorder needed. Increase quantity only if required."
+                        : undefined
+                }
                 className={`h-10 inline-flex items-center gap-2 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none ${
                   qty > 0
                     ? "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
@@ -589,7 +598,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
                 }`}
               >
                 <Send className="h-3.5 w-3.5" />
-                {`Create Purchase Order for ${qty} ${item.unit ?? "units"}`}
+                {orderingBlocked ? "Ordering Blocked - Discontinued" : `Create Purchase Order for ${qty} ${item.unit ?? "units"}`}
               </button>
             </>
           )}
@@ -626,7 +635,10 @@ export default function LowStockAlerts() {
 
   // Analytics derived from InventoryContext
   const contextAlerts = useMemo(
-    () => inventoryItems.filter((i) => i.stockStatus === "LOW_STOCK" || i.stockStatus === "OUT_OF_STOCK"),
+    () => inventoryItems.filter((i) =>
+      i.productStatus !== "DISCONTINUED" &&
+      (i.stockStatus === "LOW_STOCK" || i.stockStatus === "OUT_OF_STOCK")
+    ),
     [inventoryItems]
   );
   const lowStockCount   = contextAlerts.filter((i) => i.stockStatus === "LOW_STOCK").length;
@@ -645,6 +657,7 @@ export default function LowStockAlerts() {
   const visibleAlerts = useMemo(() => {
     const skuQuery = search.trim() ? `PI${search.trim()}`.toLowerCase() : "";
     return alertSource
+      .filter((i) => i.productStatus !== "DISCONTINUED" && i.status !== "DISCONTINUED")
       .filter((i) => statusFilter === "all" || i.stockStatus === statusFilter)
       .filter((i) => {
         const sku = String(i.sku ?? i.productId ?? i.id ?? "").toLowerCase();
@@ -658,6 +671,11 @@ export default function LowStockAlerts() {
   const { showToast }               = useToast();
 
   async function handleSubmitOrder({ item, qty, supplier, emailBody, timeframe, predictedDemand }) {
+    if (item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED") {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
+
     if (!supplier?.email) {
       showToast({
         type: "error",
@@ -721,7 +739,11 @@ export default function LowStockAlerts() {
       navigate("/reorder");
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Failed to place order.";
-      showToast({ type: "error", title: "Order Failed", message: msg });
+      if (String(msg).toLowerCase().includes("discontinued")) {
+        showToast("Ordering is disabled for discontinued products", "warning");
+      } else {
+        showToast({ type: "error", title: "Order Failed", message: msg });
+      }
       // Roll back the optimistic entry
       setReorders((prev) => prev.filter((o) => o.id !== orderRef));
     }
@@ -918,10 +940,24 @@ export default function LowStockAlerts() {
                       {/* Action */}
                       <td className="px-6 py-4 text-center">
                         <button
-                          onClick={() => setOrderModal(item)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
+                          onClick={() => {
+                            if (item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED") {
+                              showToast("Ordering is disabled for discontinued products", "warning");
+                              return;
+                            }
+                            setOrderModal(item);
+                          }}
+                          disabled={item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"}
+                          title={
+                            item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
+                              ? "Ordering Blocked - Discontinued"
+                              : "Place Order"
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 hover:text-slate-950 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Place Order
+                          {item.productStatus === "DISCONTINUED" || item.status === "DISCONTINUED"
+                            ? "Ordering Blocked - Discontinued"
+                            : "Place Order"}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       </td>
