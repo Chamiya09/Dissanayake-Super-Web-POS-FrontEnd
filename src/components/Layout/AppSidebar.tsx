@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, LayoutGrid, Boxes, ClipboardList, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, Boxes, ClipboardList, AlertTriangle, Mail, Database, Brain } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -12,39 +12,41 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 
-/* Roles that can see each nav item. Omitting a title = visible to all. */
-const NAV_ROLES: Record<string, string[]> = {
-  "My Dashboard":       ["Staff"],
-  "Dashboard":          ["Owner", "Manager"],
-  "Products":           ["Owner", "Manager"],
-  "Inventory":          ["Owner", "Manager"],
-  "Sales":              ["Owner", "Manager"],
-  "Suppliers":          ["Owner", "Manager"],
-  "Users":              ["Owner", "Manager"],
-  "Low Stock Alerts":   ["Owner", "Manager"],
-  "Reorder Management": ["Owner", "Manager"],
-};
-
-const navItems = [
-  { title: "My Dashboard",       url: "/staff-dashboard", icon: LayoutGrid       },
-  { title: "Dashboard",          url: "/dashboard",       icon: LayoutDashboard  },
-  { title: "POS Checkout",       url: "/",               icon: ShoppingCart     },
-  { title: "Products",           url: "/products",        icon: Package          },
-  { title: "Inventory",          url: "/inventory",       icon: Boxes            },
-  { title: "Sales",              url: "/sales",           icon: ReceiptText      },
-  { title: "Low Stock Alerts",   url: "/low-stock",       icon: AlertTriangle    },
-  { title: "Reorder Management", url: "/reorder",         icon: ClipboardList    },
-  { title: "Suppliers",          url: "/suppliers",       icon: Building2        },
-  { title: "Users",              url: "/users",           icon: Users            },
-];
+const NAV_BY_ROLE = {
+  Owner: [
+    { title: "Dashboard",          url: "/dashboard",       icon: LayoutDashboard },
+    { title: "Products",           url: "/products",        icon: Package },
+    { title: "Inventory",          url: "/inventory",       icon: Boxes },
+    { title: "Sales",              url: "/sales",           icon: ReceiptText },
+    { title: "Model Performance",  url: "/ai-reorder",      icon: Brain },
+    { title: "Low Stock Alerts",   url: "/low-stock",       icon: AlertTriangle },
+    { title: "Reorder Management", url: "/reorder",         icon: ClipboardList },
+    { title: "Suppliers",          url: "/suppliers",       icon: Building2 },
+    { title: "Mail Box",           url: "/mailbox",         icon: Mail },
+    { title: "Data Export",        url: "/data-export",     icon: Database },
+    { title: "Users",              url: "/users",           icon: Users },
+  ],
+  Manager: [
+    { title: "Dashboard",          url: "/dashboard",       icon: LayoutDashboard },
+    { title: "POS Checkout",       url: "/",                icon: ShoppingCart },
+    { title: "Products",           url: "/products",        icon: Package },
+    { title: "Inventory",          url: "/inventory",       icon: Boxes },
+    { title: "Sales",              url: "/sales",           icon: ReceiptText },
+    { title: "Low Stock Alerts",   url: "/low-stock",       icon: AlertTriangle },
+    { title: "Reorder Management", url: "/reorder",         icon: ClipboardList },
+    { title: "Suppliers",          url: "/suppliers",       icon: Building2 },
+    { title: "Mail Box",           url: "/mailbox",         icon: Mail },
+  ],
+  Staff: [
+    { title: "POS Checkout",       url: "/",                icon: ShoppingCart },
+    { title: "My Sales & Returns", url: "/sales",           icon: ReceiptText },
+  ],
+} as const;
 
 export function AppSidebar() {
   const { user } = useAuth();
-  const role = user?.role ?? "Staff";
-
-  const visibleItems = navItems.filter(
-    (item) => !NAV_ROLES[item.title] || NAV_ROLES[item.title].includes(role)
-  );
+  const role = (user?.role ?? "Staff") as keyof typeof NAV_BY_ROLE;
+  const visibleItems = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Staff;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar-background">

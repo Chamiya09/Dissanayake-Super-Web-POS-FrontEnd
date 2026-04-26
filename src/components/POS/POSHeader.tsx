@@ -36,7 +36,7 @@ export function POSHeader() {
           </div>
           <div className="hidden sm:flex flex-col">
             <span className="text-[13px] font-semibold leading-none text-foreground">Sarah M.</span>
-            <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier&nbsp;&middot;&nbsp;On shift</span>
+            <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier</span>
           </div>
         </div>
       </div>
@@ -57,7 +57,7 @@ export function POSHeader() {
         {/* Dark / Light toggle */}
         <button
           onClick={() => setDark((d) => !d)}
-          title={dark ? "Switch to light mode" : "Switch to dark mode (night shift)"}
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
         >
@@ -65,7 +65,7 @@ export function POSHeader() {
         </button>
 
         {/* Scanner status pill */}
-        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 scanner-pulse" />
           <Wifi className="h-3 w-3" />
           <span>Scanner Ready</span>

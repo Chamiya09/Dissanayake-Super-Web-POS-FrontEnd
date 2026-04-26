@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
@@ -6,27 +6,70 @@ import {
   ShoppingBag, Apple, Milk, Coffee, Wheat, Cookie, Beef, Leaf,
   Flame, Tag, Sparkles, PackageX,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { categories, products as staticProducts, type Product } from "@/data/products";
+import { categories as staticCategories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
 interface ProductGridProps {
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
   /** Override the hard-coded product list with data from localStorage */
   products?: Product[];
+  /** Enables keyboard navigation only when the product area is active. */
+  keyboardActive?: boolean;
+  /** Shared SKU search suffix from POS checkout search input. */
+  searchSuffix?: string;
 }
 
-export function ProductGrid({ onAddToCart, products: externalProducts }: ProductGridProps) {
+export function ProductGrid({
+  onAddToCart,
+  products: externalProducts,
+  keyboardActive = true,
+  searchSuffix = "",
+}: ProductGridProps) {
   const productList = externalProducts ?? staticProducts;
-  const [search, setSearch] = useState("");
+  const PAGE_SIZE = 24;
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const filtered = productList.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === "All" || p.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const categoryOptions = useMemo(() => {
+    if (externalProducts && externalProducts.length > 0) {
+      const dynamicCategories = [...new Set(externalProducts.map((p) => p.category).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+      return ["All", ...dynamicCategories];
+    }
+
+    return [...staticCategories];
+  }, [externalProducts]);
+
+  useEffect(() => {
+    if (!categoryOptions.includes(activeCategory)) {
+      setActiveCategory("All");
+    }
+  }, [categoryOptions, activeCategory]);
+
+  const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
+
+  const filtered = useMemo(() => {
+    return productList
+      .filter((p) => {
+        const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
+        const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .map((product, index) => ({ product, index }))
+      .sort((a, b) => {
+        const aInStock = (a.product.stock ?? 0) > 0;
+        const bInStock = (b.product.stock ?? 0) > 0;
+
+        if (aInStock && !bInStock) return -1;
+        if (!aInStock && bInStock) return 1;
+        return a.index - b.index;
+      })
+      .map(({ product }) => product);
+  }, [productList, skuQuery, activeCategory]);
+
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   const categoryIcon: Record<string, LucideIcon> = {
     All: ShoppingBag,
@@ -41,13 +84,13 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
   // Soft pastel icon-area background per category (light + dark)
   const categoryBg: Record<string, string> = {
-    Fruits:     "bg-rose-50    dark:bg-rose-900/30",
-    Dairy:      "bg-blue-50    dark:bg-blue-900/30",
-    Beverages:  "bg-sky-50     dark:bg-sky-900/30",
-    Bakery:     "bg-amber-50   dark:bg-amber-900/30",
-    Snacks:     "bg-lime-50    dark:bg-lime-900/30",
-    Meat:       "bg-red-50     dark:bg-red-900/30",
-    Vegetables: "bg-green-50   dark:bg-green-900/30",
+  Fruits:     "bg-rose-50",
+  Dairy:      "bg-blue-50",
+  Beverages:  "bg-sky-50",
+  Bakery:     "bg-amber-50",
+  Snacks:     "bg-lime-50",
+  Meat:       "bg-red-50",
+  Vegetables: "bg-green-50",
   };
 
   // Category accent border color (top strip)
@@ -62,10 +105,10 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   };
 
   const stockBadge = (stock: number) => {
-    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700" };
-    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800" };
-    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800" };
-    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" };
+    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200" };
+    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200" };
+    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200" };
+    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200" };
   };
 
   // Switch placeholder based on dark mode (observes <html class="dark">)
@@ -81,19 +124,21 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   }, []);
 
   const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
-  const isSearching = search.trim().length > 0;
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const isSearching = searchSuffix.trim().length > 0;
   const gridRef   = useRef<HTMLDivElement>(null);
   const cardRefs  = useRef<(HTMLDivElement | null)[]>([]);
 
   // Keep stable refs for use inside event handlers (avoid stale closures)
   const focusedIdxRef = useRef(focusedIndex);
-  const filteredRef   = useRef(filtered);
+  const filteredRef   = useRef(visibleProducts);
   useEffect(() => { focusedIdxRef.current = focusedIndex; }, [focusedIndex]);
-  useEffect(() => { filteredRef.current   = filtered;     });
+  useEffect(() => { filteredRef.current   = visibleProducts; }, [visibleProducts]);
 
   // Reset keyboard focus when the visible list changes
-  useEffect(() => { setFocusedIndex(-1); }, [search, activeCategory]);
+  useEffect(() => {
+    setFocusedIndex(-1);
+    setVisibleCount(PAGE_SIZE);
+  }, [searchSuffix, activeCategory]);
 
   // Scroll focused card into view
   useEffect(() => {
@@ -111,25 +156,14 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
   // Keyboard handler: F1 search · arrows navigate · Enter add
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!keyboardActive) return;
+
+      // Let global POS shortcuts (e.g., Alt+Arrow cart navigation) pass through.
+      if (e.altKey) return;
+
       const isInInput =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-
-      // F1 → focus search
-      if (e.key === "F1") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
-        return;
-      }
-
-      // ArrowDown from search box → jump to first grid card
-      if (e.key === "ArrowDown" && isInInput) {
-        e.preventDefault();
-        (e.target as HTMLElement).blur();
-        setFocusedIndex(0);
-        return;
-      }
 
       if (isInInput) return; // let the search input handle other keys normally
 
@@ -149,7 +183,8 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setFocusedIndex(cur <= 0 ? 0 : Math.max(cur - cols, 0));
-      } else if (e.key === "Enter" && cur >= 0) {
+      } else if ((e.key === "Enter" || e.code === "NumpadEnter") && cur >= 0) {
+        e.preventDefault();
         const product = filteredRef.current[cur];
         if (product && product.stock > 0) {
           const card = cardRefs.current[cur];
@@ -164,26 +199,10 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onAddToCart]);
+  }, [onAddToCart, keyboardActive]);
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* â”€â”€ Search bar â”€â”€ */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search products or scan barcode&hellip;"
-          ref={inputRef}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 rounded-lg border border-border bg-card pl-10 pr-12 text-sm shadow-sm placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 pointer-events-none select-none">
-          F1
-        </kbd>
-      </div>
-
 
       {/* Category pills - slides away while searching */}
       <div
@@ -193,7 +212,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
         )}
       >
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {categories.map((cat) => (
+          {categoryOptions.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -201,7 +220,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
                 "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
                 activeCategory === cat
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-white dark:bg-zinc-800 border border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  : "bg-white border border-border text-muted-foreground hover:border-teal-600 hover:text-teal-600"
               )}
             >
               {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
@@ -233,8 +252,10 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
       {/* â”€â”€ Product grid â”€â”€ */}
       <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((product, idx) => {
+        {visibleProducts.map((product, idx) => {
           const outOfStock = product.stock === 0;
+          const orderingBlocked = product.status === "DISCONTINUED";
+          const unavailable = outOfStock || orderingBlocked;
           const { label: stockLabel, cls: stockCls } = stockBadge(product.stock);
           const salePrice = product.discount
             ? product.price * (1 - product.discount / 100)
@@ -247,11 +268,11 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
             ref={(el) => { cardRefs.current[idx] = el; }}
             className={cn(
               "group flex flex-col rounded-xl border-t-[3px] border border-border bg-card shadow-sm overflow-hidden transition-all duration-150",
-              outOfStock
+              unavailable
                 ? "opacity-60 cursor-not-allowed border-t-gray-300"
                 : "hover:shadow-md hover:border-primary/30 cursor-pointer",
-              !outOfStock && (categoryBorder[product.category] ?? "border-t-primary"),
-              isFocused && !outOfStock && "ring-2 ring-primary ring-offset-2 shadow-lg"
+              !unavailable && (categoryBorder[product.category] ?? "border-t-primary"),
+              isFocused && !unavailable && "ring-2 ring-primary ring-offset-2 shadow-lg"
             )}
           >
             {/* Compact image strip */}
@@ -267,20 +288,22 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
                 className={cn(
                   "h-full w-full object-cover transition-transform duration-200",
-                  !outOfStock && "group-hover:scale-105"
+                  !unavailable && "group-hover:scale-105"
                 )}
               />
 
-              {/* Out-of-stock overlay */}
-              {outOfStock && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 dark:bg-black/60 backdrop-blur-[2px]">
+              {/* Unavailable overlay */}
+              {unavailable && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
                   <PackageX className="h-5 w-5 text-gray-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Out of Stock</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                    {orderingBlocked ? "Ordering Blocked" : "Out of Stock"}
+                  </span>
                 </div>
               )}
 
               {/* Promo badge — top left */}
-              {product.isPromo && !outOfStock && (
+              {product.isPromo && !unavailable && (
                 <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Flame className="h-2.5 w-2.5" />
                   HOT
@@ -288,7 +311,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
               )}
 
               {/* New badge */}
-              {!product.isPromo && product.isNew && !outOfStock && (
+              {!product.isPromo && product.isNew && !unavailable && (
                 <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Sparkles className="h-2.5 w-2.5" />
                   NEW
@@ -296,7 +319,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
               )}
 
               {/* Discount badge — top right */}
-              {product.discount && !outOfStock && (
+              {product.discount && !unavailable && (
                 <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
                   <Tag className="h-2.5 w-2.5" />
                   -{product.discount}%
@@ -304,7 +327,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
               )}
 
               {/* Quick-add button on hover */}
-              {!outOfStock && (
+              {!unavailable && (
                 <button
                   onClick={(e) => onAddToCart(product, e)}
                   className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-md opacity-0 translate-y-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-accent"
@@ -319,6 +342,14 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
               <p className="truncate text-[11.5px] font-semibold text-foreground leading-tight">
                 {product.name}
               </p>
+              {orderingBlocked && (
+                <span
+                  title="Ordering Blocked - Discontinued"
+                  className="self-start rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none text-red-700"
+                >
+                  Ordering Blocked - Discontinued
+                </span>
+              )}
 
               {/* Price row */}
               <div className="flex items-center justify-between gap-1">
@@ -343,17 +374,18 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
             {/* Add to Cart footer */}
             <button
-              disabled={outOfStock}
-              onClick={(e) => !outOfStock && onAddToCart(product, e)}
+              disabled={unavailable}
+              title={orderingBlocked ? "Ordering Blocked - Discontinued" : undefined}
+              onClick={(e) => !unavailable && onAddToCart(product, e)}
               className={cn(
                 "mt-auto flex items-center justify-center gap-1 border-t border-border py-1.5 text-[11px] font-semibold transition-colors duration-150 shrink-0",
-                outOfStock
+                unavailable
                   ? "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed"
                   : "bg-secondary/50 text-muted-foreground hover:bg-primary hover:text-white"
               )}
             >
               <Plus className="h-3 w-3 stroke-[2.5]" />
-              {outOfStock ? "Unavailable" : "Add to Cart"}
+              {orderingBlocked ? "Ordering Blocked" : outOfStock ? "Unavailable" : "Add to Cart"}
             </button>
           </div>
           );
@@ -361,7 +393,7 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
 
         {/* Empty state */}
         {filtered.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white dark:bg-card py-20 shadow-sm">
+          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Search className="h-6 w-6" />
             </div>
@@ -372,6 +404,18 @@ export function ProductGrid({ onAddToCart, products: externalProducts }: Product
           </div>
         )}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </div>
   );
 }

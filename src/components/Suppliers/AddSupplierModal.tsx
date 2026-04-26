@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/context/GlobalToastContext";
 
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Supplier, "id" | "createdAt">) => Promise<void>;
+  onSave: (data: Omit<Supplier, "id" | "supplierCode" | "createdAt" | "isActive">) => Promise<void>;
 }
 
 import type { Supplier } from "@/data/suppliers";
@@ -30,6 +31,10 @@ const EMPTY_FORM: FormFields = {
 };
 
 /* ── Reusable labeled input row ── */
+const categoryColour: Record<string, string> = {
+  "Company Name": "bg-indigo-50 text-indigo-600",
+}
+
 function FormRow({
   id,
   label,
@@ -45,19 +50,20 @@ function FormRow({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-[13px] font-medium text-foreground flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <Label htmlFor={id} className="text-[13px] font-medium text-slate-700 flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 text-slate-400" />
         {label}
       </Label>
       {children}
       {error && (
-        <p className="text-[11px] text-red-500 dark:text-red-400 font-medium">{error}</p>
+        <p className="text-[11px] text-red-500 font-medium">{error}</p>
       )}
     </div>
   );
 }
 
 export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [autoReorder, setAutoReorder] = useState(false);
@@ -108,6 +114,12 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
       newErrors.leadTime = "Enter a valid number of days (≥ 1).";
     }
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -126,7 +138,9 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
       });
       onClose();
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : "Failed to save supplier.");
+      const message = err instanceof Error ? err.message : "Failed to save supplier.";
+      setApiError(message);
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }
@@ -152,24 +166,24 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
       {/* Panel */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 bg-white shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Building2 className="h-4.5 w-4.5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Building2 size={20} />
             </div>
             <div>
               <h2
                 id="add-supplier-title"
-                className="text-[16px] font-bold text-foreground leading-tight"
+                className="text-[16px] font-bold text-slate-800 leading-tight"
               >
                 Add Supplier
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">
+              <p className="text-[12px] text-slate-500 mt-0.5">
                 Fill in the details to register a new supplier.
               </p>
             </div>
@@ -177,7 +191,7 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -187,7 +201,7 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
         <div className="px-6 py-5 space-y-4">
           {/* API error */}
           {apiError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
               {apiError}
             </div>
           )}
@@ -276,19 +290,19 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
           <div className={cn(
             "flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition-colors",
             autoReorder
-              ? "border-emerald-300 bg-emerald-500/5 dark:border-emerald-800"
-              : "border-border bg-muted/30"
+              ? "border-emerald-200 bg-emerald-50/50"
+              : "border-slate-200"
           )}>
             <div className="flex items-center gap-2.5">
               <div className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                autoReorder ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+                autoReorder ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
               )}>
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-foreground leading-tight">Enable AI Auto-Reorder</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Automatically reorder stock for this supplier</p>
+                <p className="text-[13px] font-semibold text-slate-900 leading-tight">Enable AI Auto-Reorder</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Automatically reorder stock for this supplier</p>
               </div>
             </div>
             {/* Toggle switch */}
@@ -299,8 +313,8 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
               onClick={() => setAutoReorder((v) => !v)}
               className={cn(
                 "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent",
-                "transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                autoReorder ? "bg-emerald-500" : "bg-muted-foreground/30"
+                "transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
+                autoReorder ? "bg-emerald-500" : "bg-slate-200"
               )}
             >
               <span
@@ -314,29 +328,29 @@ export function AddSupplierModal({ isOpen, onClose, onSave }: AddSupplierModalPr
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-          <Button
-            variant="outline"
+        <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
+          <button
+            type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px]"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-5 text-[13px] gap-2 shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
             {saving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving…
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
               </>
             ) : (
               "Save Supplier"
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

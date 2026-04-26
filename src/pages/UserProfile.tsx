@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
-import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/GlobalToastContext";
+import { LS_KEY, useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import {
@@ -118,16 +119,22 @@ function ReadField({ icon: Icon, label, children }: {
    UserProfile Page
    ═══════════════════════════════════════════════════════════════════════ */
 export default function UserProfile() {
+  const { showToast } = useToast();
   const { user } = useAuth();
 
   const [profileId,       setProfileId]       = useState<number | null>(null);
+  const [profileMemberId, setProfileMemberId] = useState("");
   const [profileEmail,    setProfileEmail]     = useState("");
   const [profileFullName, setProfileFullName]  = useState(user?.name ?? "");
+  const [profilePhoneNumber, setProfilePhoneNumber] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
   const [createdAt,       setCreatedAt]        = useState<string | null>(null);
 
   const [editMode,   setEditMode]   = useState(false);
   const [editName,   setEditName]   = useState("");
   const [editEmail,  setEditEmail]  = useState("");
+  const [editPhoneNumber, setEditPhoneNumber] = useState("");
+  const [editAddress, setEditAddress] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
@@ -146,20 +153,23 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!user) return;
-    api.get("/api/users").then((r) => {
-      const me = (r.data as any[]).find((u: any) => u.username === user.username);
-      if (me) {
-        setProfileId(me.id ?? null);
-        setProfileEmail(me.email ?? "");
-        setProfileFullName(me.fullName ?? user.name ?? "");
-        if (me.createdAt) setCreatedAt(me.createdAt);
-      }
+    api.get("/api/users/profile").then((r) => {
+      const me = r.data as any;
+      setProfileId(me.id ?? null);
+      setProfileMemberId(me.memberId ?? "");
+      setProfileEmail(me.email ?? "");
+      setProfileFullName(me.fullName ?? user.name ?? "");
+      setProfilePhoneNumber(me.phoneNumber ?? "");
+      setProfileAddress(me.address ?? "");
+      if (me.createdAt) setCreatedAt(me.createdAt);
     }).catch(() => {});
   }, [user?.username]);
 
   function openEdit() {
     setEditName(profileFullName);
     setEditEmail(profileEmail);
+    setEditPhoneNumber(profilePhoneNumber);
+    setEditAddress(profileAddress);
     setEditErrors({});
     setEditMode(true);
   }
@@ -172,22 +182,28 @@ export default function UserProfile() {
   async function saveEdit() {
     const errs: Record<string, string> = {};
     if (!editName.trim())  errs.name  = "Full name is required.";
-    if (!editEmail.trim()) errs.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) errs.email = "Enter a valid email address.";
     if (Object.keys(errs).length) { setEditErrors(errs); return; }
-    if (!profileId) { setEditErrors({ name: "User ID not found. Please refresh." }); return; }
 
     setEditSaving(true);
     try {
-      const { data }: any = await api.put(`/api/users/${profileId}`, {
+      const raw = localStorage.getItem(LS_KEY);
+      const token = raw ? (JSON.parse(raw) as any)?.token : null;
+
+      const { data }: any = await api.put("/api/users/profile", {
         fullName: editName.trim(),
-        email:    editEmail.trim(),
-        role:     user?.role,
+        phoneNumber: editPhoneNumber.trim(),
+        address: editAddress.trim(),
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
+
+      // Immediate local state update so UI reflects changes without refresh.
       setProfileFullName(data.fullName ?? editName.trim());
-      setProfileEmail(data.email ?? editEmail.trim());
+      setProfileEmail(data.email ?? profileEmail);
+      setProfilePhoneNumber(data.phoneNumber ?? editPhoneNumber.trim());
+      setProfileAddress(data.address ?? editAddress.trim());
       setEditMode(false);
-      setPopup({ show: true, type: "success", message: "Profile updated successfully!" });
+      showToast("Profile updated successfully!", "success");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "Failed to update profile.";
       setEditErrors({ name: msg });
@@ -215,7 +231,7 @@ export default function UserProfile() {
         username: user?.username, currentPassword: current, newPassword: newPass,
       });
       setCurrent(""); setNewPass(""); setConfirm("");
-      setPopup({ show: true, type: "success", message: "Password updated successfully!" });
+      showToast("Password updated successfully!", "success");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Current password is incorrect.";
       setPwErrors({ current: msg });
@@ -233,36 +249,36 @@ export default function UserProfile() {
   const displayName = profileFullName || user?.name || "";
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto py-8">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 pb-12 space-y-6">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-5xl space-y-6">
 
           {/* Page heading */}
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 shrink-0">
-              <User className="h-5 w-5 text-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+              <User className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 leading-tight">My Profile</h1>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <h1 className="text-2xl font-bold text-foreground leading-tight">My Profile</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Manage your personal information and account security
               </p>
             </div>
           </div>
 
           {/* Profile card */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+          <div className="rounded-xl border border-border bg-card shadow-md overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border">
 
               {/* LEFT: Avatar panel */}
-              <div className="flex flex-col items-center gap-5 bg-slate-50 px-8 py-10">
+              <div className="flex flex-col items-center gap-5 bg-muted/30 px-8 py-10">
                 <AvatarCircle name={displayName} role={user?.role} />
 
                 <div className="text-center space-y-2">
-                  <h2 className="text-xl font-extrabold text-slate-900 leading-tight">{displayName}</h2>
-                  <p className="text-sm font-mono text-slate-500">@{user?.username}</p>
+                  <h2 className="text-xl font-extrabold text-foreground leading-tight">{displayName}</h2>
+                  <p className="text-sm font-mono text-muted-foreground">@{user?.username}</p>
                   <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${roleCfg.badge}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${roleCfg.dot}`} />
                     {user?.role}
@@ -270,11 +286,11 @@ export default function UserProfile() {
                 </div>
 
                 {/* Last Login */}
-                <div className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-center">
-                  <p className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                <div className="w-full rounded-xl border border-border bg-card px-4 py-3.5 text-center shadow-sm">
+                  <p className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
                     <Clock className="h-3 w-3" /> Last Login
                   </p>
-                  <p className="text-[12px] font-semibold text-slate-700 leading-snug">
+                  <p className="text-[12px] font-semibold text-foreground leading-snug">
                     {fmtDateTime(lastLogin)}
                   </p>
                 </div>
@@ -285,15 +301,15 @@ export default function UserProfile() {
 
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">Profile Details</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <h3 className="text-base font-bold text-foreground">Profile Details</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {editMode ? "Update your information below, then save." : "Your personal information on file."}
                     </p>
                   </div>
                   {!editMode ? (
                     <button
                       onClick={openEdit}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2"
+                      className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit Profile
@@ -303,7 +319,7 @@ export default function UserProfile() {
                       <button
                         onClick={cancelEdit}
                         disabled={editSaving}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted active:scale-95 transition-all disabled:opacity-50"
                       >
                         <X className="h-3.5 w-3.5" />
                         Cancel
@@ -311,7 +327,7 @@ export default function UserProfile() {
                       <button
                         onClick={saveEdit}
                         disabled={editSaving}
-                        className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {editSaving ? (
                           <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -338,13 +354,13 @@ export default function UserProfile() {
                         <input
                           type="text" value={editName}
                           onChange={(e) => { setEditName(e.target.value); setEditErrors((v) => ({ ...v, name: "" })); }}
-                          className={`w-full rounded-lg border ${editErrors.name ? "border-red-400" : "border-slate-200"} bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
+                          className={`w-full rounded-xl border ${editErrors.name ? "border-red-400" : "border-border"} bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
                           placeholder="Full name"
                         />
                         {editErrors.name && <p className="mt-1 text-xs text-red-600">{editErrors.name}</p>}
                       </div>
                     ) : (
-                      <p className="text-sm font-semibold text-slate-900">{displayName || "—"}</p>
+                      <p className="text-sm font-semibold text-foreground">{displayName || "—"}</p>
                     )}
                   </div>
 
@@ -358,13 +374,13 @@ export default function UserProfile() {
                         <input
                           type="email" value={editEmail}
                           onChange={(e) => { setEditEmail(e.target.value); setEditErrors((v) => ({ ...v, email: "" })); }}
-                          className={`w-full rounded-lg border ${editErrors.email ? "border-red-400" : "border-slate-200"} bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
+                          className={`w-full rounded-xl border ${editErrors.email ? "border-red-400" : "border-border"} bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
                           placeholder="you@example.com"
                         />
                         {editErrors.email && <p className="mt-1 text-xs text-red-600">{editErrors.email}</p>}
                       </div>
                     ) : (
-                      <p className="text-sm font-semibold text-slate-900">{profileEmail || "—"}</p>
+                      <p className="text-sm font-semibold text-foreground">{profileEmail || "—"}</p>
                     )}
                   </div>
 
@@ -383,8 +399,44 @@ export default function UserProfile() {
 
                   {/* Employee ID */}
                   <ReadField icon={Hash} label="Employee ID">
-                    <span className="font-mono text-slate-700">{empId(profileId)}</span>
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-0.5 font-mono text-xs font-semibold text-indigo-700">{profileMemberId || empId(profileId)}</span>
                   </ReadField>
+
+                  {/* Phone Number */}
+                  <div className="space-y-1.5">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <AtSign className="h-3 w-3" /> Phone Number
+                    </span>
+                    {editMode ? (
+                      <input
+                        type="text"
+                        value={editPhoneNumber}
+                        onChange={(e) => setEditPhoneNumber(e.target.value)}
+                        className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                        placeholder="e.g. +94 77 123 4567"
+                      />
+                    ) : (
+                      <p className="text-sm font-semibold text-foreground">{profilePhoneNumber || "—"}</p>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <Mail className="h-3 w-3" /> Address
+                    </span>
+                    {editMode ? (
+                      <textarea
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                        placeholder="Enter address"
+                      />
+                    ) : (
+                      <p className="text-sm font-semibold text-foreground">{profileAddress || "—"}</p>
+                    )}
+                  </div>
 
                   {/* Joined Date */}
                   <ReadField icon={Calendar} label="Joined Date">
@@ -394,7 +446,7 @@ export default function UserProfile() {
                 </div>
 
                 {!editMode && (
-                  <p className="text-[11px] text-slate-400 italic">
+                  <p className="text-[11px] text-muted-foreground italic">
                     Click "Edit Profile" to modify your name or email. Username and role can only be changed by an administrator.
                   </p>
                 )}
@@ -403,14 +455,14 @@ export default function UserProfile() {
           </div>
 
           {/* Security — Change Password */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-8">
+          <div className="rounded-xl border border-border bg-card shadow-md p-8">
             <div className="flex items-center gap-3 mb-7">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 shrink-0">
-                <KeyRound className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <KeyRound className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Security</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h3 className="text-base font-bold text-foreground">Security</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Update your password. Choose a strong password — minimum 6 characters.
                 </p>
               </div>
@@ -445,7 +497,7 @@ export default function UserProfile() {
                 <button
                   type="submit"
                   disabled={pwLoading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pwLoading ? (
                     <>
@@ -467,14 +519,9 @@ export default function UserProfile() {
           </div>
 
         </div>
-      </div>
+      </main>
 
-      <SuccessPopup
-        show={popup.show}
-        type={popup.type}
-        message={popup.message}
-        onClose={() => setPopup((p) => ({ ...p, show: false }))}
-      />
+      
     </div>
   );
 }

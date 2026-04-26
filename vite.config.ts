@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig(({ mode }) => {
-  // Load .env files so VITE_API_URL can override the proxy target in CI/staging.
+  // Load .env files so backend target can be overridden in CI/staging.
   const env = loadEnv(mode, process.cwd(), "");
-  const backendTarget = env.VITE_API_URL ?? "http://localhost:8080";
+  const backendTargetRaw = env.VITE_BACKEND_URL || env.VITE_API_URL || "http://localhost:8080";
+  const backendTarget = backendTargetRaw.replace(/\/$/, "");
 
   return {
     server: {

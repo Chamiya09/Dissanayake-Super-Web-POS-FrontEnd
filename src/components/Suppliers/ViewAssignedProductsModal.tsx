@@ -120,17 +120,17 @@ export function ViewAssignedProductsModal({
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-              <Package className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Package size={20} />
             </div>
             <div>
               <h2
                 id="view-assigned-title"
-                className="text-[16px] font-bold text-slate-900 leading-tight"
+                className="text-[16px] font-bold text-slate-800 leading-tight"
               >
                 Assigned Products
               </h2>
-              <p className="text-[12px] text-slate-400 mt-0.5">
+              <p className="text-[12px] text-slate-500 mt-0.5">
                 Supplier:{" "}
                 <span className="font-semibold text-slate-700">{supplier.companyName}</span>
               </p>
@@ -239,18 +239,16 @@ export function ViewAssignedProductsModal({
         </div>
 
         {/* ── Footer ── */}
-        <div className="border-t border-slate-100 px-6 py-4 shrink-0 flex items-center justify-between">
-          <span className="text-[12px] text-slate-400">
+        <div className="border-t border-slate-100 px-6 py-4 shrink-0 flex items-center justify-between bg-slate-50/50 rounded-b-2xl">
+          <span className="text-[12px] text-slate-500">
             {loading ? "—" : `${products.length} product${products.length !== 1 ? "s" : ""} assigned`}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={onClose}
-            className="h-9 px-5 rounded-xl text-[13px] font-semibold"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
           >
             Close
-          </Button>
+          </button>
         </div>
       </div>
     </div>

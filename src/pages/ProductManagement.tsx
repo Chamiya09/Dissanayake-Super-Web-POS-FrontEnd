@@ -4,24 +4,84 @@ import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
 import { EditProductModal } from "@/components/Products/EditProductModal";
 import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
-import { Package, Plus, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { ViewProductModal } from "@/components/Products/ViewProductModal";
+import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
+import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
+import { Package, PlusCircle, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
-import { showSuccess, showError } from "@/utils/toastUtils";
+import { useToast } from "@/context/GlobalToastContext";
 export type { Product };
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const apiMessage = (error as any)?.response?.data?.message;
+  const apiError = (error as any)?.response?.data?.error;
+  const genericMessage = (error as any)?.message;
+
+  if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+  if (typeof apiError === "string" && apiError.trim()) return apiError;
+  if (typeof genericMessage === "string" && genericMessage.trim()) return genericMessage;
+  return fallback;
+}
+
+function SummaryCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  sub,
+}: {
+  icon: any;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
+          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none tabular-nums">{value}</span>
+        </div>
+      </div>
+      {sub && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <span className="text-sm text-slate-500">{sub}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 
 /* ─────────────────────────────────────────────────────────────────────────
    ProductManagement  —  main page
    ───────────────────────────────────────────────────────────────────────── */
 export default function ProductManagement() {
+  const { showToast } = useToast();
+
   /* ── Server state ── */
   const [products,  setProducts]  = useState<Product[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   /* ── Modal state ── */
   const [isAddOpen,    setIsAddOpen]    = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<Product | null>(null);
   const [editTarget,   setEditTarget]   = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -33,18 +93,37 @@ export default function ProductManagement() {
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await productApi.getAll();
-      setProducts(data);
+      const response = await productApi.getPage({
+        page,
+        limit: pageSize,
+        search: debouncedSearch || undefined,
+      });
+      setProducts(response.content);
+      setTotalElements(response.totalElements);
+      setTotalPages(response.totalPages);
     } catch {
       setFetchError("Failed to load products. Make sure the backend is running on port 8080.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, page, pageSize]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  /* ── Sync to localStorage whenever the product list changes ── */
+  /* ── Debounced server-side search ── */
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = window.setTimeout(() => {
+      const typed = searchInput.trim();
+      setDebouncedSearch(typed ? `PI${typed}` : "");
+      setPage(0);
+      setIsSearching(false);
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  /* ── Sync the current page snapshot to localStorage ── */
   useEffect(() => {
     if (!loading) {
       localStorage.setItem("products", JSON.stringify(products));
@@ -54,38 +133,91 @@ export default function ProductManagement() {
   /* ── CRUD handlers ── */
   const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
     try {
-      const created = await productApi.create(data);
-      setProducts((prev) => [...prev, created]);
-      showSuccess("Product added successfully!");
-    } catch {
-      showError("Something went wrong. Please try again.");
+      await productApi.create(data);
+      setPage(0);
+      await fetchProducts();
+      showToast("Product added successfully!", "success");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to add product.");
+      console.error("Failed to create product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to create product.");
     }
-  }, []);
+  }, [fetchProducts, showToast]);
 
   const handleEdit = useCallback(async (updated: Product) => {
     try {
       const { id, ...payload } = updated;
-      const saved = await productApi.update(id, payload);
-      setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
-      showSuccess("Product updated successfully!");
-    } catch {
-      showError("Something went wrong. Please try again.");
+      await productApi.update(id, payload);
+      await fetchProducts();
+      showToast("Product updated successfully!", "success");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to update product.");
+      console.error("Failed to update product:", (error as any)?.response?.data || error);
+      showToast(message, "error");
       throw new Error("Failed to update product.");
     }
-  }, []);
+  }, [fetchProducts, showToast]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
+      const deletedId = deleteTarget.id;
       await productApi.remove(deleteTarget.id);
-      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      showSuccess("Product deleted successfully!");
-    } catch {
-      showError("Something went wrong. Please try again.");
+
+      setProducts((prev) => prev.filter((p) => p.id !== deletedId));
+      setTotalElements((prev) => Math.max(0, prev - 1));
+
+      if (products.length === 1 && page > 0) {
+        setPage((prev) => Math.max(0, prev - 1));
+      }
+
+      showToast("Product deleted successfully!", "success");
+    } catch (error) {
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.response?.data?.error ||
+        "Something went wrong. Please try again.";
+      showToast(message, "error");
       throw new Error("Failed to delete product.");
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, page, products.length, showToast]);
+
+  const handleCsvImport = useCallback(async (rows: Omit<Product, "id">[]) => {
+    try {
+      const result = await productApi.bulkImport(rows);
+
+      if (result.importedCount > 0) {
+        setPage(0);
+        await fetchProducts();
+      }
+
+      if (result.failedCount === 0) {
+        showToast(
+          `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"} successfully!`,
+          "success"
+        );
+      } else if (result.importedCount > 0) {
+        showToast(
+          `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"}. ${result.failedCount} row${result.failedCount === 1 ? "" : "s"} failed.`,
+          "warning"
+        );
+      } else {
+        showToast("No products were imported. Please review failed rows.", "error");
+      }
+
+      return result;
+    } catch (error) {
+      const message = (error as any)?.response?.data?.message;
+      showToast(
+        typeof message === "string" && message.trim()
+          ? message
+          : "CSV import failed. Please try again.",
+        "error"
+      );
+      throw error;
+    }
+  }, [fetchProducts, showToast]);
 
   /* ── Derived stats ── */
   const avgMargin =
@@ -99,83 +231,117 @@ export default function ProductManagement() {
   const categories = [...new Set(products.map((p) => p.category))].length;
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 overflow-y-auto">
+        <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
 
         {/* ── Page header ── */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
-              <Package className="h-5 w-5 text-white dark:text-slate-900" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Package size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 leading-tight">
+              <h1 className="text-2xl font-bold text-slate-900 leading-tight">
                 Product Management
               </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-slate-500 mt-1">
                 {loading
                   ? "Loading products…"
-                  : `${products.length} product${products.length !== 1 ? "s" : ""} registered`
+                  : `${totalElements} product${totalElements !== 1 ? "s" : ""} registered`
                 }
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsAddOpen(true)}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add New Product</span>
-            <span className="sm:hidden">Add</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportOpen(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              <Upload size={15} strokeWidth={2.5} />
+              Import CSV
+            </button>
+
+            <button
+              onClick={() => setIsAddOpen(true)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              <PlusCircle size={16} strokeWidth={2.5} />
+              Add Product
+            </button>
+          </div>
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { label: "Total Products", value: loading ? "—" : products.length },
-            { label: "Categories",     value: loading ? "—" : categories },
-            { label: "Avg. Margin",    value: loading ? "—" : `${avgMargin.toFixed(1)}%` },
+            {
+              label: "Total Products",
+              value: loading ? "—" : totalElements,
+              bg: "bg-blue-50",
+              text: "text-blue-600",
+              icon: Package,
+              sub: "Products currently registered",
+            },
+            {
+              label: "Categories",
+              value: loading ? "—" : categories,
+              bg: "bg-indigo-50",
+              text: "text-indigo-600",
+              icon: Layers,
+              sub: "Unique product categories",
+            },
+            {
+              label: "Avg. Margin",
+              value: loading ? "—" : `${avgMargin.toFixed(1)}%`,
+              bg: "bg-emerald-50",
+              text: "text-emerald-600",
+              icon: TrendingUp,
+              sub: "Average gross margin percentage",
+            },
           ].map((stat) => (
-            <div
+            <SummaryCard
               key={stat.label}
-              className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 shadow-sm"
-            >
-              <p className="text-[22px] font-bold text-slate-900 dark:text-slate-50 tabular-nums">{stat.value}</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{stat.label}</p>
-            </div>
+              label={stat.label}
+              value={stat.value}
+              icon={stat.icon}
+              iconBg={stat.bg}
+              iconColor={stat.text}
+              sub={stat.sub}
+            />
           ))}
         </div>
 
         {/* ── Loading state ── */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-slate-400 dark:text-slate-500" />
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Loading products…</p>
-          </div>
+          <RefreshLoadingTheme
+            title="Loading Products"
+            subtitle="Syncing product catalog..."
+          />
         )}
 
         {/* ── Error state ── */}
         {!loading && fetchError && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 px-6 py-5 flex items-start gap-3 max-w-md w-full">
-              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 flex items-start gap-3 max-w-md w-full">
+              <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">
+                <p className="text-sm font-semibold text-red-700">
                   Could not fetch products
                 </p>
-                <p className="text-[12px] text-red-600/80 dark:text-red-400/80">{fetchError}</p>
+                <p className="text-xs text-red-600/80">{fetchError}</p>
               </div>
             </div>
             <button
               onClick={fetchProducts}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw size={14} />
               Retry
             </button>
           </div>
@@ -185,17 +351,44 @@ export default function ProductManagement() {
         {!loading && !fetchError && (
           <ProductTable
             products={products}
+            totalElements={totalElements}
+            totalPages={totalPages}
+            page={page}
+            pageSize={pageSize}
+            searchInput={searchInput}
+            isSearching={isSearching}
+            onSearchInputChange={setSearchInput}
+            onPageChange={(nextPage) => {
+              if (nextPage < 0 || nextPage >= Math.max(totalPages, 1)) return;
+              setPage(nextPage);
+            }}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPage(0);
+            }}
+            onView={(p) => setViewTarget(p)}
             onEdit={(p) => setEditTarget(p)}
             onDelete={(p) => setDeleteTarget(p)}
           />
         )}
-      </div>
+        </div>
+      </main>
 
       {/* ── Modals ── */}
       <AddProductModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSave={handleAdd}
+      />
+      <ImportProductsCsvModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleCsvImport}
+      />
+      <ViewProductModal
+        isOpen={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        product={viewTarget}
       />
       <EditProductModal
         isOpen={isEditOpen}

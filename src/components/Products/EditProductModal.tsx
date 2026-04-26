@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import {
-  Package, X, Tag, Hash, Layers,
+  Package, X, Tag, Layers,
   DollarSign, Loader2, ShoppingBag, Ruler,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { BarcodeInput } from "@/components/Products/BarcodeInput";
 import type { Product } from "@/data/product-management";
 import {
   FormRow,
@@ -22,17 +22,13 @@ import {
   UNITS,
 } from "@/components/Products/AddProductModal";
 import type { FormFields } from "@/components/Products/AddProductModal";
+import { useToast } from "@/context/GlobalToastContext";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   EditProductModal
-   Mirrors AddProductModal structure exactly — same overlay, panel, header,
-   input sizing, error colours, and footer button styles.
-   ───────────────────────────────────────────────────────────────────────── */
 export interface EditProductModalProps {
-  isOpen:  boolean;
+  isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onSave:  (updated: Product) => void;
+  onSave: (updated: Product) => void;
 }
 
 export function EditProductModal({
@@ -41,30 +37,32 @@ export function EditProductModal({
   product,
   onSave,
 }: EditProductModalProps) {
-  const [form,   setForm]   = useState<FormFields>(EMPTY_FORM);
+  const { showToast } = useToast();
+  const [form, setForm] = useState<FormFields>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<FormFields>>({});
   const [saving, setSaving] = useState(false);
 
-  /* Pre-fill form fields whenever a product is targeted */
   useEffect(() => {
     if (isOpen && product) {
       setForm({
-        productName:  product.productName,
-        sku:          product.sku,
-        category:     product.category,
-        buyingPrice:  String(product.buyingPrice),
+        sku: product.sku?.trim() || "",
+        productName: product.productName,
+        barcode: product.barcode?.trim() || "",
+        category: product.category,
+        buyingPrice: String(product.buyingPrice),
         sellingPrice: String(product.sellingPrice),
-        unit:         product.unit ?? "",
+        unit: product.unit ?? "",
       });
       setErrors({});
       setSaving(false);
     }
   }, [isOpen, product]);
 
-  /* Close on Escape */
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
@@ -74,84 +72,86 @@ export function EditProductModal({
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = validateForm(form);
-    if (Object.keys(err).length) { setErrors(err); return; }
+    if (Object.keys(err).length) {
+      setErrors(err);
+      const firstError = Object.values(err)[0];
+      if (firstError) {
+        showToast(firstError, "error");
+      }
+      return;
+    }
     if (!product) return;
+
     setSaving(true);
-    setTimeout(() => {
-      onSave({
-        id:           product.id,
-        productName:  form.productName.trim(),
-        sku:          form.sku.trim(),
-        category:     form.category,
-        buyingPrice:  Number(form.buyingPrice),
+    try {
+      const productId = product.id;
+      const barcode = form.barcode.trim();
+      await onSave({
+        id: productId,
+        sku: product.sku ?? null,
+        productName: form.productName.trim(),
+        barcode: barcode,
+        category: form.category,
+        buyingPrice: Number(form.buyingPrice),
         sellingPrice: Number(form.sellingPrice),
-        unit:         form.unit || undefined,
+        unit: form.unit || undefined,
       });
-      setSaving(false);
       onClose();
-    }, 400);
+    } catch {
+      // Handled by parent
+    } finally {
+      if (isOpen) setSaving(false);
+    }
   };
 
   if (!isOpen || !product) return null;
 
   return (
-    /* ── Backdrop ── */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       aria-modal="true"
       role="dialog"
       aria-labelledby="edit-product-title"
     >
-      {/* Dimmed overlay */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* ── Panel ── */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
+          "relative z-10 w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl",
           "animate-in fade-in-0 zoom-in-95 duration-200"
         )}
       >
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 shrink-0">
-              <Package className="h-[18px] w-[18px] text-white dark:text-slate-900" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+              <Package size={20} />
             </div>
             <div>
-              <h2
-                id="edit-product-title"
-                className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight"
-              >
+              <h2 id="edit-product-title" className="text-base font-bold text-slate-800 leading-tight">
                 Edit Product
               </h2>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Update details for{" "}
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{product.productName}</span>.
+              <p className="text-[12px] text-sm text-slate-500 mt-1">
+                Update details for <span className="font-semibold text-slate-700">{product.productName}</span>.
               </p>
             </div>
           </div>
 
-          {/* Close button */}
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-muted hover:text-accent-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* ── Form body ── */}
         <div className="px-6 py-5 space-y-4">
-
-          {/* Product Name — full width */}
           <FormRow id="edit-productName" label="Product Name" icon={ShoppingBag} error={errors.productName}>
             <Input
               id="edit-productName"
@@ -165,21 +165,16 @@ export function EditProductModal({
             />
           </FormRow>
 
-          {/* SKU  +  Category — side by side on sm+ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormRow id="edit-sku" label="SKU / Barcode" icon={Hash} error={errors.sku}>
-              <Input
-                id="edit-sku"
-                value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. 4011"
-                className={cn(
-                  "h-10 text-[13px] font-mono",
-                  errors.sku && "border-red-400 focus-visible:ring-red-400"
-                )}
-              />
-            </FormRow>
+          <BarcodeInput
+            mode="update"
+            initialBarcode={form.barcode}
+            autoFocus={isOpen}
+            disabled={saving}
+            inputId="edit-product-barcode"
+            onBarcodeChange={(value) => set("barcode", value)}
+          />
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-category" label="Category" icon={Layers} error={errors.category}>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger
@@ -198,13 +193,31 @@ export function EditProductModal({
                 </SelectContent>
               </Select>
             </FormRow>
+
+            <FormRow id="edit-pricingUnit" label="Pricing Unit" icon={Ruler} error={errors.unit}>
+              <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+                <SelectTrigger
+                  id="edit-pricingUnit"
+                  className={cn(
+                    "h-10 text-[13px]",
+                    errors.unit && "border-red-400 focus-visible:ring-red-400"
+                  )}
+                >
+                  <SelectValue placeholder="Select pricing unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormRow>
           </div>
 
-          {/* Buying Price  +  Selling Price — side by side on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormRow id="edit-buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
                   $
                 </span>
                 <Input
@@ -225,7 +238,7 @@ export function EditProductModal({
 
             <FormRow id="edit-sellingPrice" label="Selling Price" icon={Tag} error={errors.sellingPrice}>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-400 dark:text-slate-500 font-medium">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
                   $
                 </span>
                 <Input
@@ -244,47 +257,32 @@ export function EditProductModal({
               </div>
             </FormRow>
           </div>
-
-          {/* Unit — optional, full width */}
-          <FormRow id="edit-unit" label="Unit (optional)" icon={Ruler}>
-            <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-              <SelectTrigger id="edit-unit" className="h-10 text-[13px]">
-                <SelectValue placeholder="Select unit of measurement" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormRow>
         </div>
 
-        {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-6 py-4">
-          <Button
-            variant="outline"
+        <div className="flex items-center justify-end gap-3 mt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl px-6 py-4">
+          <button
+            type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-9 px-5 text-[13px] border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
           >
             Cancel
-          </Button>
+          </button>
 
-          <Button
+          <button
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-5 text-[13px] gap-2 shadow-sm bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
           >
             {saving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving…
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
               </>
             ) : (
               "Save Changes"
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

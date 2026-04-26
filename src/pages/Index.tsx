@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
-import { toast } from "@/components/ui/sonner";
+import { useToast } from "@/context/GlobalToastContext";
 import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
+import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import type { Product, CartItem } from "@/data/products";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useInventory } from "@/context/InventoryContext";
@@ -14,10 +15,13 @@ import { useInventory } from "@/context/InventoryContext";
 interface MgmtProduct {
   id: number;
   productName: string;
-  sku: string;
+  sku: string | null;
+  barcode: string | null;
   category: string;
   buyingPrice: number;
   sellingPrice: number;
+  status?: "ACTIVE" | "DISCONTINUED";
+  stockQuantity?: number;
   unit?: string;
 }
 
@@ -29,8 +33,9 @@ function mapToPOS(p: MgmtProduct): Product {
     price:    p.sellingPrice,
     category: p.category,
     unit:     p.unit ?? "pcs",
-    barcode:  p.sku,
+    barcode:  p.barcode ?? "",
     stock:    50,   // default — management page doesn't track stock yet
+    status:   p.status,
   };
 }
 
@@ -75,13 +80,20 @@ function FlyingDot({
 }
 
 const Index = () => {
+  const { showToast } = useToast();
+  const [keyboardScope, setKeyboardScope] = useState<"grid" | "cart">("grid");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [activeBucketIndex, setActiveBucketIndex] = useState(-1);
   const [flyDots, setFlyDots] = useState<{ id: number; x: number; y: number }[]>([]);
   const cartIconRef = useRef<HTMLDivElement>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [lastSale, setLastSale] = useState<{ receiptNo: string; total: number; paymentMethod: string } | null>(null);
+  const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
+  const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const activeBucketIndexRef = useRef(-1);
+  const cartRef = useRef<CartItem[]>([]);
 
   /* ── Live inventory data from shared context ── */
   const { inventoryItems, refreshInventory } = useInventory();
@@ -104,20 +116,27 @@ const Index = () => {
     () =>
       rawProducts.map((p) => {
         const inv = inventoryItems.find((i) => i.productId === p.id);
+        const stock = inv ? inv.stockQuantity : p.stockQuantity ?? 0;
         return {
           id:       String(p.id),
           name:     p.productName,
           price:    p.sellingPrice,
           category: p.category,
           unit:     p.unit ?? "pcs",
-          barcode:  p.sku,
-          stock:    inv ? inv.stockQuantity : 0,
+          barcode:  p.barcode ?? "",
+          stock,
+          status:   p.status,
         };
-      }),
+      }).filter((product) => product.status !== "DISCONTINUED"),
     [rawProducts, inventoryItems]
   );
 
   const addToCart = useCallback((product: Product, e?: React.MouseEvent) => {
+    if (product.status === "DISCONTINUED") {
+      showToast("Ordering is disabled for discontinued products", "warning");
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -137,7 +156,7 @@ const Index = () => {
       const dot = { id: Date.now(), x: e.clientX, y: e.clientY };
       setFlyDots((prev) => [...prev, dot]);
     }
-  }, []);
+  }, [showToast]);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
@@ -162,9 +181,7 @@ const Index = () => {
   }, []);
 
   const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
-    const receiptNo = `RCP-${Date.now()}`;
     const payload = {
-      receiptNo,
       paymentMethod,
       totalAmount,
       status: "Completed",
@@ -178,15 +195,14 @@ const Index = () => {
     };
 
     try {
-      await api.post("/api/sales", payload);
+      const { data } = await api.post("/api/sales", payload);
+      const transactionId = data?.transactionId ?? data?.receiptNo ?? "TRX-UNKNOWN";
       setCart([]);
       setCartOpen(false);
-      setLastSale({ receiptNo, total: totalAmount, paymentMethod });
+      setLastSale({ transactionId, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
-      toast.success(`Sale ${receiptNo} recorded successfully!`, {
-        duration: 4000,
-      });
+      showToast(`Sale ${transactionId} recorded successfully!`, "success", "Success");
     } catch (err) {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
@@ -194,13 +210,52 @@ const Index = () => {
   }, [cart, refreshInventory]);
 
   /* ── SKU / Barcode quick-add ── */
-  const [skuQuery, setSkuQuery] = useState("");
+  const [skuInputValue, setSkuInputValue] = useState("");
+  const [debouncedSkuQuery, setDebouncedSkuQuery] = useState("");
   const skuInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSkuSearch = useCallback(
-    async (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== "Enter") return;
-      const sku = skuQuery.trim();
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSkuQuery(skuInputValue);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [skuInputValue]);
+
+  const addProductByBarcode = useCallback(
+    (rawBarcode: string) => {
+      const scannedBarcode = String(rawBarcode).trim();
+      if (!scannedBarcode) return;
+
+      const product = posProducts.find(
+        (item) => String(item.barcode ?? "").trim() === scannedBarcode,
+      );
+
+      if (!product) {
+        showToast(`No product found for barcode "${scannedBarcode}"`, "error", "Invalid Barcode");
+        return;
+      }
+
+      addToCart(product);
+      showToast(`Added: ${product.name}`, "success", "Item Added");
+    },
+    [addToCart, posProducts, showToast],
+  );
+
+  const handleScannedBarcode = useCallback(
+    (barcode: string) => {
+      const scannedBarcode = String(barcode).trim();
+      if (!scannedBarcode) return;
+      console.info("[POS] handleScannedBarcode:", scannedBarcode);
+      addProductByBarcode(scannedBarcode);
+      setSkuInputValue("");
+    },
+    [addProductByBarcode],
+  );
+
+  const addProductBySku = useCallback(
+    async (rawSku: string) => {
+      const sku = rawSku.trim();
       if (!sku) return;
 
       try {
@@ -213,50 +268,313 @@ const Index = () => {
           price:    data.sellingPrice,
           category: data.category,
           unit:     data.unit ?? "pcs",
-          barcode:  data.sku,
-          stock:    50,
+          barcode:  data.barcode ?? "",
+          stock:    data.stockQuantity ?? 0,
+          status:   data.status,
         };
-        // Override stock from live inventory if available
+
+        // Override stock from live inventory if available.
         const inv = inventoryItems.find((i) => i.productId === data.id);
         if (inv) product.stock = inv.stockQuantity;
 
+        if (product.status === "DISCONTINUED") {
+          showToast("Ordering is disabled for discontinued products", "warning");
+          return;
+        }
+
         addToCart(product);
-        toast.success(`Added: ${data.productName}`, { duration: 2000 });
+        showToast(`Added: ${data.productName}`, "success", "Item Added");
       } catch {
-        toast.error(`No product found for SKU "${sku}"`, { duration: 3000 });
-      } finally {
-        setSkuQuery("");
-        // Re-focus so the next barcode scan / manual entry is instant
-        skuInputRef.current?.focus();
+        showToast(`No product found for SKU "${sku}"`, "error", "Invalid SKU");
       }
     },
-    [skuQuery, addToCart, inventoryItems],
+    [addToCart, inventoryItems, showToast],
   );
+
+  const handleSkuSearch = useCallback(
+    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
+      const suffix = skuInputValue.trim();
+      if (!suffix) return;
+      await addProductBySku(`PI${suffix}`);
+      setSkuInputValue("");
+      // Re-focus so the next barcode scan / manual entry is instant.
+      skuInputRef.current?.focus();
+    },
+    [addProductBySku, skuInputValue],
+  );
+
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  useEffect(() => {
+    activeBucketIndexRef.current = activeBucketIndex;
+  }, [activeBucketIndex]);
+
+  useEffect(() => {
+    if (cart.length === 0) {
+      setActiveBucketIndex(-1);
+      return;
+    }
+    setActiveBucketIndex((idx) => (idx < 0 ? 0 : Math.min(idx, cart.length - 1)));
+  }, [cart.length]);
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart]);
 
-  // [Esc] → clear basket when not focused inside an input
+  // Unified global keyboard manager: scope control, cart navigation, and barcode scanning.
   useEffect(() => {
+    let scannerBuffer = "";
+    let lastKeystrokeTime = 0;
+    let quantityBuffer = "";
+    let quantityBufferProductId: string | null = null;
+    let quantityBufferTimer: number | null = null;
+    const interKeyThresholdMs = 50;
+    const minBarcodeLength = 5;
+
+    const restartQuantityBufferTimer = () => {
+      if (quantityBufferTimer !== null) {
+        window.clearTimeout(quantityBufferTimer);
+      }
+      quantityBufferTimer = window.setTimeout(() => {
+        quantityBuffer = "";
+        quantityBufferProductId = null;
+        quantityBufferTimer = null;
+      }, 1200);
+    };
+
     const handler = (e: KeyboardEvent) => {
-      if (
-        e.key === "Escape" &&
-        !(e.target instanceof HTMLInputElement) &&
-        !(e.target instanceof HTMLTextAreaElement) &&
-        cart.length > 0
-      ) {
-        setCart([]);
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
+
+      if (isCheckoutModalOpen) {
+        return;
+      }
+
+      const currentIndex = activeBucketIndexRef.current;
+      const activeItem = currentIndex >= 0 ? cartRef.current[currentIndex] : undefined;
+
+      // Global search focus shortcut (Ctrl/Cmd+K).
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        skuInputRef.current?.select();
+        return;
+      }
+
+      // Conflict-free cart navigation.
+      if (!isInputFocused && e.shiftKey && e.key === "ArrowUp") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        setActiveBucketIndex((prev) => {
+          if (cartRef.current.length === 0) return -1;
+          const next = prev <= 0 ? 0 : prev - 1;
+          activeBucketIndexRef.current = next;
+          return next;
+        });
+        return;
+      }
+
+      if (!isInputFocused && e.shiftKey && e.key === "ArrowDown") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        setActiveBucketIndex((prev) => {
+          if (cartRef.current.length === 0) return -1;
+          const maxIndex = Math.max(cartRef.current.length - 1, 0);
+          const next = prev < 0 ? 0 : Math.min(prev + 1, maxIndex);
+          activeBucketIndexRef.current = next;
+          return next;
+        });
+        return;
+      }
+
+      if (e.key === "F2") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        skuInputRef.current?.select();
+        return;
+      }
+
+      if (e.altKey && e.key === "1") {
+        e.preventDefault();
+        setKeyboardScope("grid");
+        skuInputRef.current?.focus();
+        return;
+      }
+
+      if (e.altKey && e.key === "2") {
+        e.preventDefault();
+        setKeyboardScope("cart");
+        if (cartRef.current.length > 0 && activeBucketIndexRef.current < 0) {
+          setActiveBucketIndex(0);
+        }
+        return;
+      }
+
+      // Checkout shortcuts.
+      if (e.key === "F12" || (e.ctrlKey && e.key === "Enter")) {
+        if (cartRef.current.length > 0) {
+          e.preventDefault();
+          setKeyboardScope("cart");
+          setCartOpen(true);
+          setCheckoutHotkeyNonce((n) => n + 1);
+        }
+        return;
+      }
+
+      // Spacebar shortcut: open checkout when user is not typing in any input.
+      if (!isInputFocused && e.code === "Space") {
+        if (cartRef.current.length > 0) {
+          e.preventDefault(); // Prevent page scroll on space press.
+          setKeyboardScope("cart");
+          setCartOpen(true);
+          setCheckoutHotkeyNonce((n) => n + 1);
+        }
+        return;
+      }
+
+      // Cart item actions (only when cart scope is active and not typing into inputs).
+      if (!isInputFocused && keyboardScope === "cart") {
+        const digitKey = /^[0-9]$/.test(e.key) ? e.key : null;
+        const digitCode = /^Numpad[0-9]$/.test(e.code) ? e.code.replace("Numpad", "") : null;
+        const isDecimalKey = e.key === "." || e.code === "NumpadDecimal";
+        const isBackspaceKey = e.key === "Backspace";
+
+        if ((digitKey !== null || digitCode !== null || isDecimalKey || isBackspaceKey) && activeItem) {
+          e.preventDefault();
+
+          if (quantityBufferProductId !== activeItem.product.id) {
+            quantityBuffer = "";
+            quantityBufferProductId = activeItem.product.id;
+          }
+
+          if (isBackspaceKey) {
+            quantityBuffer = quantityBuffer.slice(0, -1);
+          } else if (isDecimalKey) {
+            if (!quantityBuffer.includes(".")) {
+              quantityBuffer = quantityBuffer.length === 0 ? "0." : `${quantityBuffer}.`;
+            }
+          } else {
+            quantityBuffer += (digitKey ?? digitCode) as string;
+          }
+
+          // Avoid validating while user is mid-entry like "1.".
+          if (quantityBuffer.length > 0 && !quantityBuffer.endsWith(".")) {
+            const parsedQty = parseFloat(quantityBuffer);
+            if (!Number.isNaN(parsedQty) && parsedQty > 0) {
+              setQuantity(activeItem.product.id, parsedQty);
+            }
+          }
+
+          restartQuantityBufferTimer();
+          return;
+        }
+
+        if (e.key === "Delete" && activeItem) {
+          e.preventDefault();
+          const currentLength = cartRef.current.length;
+          removeItem(activeItem.product.id);
+          setActiveBucketIndex((prev) => {
+            const next = currentLength <= 1 ? -1 : Math.min(prev, currentLength - 2);
+            activeBucketIndexRef.current = next;
+            return next;
+          });
+          return;
+        }
+
+        if ((e.key === "+" || e.key === "=") && activeItem) {
+          e.preventDefault();
+          updateQuantity(activeItem.product.id, 1);
+          return;
+        }
+
+        if ((e.key === "-" || e.key === "_") && activeItem) {
+          e.preventDefault();
+          updateQuantity(activeItem.product.id, -1);
+          return;
+        }
+      }
+
+      // [Esc] blurs active input/textarea first, then falls back to overlay/cart behavior.
+      if (e.key === "Escape") {
+        if (activeEl && ["INPUT", "TEXTAREA"].includes(activeEl.tagName)) {
+          e.preventDefault();
+          activeEl.blur();
+          return;
+        }
+
+        if (showSuccessPopup) {
+          e.preventDefault();
+          setShowSuccessPopup(false);
+          return;
+        }
+
+        if (cartOpen) {
+          e.preventDefault();
+          setCartOpen(false);
+          return;
+        }
+
+        if (!isInputFocused && cart.length > 0) {
+          e.preventDefault();
+          setCart([]);
+        }
+      }
+
+      // Route B: scanner input (ignore modifier combinations entirely).
+      if (e.defaultPrevented) {
+        return;
+      }
+
+      if (e.ctrlKey || e.altKey || e.metaKey) {
+        return;
+      }
+
+      if (e.isComposing) return;
+
+      if (e.key === "Enter") {
+        const scannedBarcode = String(scannerBuffer).trim();
+        if (scannedBarcode.length >= minBarcodeLength) {
+          e.preventDefault();
+          handleScannedBarcode(scannedBarcode);
+          setSkuInputValue("");
+          skuInputRef.current?.focus();
+        }
+        scannerBuffer = "";
+        lastKeystrokeTime = 0;
+        return;
+      }
+
+      if (e.key.length !== 1) {
+        return;
+      }
+
+      const now = performance.now();
+      if (lastKeystrokeTime > 0 && now - lastKeystrokeTime > interKeyThresholdMs) {
+        scannerBuffer = "";
+      }
+
+      scannerBuffer += e.key;
+      lastKeystrokeTime = now;
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      if (quantityBufferTimer !== null) {
+        window.clearTimeout(quantityBufferTimer);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [cart.length]);
+  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
   );
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
@@ -266,37 +584,35 @@ const Index = () => {
           {/* ── SKU / Barcode Search Bar ── */}
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <ScanLine className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <input
-              ref={skuInputRef}
-              type="text"
-              value={skuQuery}
-              onChange={(e) => setSkuQuery(e.target.value)}
+            <PiPrefixSearchInput
+              value={skuInputValue}
+              onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
-              placeholder="Scan barcode or type SKU and press Enter…"
-              className="flex-1 bg-transparent text-[14px] font-medium text-foreground placeholder:text-muted-foreground outline-none"
-              autoFocus
-              autoComplete="off"
-              spellCheck={false}
+              inputRef={skuInputRef}
+              placeholder="00001"
+              onClear={() => {
+                setSkuInputValue("");
+                skuInputRef.current?.focus();
+              }}
+              className="h-10 flex-1 shadow-none"
             />
-            {skuQuery && (
-              <button
-                onClick={() => { setSkuQuery(""); skuInputRef.current?.focus(); }}
-                className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-                aria-label="Clear"
-              >
-                ×
-              </button>
-            )}
           </div>
 
-          <ProductGrid onAddToCart={addToCart} products={posProducts} />
+          <div onPointerDown={() => setKeyboardScope("grid")}>
+            <ProductGrid
+              onAddToCart={addToCart}
+              products={posProducts}
+              keyboardActive={keyboardScope === "grid"}
+              searchSuffix={debouncedSkuQuery}
+            />
+          </div>
         </div>
 
         {/* Cart Panel — desktop sidebar; ref used for flying dot target */}
         <div
           ref={cartIconRef}
-          className="hidden md:flex h-full w-[320px] lg:w-[360px] xl:w-[400px] shrink-0 border-l border-border bg-card p-4 items-stretch"
+          onPointerDown={() => setKeyboardScope("cart")}
+          className="hidden md:flex h-full w-[360px] lg:w-[410px] xl:w-[460px] shrink-0 border-l border-border bg-card p-4 items-stretch"
         >
           <CartPanel
             items={cart}
@@ -304,7 +620,11 @@ const Index = () => {
             onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            activeBucketIndex={activeBucketIndex}
+            checkoutHotkeyNonce={checkoutHotkeyNonce}
+            onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
+            keyboardActive={keyboardScope === "cart"}
           />
         </div>
       </div>
@@ -312,7 +632,10 @@ const Index = () => {
       {/* Mobile — sticky cart bar at bottom */}
       <div className="md:hidden fixed bottom-0 inset-x-0 z-30 px-3 pb-3 pt-2 bg-background/90 backdrop-blur-md border-t border-border">
         <button
-          onClick={() => setCartOpen(true)}
+          onClick={() => {
+            setKeyboardScope("cart");
+            setCartOpen(true);
+          }}
           className="flex w-full items-center justify-between rounded-xl bg-primary px-4 py-3 text-white shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-2.5">
@@ -344,7 +667,11 @@ const Index = () => {
             onSetQuantity={setQuantity}
             onRemoveItem={removeItem}
             highlightId={highlightId}
+            activeBucketIndex={activeBucketIndex}
+            checkoutHotkeyNonce={checkoutHotkeyNonce}
+            onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
+            keyboardActive={keyboardScope === "cart"}
           />
         </SheetContent>
       </Sheet>
@@ -380,8 +707,8 @@ const Index = () => {
 
             <div className="mt-5 rounded-xl border border-border bg-muted/40 px-5 py-4 text-left space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Receipt No.</span>
-                <span className="font-mono font-bold text-primary">{lastSale?.receiptNo}</span>
+                <span className="text-muted-foreground">Transaction ID</span>
+                <span className="font-mono font-bold text-primary">{lastSale?.transactionId}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Amount</span>
