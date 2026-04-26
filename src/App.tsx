@@ -25,7 +25,6 @@ import LowStockAlerts   from "./pages/LowStockAlerts";
 import MailBox from "./pages/MailBox";
 import DataExport from "./pages/DataExport";
 import InventoryForecastDashboard from "./pages/InventoryForecastDashboard";
-import ShiftManagement from "./pages/ShiftManagement";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +76,6 @@ const App = () => (
 
                 <Route element={<ProtectedRoute allowedRoles={["Manager", "Staff"]} />}>
                   <Route path="/" element={<Index />} />
-                  <Route path="/shift-management" element={<ShiftManagement />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager", "Staff"]} />}>

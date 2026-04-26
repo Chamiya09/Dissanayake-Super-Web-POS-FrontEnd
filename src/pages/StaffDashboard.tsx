@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useAuth } from "@/context/AuthContext";
-import { Clock3, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 const greetingByHour = () => {
   const hour = new Date().getHours();
@@ -38,22 +38,7 @@ export default function StaffDashboard() {
               </p>
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 md:grid-cols-2">
-              <button
-                onClick={() => navigate("/shift-management")}
-                className="group flex min-h-[180px] flex-col justify-between rounded-2xl border border-indigo-200 bg-indigo-50 p-6 text-left shadow-sm transition hover:bg-indigo-100"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
-                  <Clock3 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-indigo-900">Start / Manage Shift</h2>
-                  <p className="mt-2 text-sm text-indigo-700">
-                    Open your shift, track active session details, or close your shift at end of day.
-                  </p>
-                </div>
-              </button>
-
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10">
               <button
                 onClick={() => navigate("/")}
                 className="group flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-indigo-200 hover:bg-slate-50"

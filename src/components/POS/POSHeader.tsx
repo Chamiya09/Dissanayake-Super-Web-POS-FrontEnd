@@ -36,7 +36,7 @@ export function POSHeader() {
           </div>
           <div className="hidden sm:flex flex-col">
             <span className="text-[13px] font-semibold leading-none text-foreground">Sarah M.</span>
-            <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier&nbsp;&middot;&nbsp;On shift</span>
+            <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier</span>
           </div>
         </div>
       </div>
@@ -57,7 +57,7 @@ export function POSHeader() {
         {/* Dark / Light toggle */}
         <button
           onClick={() => setDark((d) => !d)}
-          title={dark ? "Switch to light mode" : "Switch to dark mode (night shift)"}
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
         >

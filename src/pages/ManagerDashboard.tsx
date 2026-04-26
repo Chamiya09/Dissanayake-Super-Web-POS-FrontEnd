@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/axiosInstance";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { BarChart3, Receipt, UsersRound, RotateCcw, PackageX, Boxes, PlusCircle, Loader2 } from "lucide-react";
+import { BarChart3, Receipt, RotateCcw, PackageX, Boxes, PlusCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/context/GlobalToastContext";
 import {
   ResponsiveContainer,
@@ -17,7 +17,6 @@ import {
 
 type ManagerKpis = {
   todaysSales: number;
-  activeShifts: number;
   pendingReturnsVoids: number;
   outOfStockItems: number;
 };
@@ -44,7 +43,6 @@ type ManagerDashboardData = {
 const EMPTY_MANAGER_DATA: ManagerDashboardData = {
   kpis: {
     todaysSales: 0,
-    activeShifts: 0,
     pendingReturnsVoids: 0,
     outOfStockItems: 0,
   },
@@ -59,7 +57,6 @@ const normalizeManagerData = (raw: any): ManagerDashboardData => {
   return {
     kpis: {
       todaysSales: Number(raw?.kpis?.todaysSales ?? raw?.todaysSales ?? 0),
-      activeShifts: Number(raw?.kpis?.activeShifts ?? raw?.activeShifts ?? 0),
       pendingReturnsVoids: Number(raw?.kpis?.pendingReturnsVoids ?? raw?.pendingReturnsVoids ?? 0),
       outOfStockItems: Number(raw?.kpis?.outOfStockItems ?? raw?.outOfStockItems ?? 0),
     },
@@ -140,13 +137,12 @@ export default function ManagerDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-              <p className="text-sm text-slate-500">Daily operations and shift-level control center.</p>
+              <p className="text-sm text-slate-500">Daily operations and store performance control center.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <KpiCard title="Today's Sales" value={formatCurrency(dashboardData.kpis.todaysSales)} icon={Receipt} iconClass="bg-emerald-100 text-emerald-700" />
-            <KpiCard title="Active Shifts" value={String(dashboardData.kpis.activeShifts)} icon={UsersRound} iconClass="bg-indigo-100 text-indigo-700" />
             <KpiCard title="Pending Returns / Voids" value={String(dashboardData.kpis.pendingReturnsVoids)} icon={RotateCcw} iconClass="bg-amber-100 text-amber-700" />
             <KpiCard title="Out of Stock Items" value={String(dashboardData.kpis.outOfStockItems)} icon={PackageX} iconClass="bg-rose-100 text-rose-700" />
           </div>

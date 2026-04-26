@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, Boxes, ClipboardList, AlertTriangle, Mail, Database, Brain, Clock3 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Building2, Package, ReceiptText, Users, Boxes, ClipboardList, AlertTriangle, Mail, Database, Brain } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -36,12 +36,10 @@ const NAV_BY_ROLE = {
     { title: "Reorder Management", url: "/reorder",         icon: ClipboardList },
     { title: "Suppliers",          url: "/suppliers",       icon: Building2 },
     { title: "Mail Box",           url: "/mailbox",         icon: Mail },
-    { title: "Shift Management",   url: "/shift-management", icon: Clock3 },
   ],
   Staff: [
     { title: "POS Checkout",       url: "/",                icon: ShoppingCart },
     { title: "My Sales & Returns", url: "/sales",           icon: ReceiptText },
-    { title: "Shift Management",   url: "/shift-management", icon: Clock3 },
   ],
 } as const;
 
