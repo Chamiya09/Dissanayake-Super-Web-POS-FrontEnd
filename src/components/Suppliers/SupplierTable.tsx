@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
+import { getSupplierDisplayId } from "@/utils/supplierId";
 
 /* ── Lead-time badge ── */
 function LeadTimeBadge({ days }: { days: number }) {
@@ -122,12 +123,14 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
   /* ── Client-side filtering ── */
   const filtered = suppliers.filter((s) => {
     const q = search.toLowerCase();
+    const supplierDisplayId = getSupplierDisplayId(s).toLowerCase();
     const matchesSearch =
       !q ||
       s.companyName.toLowerCase().includes(q) ||
       s.contactPerson.toLowerCase().includes(q) ||
       s.email.toLowerCase().includes(q) ||
       s.phone.includes(q) ||
+      supplierDisplayId.includes(q) ||
       String(s.id).includes(q);
 
     const matchesStatus =
@@ -237,7 +240,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                       <p className="font-semibold text-slate-900 leading-tight">
                         {supplier.companyName}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">{supplier.id}</p>
+                      <p className="text-xs font-mono text-slate-400 mt-0.5">{getSupplierDisplayId(supplier)}</p>
                     </div>
                   </div>
                 </td>
@@ -338,7 +341,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                 <CompanyAvatar name={supplier.companyName} />
                 <div>
                   <p className="font-semibold text-slate-900 leading-tight">{supplier.companyName}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{supplier.id}</p>
+                  <p className="text-xs font-mono text-slate-400 mt-0.5">{getSupplierDisplayId(supplier)}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 shrink-0">

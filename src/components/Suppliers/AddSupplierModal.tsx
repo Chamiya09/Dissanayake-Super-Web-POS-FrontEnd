@@ -9,7 +9,7 @@ import { useToast } from "@/context/GlobalToastContext";
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Supplier, "id" | "createdAt">) => Promise<void>;
+  onSave: (data: Omit<Supplier, "id" | "supplierCode" | "createdAt" | "isActive">) => Promise<void>;
 }
 
 import type { Supplier } from "@/data/suppliers";

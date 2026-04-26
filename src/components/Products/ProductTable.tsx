@@ -11,6 +11,7 @@ import {
 import { List, type RowComponentProps } from "react-window";
 import type { Product } from "@/data/product-management";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { getProductDisplayId } from "@/utils/productId";
 import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ const DESKTOP_LIST_HEIGHT = 560;
 function ProductRow({ index, style, products, onView, onEdit, onDelete }: RowComponentProps<RowData>) {
   const product = products[index];
   if (!product) return null;
+  const productDisplayId = getProductDisplayId(product);
 
   return (
     <div
@@ -54,7 +56,7 @@ function ProductRow({ index, style, products, onView, onEdit, onDelete }: RowCom
     >
       <div className="pr-4">
         <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-          {product.id}
+          {productDisplayId}
         </span>
       </div>
 
@@ -198,7 +200,7 @@ export function ProductTable({
               <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px]">
                 <div>
                   <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Product ID</p>
-                  <span className="font-mono font-medium text-slate-900 text-[12px]">{product.id}</span>
+                  <span className="font-mono font-medium text-slate-900 text-[12px]">{getProductDisplayId(product)}</span>
                 </div>
                 <div>
                   <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Barcode</p>

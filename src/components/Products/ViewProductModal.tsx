@@ -2,6 +2,7 @@ import Barcode from "react-barcode";
 import { Package, X, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/data/product-management";
+import { getProductDisplayId } from "@/utils/productId";
 
 export interface ViewProductModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export function ViewProductModal({ isOpen, onClose, product }: ViewProductModalP
   if (!isOpen || !product) return null;
 
   const barcodeValue = (product.barcode ?? "").trim();
+  const productDisplayId = getProductDisplayId(product);
 
   return (
     <div
@@ -59,6 +61,7 @@ export function ViewProductModal({ isOpen, onClose, product }: ViewProductModalP
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-[11px] uppercase tracking-wide text-slate-500">Product</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">{product.productName}</p>
+            <p className="mt-1 font-mono text-xs font-semibold text-slate-700">{productDisplayId}</p>
             <p className="mt-1 text-xs text-slate-500">Category: {product.category}</p>
           </div>
 

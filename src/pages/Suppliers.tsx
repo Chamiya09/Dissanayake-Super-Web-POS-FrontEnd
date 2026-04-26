@@ -166,7 +166,7 @@ export default function Suppliers() {
   }, []);
 
   /* ── POST ── */
-  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "createdAt" | "isActive">) => {
+  const handleAdd = useCallback(async (data: Omit<Supplier, "id" | "supplierCode" | "createdAt" | "isActive">) => {
     try {
       await supplierApi.create(data);
       await fetchSuppliers();
@@ -202,7 +202,7 @@ export default function Suppliers() {
   /* ── PUT ── */
   const handleEdit = useCallback(async (updated: Supplier) => {
     try {
-      const { id, createdAt: _createdAt, isActive: _isActive, ...payload } = updated;
+      const { id, supplierCode: _supplierCode, createdAt: _createdAt, isActive: _isActive, ...payload } = updated;
       await supplierApi.update(id, payload);
       await fetchSuppliers();
       showToast("Supplier updated successfully!", "success");

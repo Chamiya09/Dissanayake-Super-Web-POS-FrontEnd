@@ -3,6 +3,7 @@ import { X, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/data/suppliers";
+import { getSupplierDisplayId } from "@/utils/supplierId";
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
   };
 
   if (!isOpen || !supplier) return null;
+  const supplierDisplayId = getSupplierDisplayId(supplier);
 
   return (
     <div
@@ -101,7 +103,7 @@ export function DeleteConfirmModal({ isOpen, onClose, supplier, onConfirm }: Del
           <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left space-y-1">
             <p className="text-[12px] font-semibold text-slate-900">{supplier.companyName}</p>
             <p className="text-[11px] text-slate-500">
-              {supplier.id} &middot; {supplier.contactPerson} &middot; {supplier.phone}
+              <span className="font-mono">{supplierDisplayId}</span> &middot; {supplier.contactPerson} &middot; {supplier.phone}
             </p>
           </div>
 
