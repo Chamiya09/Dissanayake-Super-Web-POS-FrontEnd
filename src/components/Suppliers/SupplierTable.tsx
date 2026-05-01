@@ -41,35 +41,6 @@ function LeadTimeBadge({ days }: { days: number }) {
   );
 }
 
-/* ── Auto-Reorder toggle (visual-only pill switch) ── */
-function AutoReorderToggle({ enabled }: { enabled: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div
-        className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 cursor-default items-center rounded-full border-2 border-transparent transition-colors duration-200",
-          enabled ? "bg-emerald-500" : "bg-slate-200"
-        )}
-      >
-        <span
-          className={cn(
-            "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200",
-            enabled ? "translate-x-4" : "translate-x-0.5"
-          )}
-        />
-      </div>
-      <span
-        className={cn(
-          "text-xs font-medium",
-          enabled ? "text-emerald-700" : "text-slate-400"
-        )}
-      >
-        {enabled ? "Active" : "Inactive"}
-      </span>
-    </div>
-  );
-}
-
 function SupplierActiveSwitch({
   active,
   onChange,
@@ -138,7 +109,6 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
       filterStatus === "fast"         ? s.leadTime <= 2 :
       filterStatus === "normal"       ? s.leadTime >= 3 && s.leadTime <= 5 :
       filterStatus === "slow"         ? s.leadTime > 5 :
-      filterStatus === "auto-reorder" ? s.isAutoReorderEnabled :
       filterStatus === "active"       ? s.isActive :
       filterStatus === "inactive"     ? !s.isActive :
       true;
@@ -176,7 +146,6 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               <SelectItem value="fast">Fast (1–2 days)</SelectItem>
               <SelectItem value="normal">Normal (3–5 days)</SelectItem>
               <SelectItem value="slow">Slow (&gt; 5 days)</SelectItem>
-              <SelectItem value="auto-reorder">AI Auto-Reorder</SelectItem>
               <SelectItem value="active">Active Suppliers</SelectItem>
               <SelectItem value="inactive">Inactive Suppliers</SelectItem>
             </SelectContent>
@@ -214,9 +183,6 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               </th>
               <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Lead Time
-              </th>
-              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                Auto-Reorder
               </th>
               <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
                 Status
@@ -275,11 +241,6 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                 {/* Lead time */}
                 <td className="px-6 py-6">
                   <LeadTimeBadge days={supplier.leadTime} />
-                </td>
-
-                {/* Auto-Reorder */}
-                <td className="px-6 py-6">
-                  <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
                 </td>
 
                 <td className="px-6 py-6">
@@ -346,7 +307,6 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
               </div>
               <div className="flex flex-col items-end gap-2 shrink-0">
                 <LeadTimeBadge days={supplier.leadTime} />
-                <AutoReorderToggle enabled={supplier.isAutoReorderEnabled} />
                 <SupplierActiveSwitch
                   active={supplier.isActive}
                   onChange={(active) => onToggleActive(supplier, active)}
