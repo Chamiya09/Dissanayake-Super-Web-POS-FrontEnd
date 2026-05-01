@@ -23,26 +23,29 @@ export function BarcodeInput({
 }: BarcodeInputProps) {
   const SCANNER_INTER_KEY_MS = 50;
   const [barcode, setBarcode] = useState("");
+  const [draftBarcode, setDraftBarcode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const buffer = useRef("");
   const lastKeyTime = useRef(Date.now());
+  const isAddLocked = mode === "add" && barcode.trim().length > 0;
 
   useEffect(() => {
     const next = initialBarcode?.trim() || "";
     setBarcode((prev) => (prev === next ? prev : next));
+    setDraftBarcode((prev) => (prev === next ? prev : next));
     // Initialization must reflect persisted barcode only, with empty fallback.
     // No generated/fallback barcode values are introduced here.
   }, [initialBarcode]);
 
   useEffect(() => {
-    if (autoFocus && inputRef.current) {
+    if (autoFocus && !isAddLocked && inputRef.current) {
       const timer = window.setTimeout(() => inputRef.current?.focus(), 80);
       return () => window.clearTimeout(timer);
     }
-  }, [autoFocus]);
+  }, [autoFocus, isAddLocked]);
 
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || isAddLocked) return;
 
     const handleGlobalScannerKeys = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -50,7 +53,7 @@ export function BarcodeInput({
       if (e.key === "Enter") {
         const scannedValue = buffer.current;
         if (scannedValue) {
-          handleBarcodeChange(scannedValue);
+          commitBarcode(scannedValue);
           buffer.current = "";
           lastKeyTime.current = Date.now();
           e.preventDefault();
@@ -79,12 +82,35 @@ export function BarcodeInput({
       buffer.current = "";
       lastKeyTime.current = Date.now();
     };
-  }, [disabled]);
+  }, [disabled, isAddLocked]);
 
-  const handleBarcodeChange = (value: string) => {
-    // Capture exact scanner/keyboard payload as-is.
-    setBarcode(value);
-    onBarcodeChange?.(value);
+  const commitBarcode = (value: string) => {
+    const next = value.trim();
+    setBarcode(next);
+    setDraftBarcode(next);
+    onBarcodeChange?.(next);
+  };
+
+  const handleBarcodeDraftChange = (value: string) => {
+    setDraftBarcode(value);
+
+    if (mode === "update") {
+      // Update mode stays editable so existing barcodes can be corrected.
+      setBarcode(value);
+      onBarcodeChange?.(value);
+    }
+  };
+
+  const clearBarcode = () => {
+    setBarcode("");
+    setDraftBarcode("");
+    onBarcodeChange?.("");
+    buffer.current = "";
+    lastKeyTime.current = Date.now();
+
+    if (mode === "add") {
+      window.setTimeout(() => inputRef.current?.focus(), 80);
+    }
   };
 
   return (
@@ -95,44 +121,71 @@ export function BarcodeInput({
         </div>
         <span className="text-[13px] font-semibold text-slate-800">Barcode</span>
         <span className="ml-auto text-[11px] text-muted-foreground">
-          {mode === "update" ? "Update or clear barcode" : "Scan or type barcode"}
+          {mode === "update"
+            ? "Update or clear barcode"
+            : isAddLocked
+            ? "Barcode locked until removed"
+            : "Scan or type barcode, then press Enter"}
         </span>
       </div>
 
-      <div className="relative">
-        <ScanLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          ref={inputRef}
-          id={inputId}
-          value={barcode}
-          onChange={(e) => handleBarcodeChange(e.target.value)}
-          placeholder="Focus and scan barcode"
-          autoComplete="off"
-          disabled={disabled}
-          className="h-11 text-[13px] font-mono pl-9 pr-9"
-          onKeyDown={(e) => {
-            // Scanner usually sends Enter after the code; keep form from accidental submit.
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-            }
-          }}
-        />
-        {!!barcode && (
+      {isAddLocked ? (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
+          <div className="min-w-0 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+              <ScanLine className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-slate-500">Scanned barcode</p>
+              <p className="truncate font-mono text-[13px] font-semibold text-slate-900">{barcode}</p>
+            </div>
+          </div>
           <button
             type="button"
-            aria-label="Clear barcode"
-            onClick={() => {
-              handleBarcodeChange("");
-              inputRef.current?.focus();
-            }}
+            aria-label="Remove barcode"
+            onClick={clearBarcode}
             disabled={disabled}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700 disabled:opacity-50"
+            className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
           >
-            <X className="h-4 w-4" />
+            Delete
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="relative">
+          <ScanLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            id={inputId}
+            value={mode === "add" ? draftBarcode : barcode}
+            onChange={(e) => handleBarcodeDraftChange(e.target.value)}
+            placeholder="Focus and scan barcode"
+            autoComplete="off"
+            disabled={disabled}
+            className="h-11 text-[13px] font-mono pl-9 pr-9"
+            onKeyDown={(e) => {
+              // Scanner usually sends Enter after the code; keep form from accidental submit.
+              if (e.key === "Enter") {
+                if (mode === "add" && draftBarcode.trim()) {
+                  commitBarcode(draftBarcode);
+                }
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+          />
+          {!!(mode === "add" ? draftBarcode : barcode) && (
+            <button
+              type="button"
+              aria-label="Clear barcode"
+              onClick={clearBarcode}
+              disabled={disabled}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:text-slate-700 disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {barcode.trim() && (
         <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-4">
