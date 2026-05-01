@@ -136,91 +136,117 @@ export default function CheckoutModal({
     quickCashButtonRefs.current[normalizedIndex]?.focus();
   }, [quickCashOptions.length]);
 
-  const handleModalKeyDown = useCallback((e) => {
-    const activeEl = document.activeElement;
-    const quickCashIndex = quickCashButtonRefs.current.findIndex((button) => button === activeEl);
-    const quickCashFocused = paymentMethod === PAYMENT_METHODS.CASH && quickCashIndex !== -1;
-    const isArrowKey = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key);
+  useEffect(() => {
+    if (!isOpen) return;
 
-    if (isArrowKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.nativeEvent?.stopImmediatePropagation?.();
+    const handleWindowKeyDown = (e) => {
+      const isArrowKey = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key);
+      const activeEl = document.activeElement;
+      const quickCashIndex = quickCashButtonRefs.current.findIndex((button) => button === activeEl);
+      const quickCashFocused = paymentMethod === PAYMENT_METHODS.CASH && quickCashIndex !== -1;
 
-      if (quickCashFocused) {
+      if (isArrowKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation?.();
+
+        if (paymentMethod !== PAYMENT_METHODS.CASH) {
+          return;
+        }
+
+        const baseIndex = quickCashFocused ? quickCashIndex : focusedQuickCashIndex;
+
         if (e.key === "ArrowRight") {
-          focusQuickCashButton(quickCashIndex + 1);
+          focusQuickCashButton(baseIndex + 1);
           return;
         }
 
         if (e.key === "ArrowLeft") {
-          focusQuickCashButton(quickCashIndex - 1);
+          focusQuickCashButton(baseIndex - 1);
           return;
         }
 
         if (e.key === "ArrowDown") {
-          focusQuickCashButton(quickCashIndex + 2);
+          focusQuickCashButton(baseIndex + 2);
           return;
         }
 
         if (e.key === "ArrowUp") {
-          focusQuickCashButton(quickCashIndex - 2);
+          focusQuickCashButton(baseIndex - 2);
           return;
         }
       }
 
-      return;
-    }
-
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!submitting) onClose();
-      return;
-    }
-
-    if (e.key === "F1") {
-      e.preventDefault();
-      e.stopPropagation();
-      setPaymentMethod(PAYMENT_METHODS.CASH);
-      return;
-    }
-
-    if (e.key === "F2") {
-      e.preventDefault();
-      e.stopPropagation();
-      setPaymentMethod(PAYMENT_METHODS.CARD);
-      return;
-    }
-
-    if (quickCashFocused) {
-      const numericKey = /^[0-9]$/.test(e.key) ? e.key : null;
-      const numpadDigit = /^Numpad[0-9]$/.test(e.code) ? e.code.replace("Numpad", "") : null;
-      const decimalKey = e.key === "." || e.code === "NumpadDecimal" ? "." : null;
-
-      if (numericKey !== null || numpadDigit !== null || decimalKey !== null) {
+      if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        const nextValue = numericKey ?? numpadDigit ?? decimalKey;
-        setTenderedInput(nextValue === "." ? "0." : nextValue);
-        focusTendered(false);
+        e.stopImmediatePropagation?.();
+        if (!submitting) onClose();
         return;
       }
 
-      if (e.key === "Enter") {
+      if (e.key === "F1") {
         e.preventDefault();
         e.stopPropagation();
-        applyTenderedAmount(quickCashOptions[quickCashIndex].value);
+        e.stopImmediatePropagation?.();
+        setPaymentMethod(PAYMENT_METHODS.CASH);
         return;
       }
-    }
 
-    if (e.key === "Enter" || e.code === "Space") {
-      e.preventDefault();
-      e.stopPropagation();
-      handleSubmit();
-    }
-  }, [applyTenderedAmount, focusQuickCashButton, focusTendered, handleSubmit, onClose, paymentMethod, quickCashOptions, submitting]);
+      if (e.key === "F2") {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation?.();
+        setPaymentMethod(PAYMENT_METHODS.CARD);
+        return;
+      }
+
+      if (paymentMethod === PAYMENT_METHODS.CASH) {
+        const numericKey = /^[0-9]$/.test(e.key) ? e.key : null;
+        const numpadDigit = /^Numpad[0-9]$/.test(e.code) ? e.code.replace("Numpad", "") : null;
+        const decimalKey = e.key === "." || e.code === "NumpadDecimal" ? "." : null;
+
+        if ((numericKey !== null || numpadDigit !== null || decimalKey !== null) && quickCashFocused) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation?.();
+          const nextValue = numericKey ?? numpadDigit ?? decimalKey;
+          setTenderedInput(nextValue === "." ? "0." : nextValue);
+          focusTendered(false);
+          return;
+        }
+
+        if (e.key === "Enter" && focusedQuickCashIndex >= 0 && quickCashFocused) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation?.();
+          applyTenderedAmount(quickCashOptions[focusedQuickCashIndex].value);
+          return;
+        }
+      }
+
+      if (e.key === "Enter" || e.code === "Space") {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation?.();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
+  }, [
+    applyTenderedAmount,
+    focusQuickCashButton,
+    focusTendered,
+    focusedQuickCashIndex,
+    handleSubmit,
+    isOpen,
+    onClose,
+    paymentMethod,
+    quickCashOptions,
+    submitting,
+  ]);
 
   if (!isOpen) return null;
 
@@ -236,7 +262,6 @@ export default function CheckoutModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        onKeyDown={handleModalKeyDown}
         className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl outline-none"
       >
         <div className="border-b border-slate-100 px-6 py-5">
