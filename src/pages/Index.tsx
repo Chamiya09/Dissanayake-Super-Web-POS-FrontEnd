@@ -58,6 +58,9 @@ function FlyingDot({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    el.style.left = `${startX - 12}px`;
+    el.style.top = `${startY - 12}px`;
+    el.style.opacity = "1";
     // Force initial paint, then apply transition to target
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -74,7 +77,6 @@ function FlyingDot({
     <div
       ref={ref}
       className="pointer-events-none fixed z-[9999] h-6 w-6 rounded-full bg-primary shadow-lg ring-2 ring-white"
-      style={{ left: startX - 12, top: startY - 12, opacity: 1 }}
     />
   );
 }
@@ -207,7 +209,7 @@ const Index = () => {
       console.error("Checkout failed:", err);
       alert("Failed to record sale. Please try again.");
     }
-  }, [cart, refreshInventory]);
+  }, [cart, refreshInventory, showToast]);
 
   /* ── SKU / Barcode quick-add ── */
   const [skuInputValue, setSkuInputValue] = useState("");
@@ -540,7 +542,6 @@ const Index = () => {
           e.preventDefault();
           handleScannedBarcode(scannedBarcode);
           setSkuInputValue("");
-          skuInputRef.current?.focus();
         }
         scannerBuffer = "";
         lastKeystrokeTime = 0;
@@ -558,6 +559,13 @@ const Index = () => {
 
       scannerBuffer += e.key;
       lastKeystrokeTime = now;
+
+      // If no input is focused, always treat rapid key sequences as scanner input.
+      // This prevents barcode keystrokes from being misinterpreted as cart quantity edits.
+      if (!isInputFocused) {
+        e.preventDefault();
+        return;
+      }
     };
 
     window.addEventListener("keydown", handler);
@@ -567,7 +575,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, setQuantity, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -602,7 +610,7 @@ const Index = () => {
             <ProductGrid
               onAddToCart={addToCart}
               products={posProducts}
-              keyboardActive={keyboardScope === "grid"}
+              keyboardActive={keyboardScope === "grid" && !isCheckoutModalOpen}
               searchSuffix={debouncedSkuQuery}
             />
           </div>

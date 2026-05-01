@@ -34,7 +34,21 @@ const ROLE_DOT = {
   STAFF: "bg-emerald-500",
 };
 
-const EMPTY_FORM = {
+type FormState = {
+  fullName: string;
+  memberId: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  role: "MANAGER" | "STAFF";
+  password: string;
+  isSenior: boolean;
+};
+
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+const EMPTY_FORM: FormState = {
   fullName: "",
   memberId: "",
   username: "",
@@ -51,8 +65,8 @@ const MEMBER_ID_HELPER = {
   STAFF: "Use format STF### (example: STF001)",
 };
 
-function validateForm(form) {
-  const errors = {};
+function validateForm(form: FormState): FormErrors {
+  const errors: FormErrors = {};
   if (!form.fullName.trim())  errors.fullName  = "Full name is required.";
   if (!form.memberId.trim()) {
     errors.memberId = "Member ID is required.";
@@ -100,14 +114,14 @@ function FormRow({ id, label, icon: Icon, error, children }) {
   );
 }
 
-export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
+export default function AddUserModal({ onClose, onAdd, currentUserRole }: { onClose: () => void; onAdd: (payload: FormState) => Promise<void>; currentUserRole: string }) {
   const { showToast } = useToast();
 
-  const [form,   setForm]   = useState({ ...EMPTY_FORM });
-  const [errors, setErrors] = useState({});
+  const [form,   setForm]   = useState<FormState>({ ...EMPTY_FORM });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [showPw, setShowPw] = useState(false);
-  const firstInputRef = useRef(null);
+  const firstInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setTimeout(() => firstInputRef.current?.focus(), 80);
@@ -116,7 +130,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: keyof FormState, value: string | boolean) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       if (field === "role" && value !== "STAFF") {
@@ -143,7 +157,7 @@ export default function AddUserModal({ onClose, onAdd, currentUserRole }) {
       await onAdd({
         fullName: form.fullName.trim(),
         memberId: form.memberId.trim().toUpperCase(),
-        username: form.username.trim(),
+        username: form.username.trim() || form.memberId.trim().toUpperCase(),
         email:    form.email.trim(),
         phoneNumber: form.phoneNumber.trim(),
         address: form.address.trim(),

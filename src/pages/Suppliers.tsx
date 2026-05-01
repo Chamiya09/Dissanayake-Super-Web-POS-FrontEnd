@@ -36,18 +36,18 @@ function SummaryCard({
     <div className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <div className="flex items-center gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {label}
-          </p>
-          {sub && <p className="mt-1 text-[12px] text-slate-500">{sub}</p>}
+          <div className="flex items-center gap-3">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${surface} ${iconTone}`}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{label}</p>
+              {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+            </div>
+          </div>
         </div>
         <div className="shrink-0 text-right">
           <span className={`block text-3xl font-bold leading-none ${valueTone}`}>{value}</span>
-        </div>
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${surface} ${iconTone}`}
-        >
-          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
@@ -177,7 +177,7 @@ export default function Suppliers() {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
-  }, [fetchSuppliers]);
+  }, [fetchSuppliers, showToast]);
 
   const handleToggleActive = useCallback(async (supplier: Supplier, isActive: boolean) => {
     setSuppliers((prev) =>
@@ -212,7 +212,7 @@ export default function Suppliers() {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
-  }, [fetchSuppliers]);
+  }, [fetchSuppliers, showToast]);
 
   /* ── DELETE ── */
   const handleDelete = useCallback(async () => {
@@ -227,7 +227,7 @@ export default function Suppliers() {
       showToast({ type: "error", title, message });
       throw new Error(message);
     }
-  }, [deleteTarget, fetchSuppliers]);
+  }, [deleteTarget, fetchSuppliers, showToast]);
 
   /* ── ASSIGN products to a supplier ── */
   const handleAssign = useCallback(
@@ -243,7 +243,7 @@ export default function Suppliers() {
         throw new Error(extractApiError(err));
       }
     },
-    [assignTarget],
+    [assignTarget, showToast],
   );
 
   const activeSuppliers = suppliers.filter((s) => s.isActive).length;

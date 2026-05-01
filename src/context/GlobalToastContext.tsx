@@ -1,14 +1,37 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { CircleCheck, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-const ToastContext = createContext(null);
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+type ToastInput =
+  | string
+  | {
+      message?: string;
+      type?: ToastType;
+      title?: string;
+    };
+
+type Toast = {
+  id: number;
+  message: string;
+  type: ToastType;
+  title?: string;
+};
+
+type ToastContextValue = {
+  showToast: (msgOrObj: ToastInput, type?: ToastType, title?: string) => void;
+  toasts: Toast[];
+  removeToast: (id: number) => void;
+};
+
+const ToastContext = createContext<ToastContextValue | null>(null);
 
 let idCounter = 0;
 
-export const ToastProvider = ({ children }) => {
-  const [toasts, setToasts] = useState([]);
+export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((msgOrObj, type = 'info', title) => {
+  const showToast = useCallback((msgOrObj: ToastInput, type: ToastType = 'info', title?: string) => {
     let message = msgOrObj;
     let toastType = type;
     let toastTitle = title;
@@ -20,18 +43,14 @@ export const ToastProvider = ({ children }) => {
     }
 
     const id = ++idCounter;
-    setToasts((prev) => {
-      const newToasts = [...prev, { id, message, type: toastType, title: toastTitle }];
-      console.log('Toast triggered:', newToasts); 
-      return newToasts;
-    });
+    setToasts((prev) => [...prev, { id, message: String(message ?? ''), type: toastType, title: toastTitle }]);
 
     setTimeout(() => {
       removeToast(id);
     }, 3000);
   }, []);
 
-  const removeToast = useCallback((id) => {
+  const removeToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
@@ -47,7 +66,7 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
-const ToastItem = ({ toast, onDismiss }) => {
+const ToastItem = ({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) => {
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
@@ -57,7 +76,7 @@ const ToastItem = ({ toast, onDismiss }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  const getTheme = (type) => {
+  const getTheme = (type: ToastType) => {
     switch (type) {
       case 'success':
         return {
@@ -106,6 +125,8 @@ const ToastItem = ({ toast, onDismiss }) => {
       </div>
       <button
         onClick={onDismiss}
+        aria-label="Dismiss notification"
+        title="Dismiss notification"
         className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800"
       >
         <X className="h-3.5 w-3.5" />

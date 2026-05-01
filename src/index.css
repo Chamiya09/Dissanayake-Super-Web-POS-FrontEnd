@@ -124,6 +124,12 @@
   ::-webkit-scrollbar-thumb:hover { @apply bg-primary/35; }
 }
 
+/* Hide native password reveal buttons so only the custom eye toggle shows. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 @layer utilities {
   .scanner-pulse {
     animation: scanner-glow 2s ease-in-out infinite;
