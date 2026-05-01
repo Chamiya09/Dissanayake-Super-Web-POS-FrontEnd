@@ -219,7 +219,6 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   const categoryEmoji: Record<string, string> = {
     "Auto Care": "🚗",
-    "Avurudu Kade": "🎉",
     "Baby Products": "👶",
     "Bakery": "🍞",
     "Beverages": "🧃",

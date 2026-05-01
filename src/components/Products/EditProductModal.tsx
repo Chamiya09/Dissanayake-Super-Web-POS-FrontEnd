@@ -218,7 +218,7 @@ export function EditProductModal({
             <FormRow id="edit-buyingPrice" label="Buying Price" icon={DollarSign} error={errors.buyingPrice}>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
-                  $
+                  Rs.
                 </span>
                 <Input
                   id="edit-buyingPrice"
@@ -229,7 +229,7 @@ export function EditProductModal({
                   onChange={(e) => set("buyingPrice", e.target.value)}
                   placeholder="0.00"
                   className={cn(
-                    "h-10 text-[13px] pl-6",
+                    "h-10 text-[13px] pl-11",
                     errors.buyingPrice && "border-red-400 focus-visible:ring-red-400"
                   )}
                 />
@@ -239,7 +239,7 @@ export function EditProductModal({
             <FormRow id="edit-sellingPrice" label="Selling Price" icon={Tag} error={errors.sellingPrice}>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground font-medium">
-                  $
+                  Rs.
                 </span>
                 <Input
                   id="edit-sellingPrice"
@@ -250,7 +250,7 @@ export function EditProductModal({
                   onChange={(e) => set("sellingPrice", e.target.value)}
                   placeholder="0.00"
                   className={cn(
-                    "h-10 text-[13px] pl-6",
+                    "h-10 text-[13px] pl-11",
                     errors.sellingPrice && "border-red-400 focus-visible:ring-red-400"
                   )}
                 />

@@ -2,7 +2,6 @@ import { Label } from "@/components/ui/label";
 
 export const CATEGORIES = [
   "Auto Care",
-  "Avurudu Kade",
   "Baby Products",
   "Bakery",
   "Beverages",
