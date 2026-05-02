@@ -15,6 +15,8 @@ interface CartPanelProps {
   onRemoveItem: (productId: string) => void;
   highlightId?: string | null;
   activeBucketIndex?: number;
+  onActiveBucketIndexChange?: (index: number) => void;
+  focusFirstItemNonce?: number;
   checkoutHotkeyNonce?: number;
   onCheckoutModalOpenChange?: (isOpen: boolean) => void;
   /** Called with the final charged amount after a successful checkout */
@@ -165,7 +167,7 @@ function SwipeableItem({
 }
 
 /*  CartPanel  */
-export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, checkoutHotkeyNonce = 0, onCheckoutModalOpenChange, onCheckout, keyboardActive = true }: CartPanelProps) {
+export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem, highlightId, activeBucketIndex = -1, onActiveBucketIndexChange, focusFirstItemNonce = 0, checkoutHotkeyNonce = 0, onCheckoutModalOpenChange, onCheckout, keyboardActive = true }: CartPanelProps) {
   const [processing, setProcessing] = useState(false);
   const cartRowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -184,6 +186,15 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
       cartRowRefs.current[activeBucketIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [activeBucketIndex, keyboardActive]);
+
+  useEffect(() => {
+    if (!focusFirstItemNonce) return;
+    if (!keyboardActive || items.length === 0) return;
+    onActiveBucketIndexChange?.(0);
+    requestAnimationFrame(() => {
+      cartRowRefs.current[0]?.focus();
+    });
+  }, [focusFirstItemNonce, items.length, keyboardActive, onActiveBucketIndexChange]);
 
   /*  Totals  */
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
@@ -207,6 +218,18 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
     }
     setIsCheckoutModalOpen(true);
   }, [items.length, processing]);
+
+  const handleRowKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+    if (!keyboardActive) return;
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    const maxIndex = Math.max(items.length - 1, 0);
+    const nextIndex = event.key === "ArrowUp"
+      ? Math.max(index - 1, 0)
+      : Math.min(index + 1, maxIndex);
+    onActiveBucketIndexChange?.(nextIndex);
+    cartRowRefs.current[nextIndex]?.focus();
+  }, [items.length, keyboardActive, onActiveBucketIndexChange]);
 
   useEffect(() => {
     if (!checkoutHotkeyNonce) return;
@@ -315,7 +338,14 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
           </div>
         ) : (
           items.map((item, idx) => (
-            <div key={item.product.id} ref={(el) => { cartRowRefs.current[idx] = el; }}>
+            <div
+              key={item.product.id}
+              ref={(el) => { cartRowRefs.current[idx] = el; }}
+              tabIndex={0}
+              onFocus={() => onActiveBucketIndexChange?.(idx)}
+              onKeyDown={(event) => handleRowKeyDown(event, idx)}
+              className="focus:outline-none"
+            >
               <SwipeableItem
                 item={item}
                 onUpdateQuantity={onUpdateQuantity}

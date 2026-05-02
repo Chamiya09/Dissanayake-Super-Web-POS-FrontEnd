@@ -152,6 +152,7 @@ const Index = () => {
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
   const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [cartFocusNonce, setCartFocusNonce] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
@@ -531,6 +532,8 @@ const Index = () => {
       }, 1200);
     };
 
+    const isMobileViewport = () => window.matchMedia("(max-width: 767px)").matches;
+
     const handler = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
       const isInputFocused = isTextEntryElement(activeEl);
@@ -569,28 +572,13 @@ const Index = () => {
       }
 
       // Conflict-free cart navigation.
-      if (!isInputFocused && e.shiftKey && e.key === "ArrowUp") {
+      if (!isInputFocused && e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
         e.preventDefault();
         setKeyboardScope("cart");
-        setActiveBucketIndex((prev) => {
-          if (cartRef.current.length === 0) return -1;
-          const next = prev <= 0 ? 0 : prev - 1;
-          activeBucketIndexRef.current = next;
-          return next;
-        });
-        return;
-      }
-
-      if (!isInputFocused && e.shiftKey && e.key === "ArrowDown") {
-        e.preventDefault();
-        setKeyboardScope("cart");
-        setActiveBucketIndex((prev) => {
-          if (cartRef.current.length === 0) return -1;
-          const maxIndex = Math.max(cartRef.current.length - 1, 0);
-          const next = prev < 0 ? 0 : Math.min(prev + 1, maxIndex);
-          activeBucketIndexRef.current = next;
-          return next;
-        });
+        if (cartRef.current.length > 0) {
+          setActiveBucketIndex(0);
+          setCartFocusNonce((n) => n + 1);
+        }
         return;
       }
 
@@ -621,22 +609,15 @@ const Index = () => {
         if (cartRef.current.length > 0) {
           e.preventDefault();
           setKeyboardScope("cart");
-          setCartOpen(true);
+          if (isMobileViewport()) {
+            setCartOpen(true);
+          }
           setCheckoutHotkeyNonce((n) => n + 1);
         }
         return;
       }
 
-      // Spacebar shortcut: open checkout when user is not typing in any input.
       if (!isInputFocused && (e.code === "Space" || e.key === " ")) {
-        if (cartRef.current.length > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation?.();
-          setKeyboardScope("cart");
-          setCartOpen(true);
-          setCheckoutHotkeyNonce((n) => n + 1);
-        }
         return;
       }
 
@@ -841,6 +822,8 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            onActiveBucketIndexChange={setActiveBucketIndex}
+            focusFirstItemNonce={cartFocusNonce}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
@@ -888,6 +871,8 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            onActiveBucketIndexChange={setActiveBucketIndex}
+            focusFirstItemNonce={cartFocusNonce}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
