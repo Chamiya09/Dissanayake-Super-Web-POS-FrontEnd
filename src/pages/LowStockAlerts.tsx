@@ -93,7 +93,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
   };
   const isSupplierDisabled = isInactiveSupplier(item) || assignedSupplier.isActive === false;
   const currentStock = Math.max(0, Number(item.stockQuantity ?? 0));
-  const [selectedProductId, setSelectedProductId] = useState(() => String(item.sku ?? item.productId ?? item.id ?? ""));
+  const [selectedProductId, setSelectedProductId] = useState(() => String(item.productId ?? item.sku ?? item.id ?? ""));
   const [timeframe, setTimeframe] = useState("monthly");
   const [predictedDemand, setPredictedDemand] = useState(0);
   const forecastQuery = useProductForecast(isSupplierDisabled ? null : selectedProductId, timeframe as "weekly" | "monthly");
@@ -104,7 +104,7 @@ function PlaceOrderModal({ item, onClose, onSubmit }) {
   const [qty,     setQty]     = useState(suggestedOrderQty);
 
   useEffect(() => {
-    setSelectedProductId(String(item.sku ?? item.productId ?? item.id ?? ""));
+    setSelectedProductId(String(item.productId ?? item.sku ?? item.id ?? ""));
   }, [item]);
 
   useEffect(() => {

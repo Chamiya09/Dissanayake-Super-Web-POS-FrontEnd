@@ -975,7 +975,7 @@ const InventoryStock = () => {
   const [supplierActivityByEmail, setSupplierActivityByEmail] = useState({});
 
   const monthlyForecastQuery = useForecastMap(
-    inventoryItems.map((item) => item.sku ?? item.productId),
+    inventoryItems.map((item) => item.productId ?? item.sku),
     "monthly",
   );
   const forecastMap = monthlyForecastQuery.data ?? {};
@@ -1190,8 +1190,8 @@ const InventoryStock = () => {
     .map((item) => ({
       ...item,
       predictedDemand:
-        forecastMap[String(item.sku ?? item.productId ?? "").trim()]?.predictedDemand ?? null,
-    }))
+        forecastMap[String(item.productId ?? item.sku ?? "").trim()]?.predictedDemand ?? null,
+      }))
     .sort((a, b) => {
       const valA = sortKey === "predictedDemand" ? (a.predictedDemand ?? -1) : a[sortKey];
       const valB = sortKey === "predictedDemand" ? (b.predictedDemand ?? -1) : b[sortKey];

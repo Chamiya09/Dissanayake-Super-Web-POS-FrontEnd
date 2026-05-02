@@ -43,7 +43,7 @@ function buildPredictions(
 ): Prediction[] {
   // An item is AI-low-stock only when current stock is below predicted demand.
   const scored = items.flatMap((item) => {
-    const forecastKey = String(item.sku ?? item.productId ?? "").trim();
+    const forecastKey = String(item.productId ?? item.sku ?? "").trim();
     const apiForecast = Number(forecastMap[forecastKey]?.predictedDemand ?? 0);
     const predictedSales = Math.max(0, Math.round(apiForecast));
 
@@ -132,7 +132,7 @@ export function AIPredictionsCard() {
 
   const source = inventoryItems.length > 0 ? inventoryItems : DUMMY_ITEMS;
   const forecastQuery = useForecastMap(
-    source.map((item) => item.sku ?? item.productId),
+    source.map((item) => item.productId ?? item.sku),
     timeframe,
   );
   const forecastMap = forecastQuery.data ?? {};
