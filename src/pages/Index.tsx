@@ -4,7 +4,7 @@ import { useToast } from "@/context/GlobalToastContext";
 import { ShoppingBag, CheckCircle, ScanLine, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
-import { ProductGrid } from "@/components/POS/ProductGrid";
+import { ProductGrid, type ProductGridHandle } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import type { Product, CartItem } from "@/data/products";
@@ -155,6 +155,7 @@ const Index = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
+  const productGridRef = useRef<ProductGridHandle>(null);
 
   /* ── Live inventory data from shared context ── */
   const { inventoryItems, refreshInventory } = useInventory();
@@ -448,8 +449,19 @@ const Index = () => {
     [addToCart, inventoryItems, showToast],
   );
 
+  const focusProductGrid = useCallback(() => {
+    setKeyboardScope("grid");
+    productGridRef.current?.focusGrid();
+  }, []);
+
   const handleSkuSearch = useCallback(
     async (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+        e.preventDefault();
+        focusProductGrid();
+        return;
+      }
+
       if (e.key !== "Enter") return;
       const suffix = skuInputValue.trim();
       if (!suffix) return;
@@ -458,8 +470,27 @@ const Index = () => {
       // Re-focus so the next barcode scan / manual entry is instant.
       skuInputRef.current?.focus();
     },
-    [addProductBySku, skuInputValue],
+    [addProductBySku, focusProductGrid, skuInputValue],
   );
+
+  const isTextEntryElement = useCallback((element: HTMLElement | null) => {
+    if (!element) return false;
+    return element.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName);
+  }, []);
+
+  const focusProductSearch = useCallback(() => {
+    setKeyboardScope("grid");
+    const input = skuInputRef.current;
+    if (!input) return;
+    input.focus();
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  }, []);
+
+  const focusProductCategories = useCallback(() => {
+    setKeyboardScope("grid");
+    productGridRef.current?.focusCategories();
+  }, []);
 
   useEffect(() => {
     cartRef.current = cart;
@@ -502,7 +533,7 @@ const Index = () => {
 
     const handler = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
-      const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
+      const isInputFocused = isTextEntryElement(activeEl);
 
       if (isCheckoutModalOpen) {
         return;
@@ -514,9 +545,26 @@ const Index = () => {
       // Global search focus shortcut (Ctrl/Cmd+K).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         skuInputRef.current?.select();
+        return;
+      }
+
+      if (e.key === "F3") {
+        e.preventDefault();
+        focusProductSearch();
+        return;
+      }
+
+      if (!isInputFocused && e.key === "/") {
+        e.preventDefault();
+        focusProductSearch();
+        return;
+      }
+
+      if (e.altKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        focusProductCategories();
         return;
       }
 
@@ -548,16 +596,14 @@ const Index = () => {
 
       if (e.key === "F2") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         skuInputRef.current?.select();
         return;
       }
 
       if (e.altKey && e.key === "1") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         return;
       }
 
@@ -582,9 +628,11 @@ const Index = () => {
       }
 
       // Spacebar shortcut: open checkout when user is not typing in any input.
-      if (!isInputFocused && e.code === "Space") {
+      if (!isInputFocused && (e.code === "Space" || e.key === " ")) {
         if (cartRef.current.length > 0) {
-          e.preventDefault(); // Prevent page scroll on space press.
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation?.();
           setKeyboardScope("cart");
           setCartOpen(true);
           setCheckoutHotkeyNonce((n) => n + 1);
@@ -730,7 +778,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, setQuantity, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, focusProductCategories, focusProductSearch, handleScannedBarcode, isCheckoutModalOpen, isTextEntryElement, keyboardScope, removeItem, setQuantity, showSuccessPopup, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -758,6 +806,7 @@ const Index = () => {
               value={skuInputValue}
               onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
+              onFocus={() => setKeyboardScope("grid")}
               inputRef={skuInputRef}
               placeholder="00001"
               onClear={() => {
@@ -770,6 +819,7 @@ const Index = () => {
 
           <div onPointerDown={() => setKeyboardScope("grid")}>
             <ProductGrid
+              ref={productGridRef}
               onAddToCart={addToCart}
               products={posProducts}
               keyboardActive={keyboardScope === "grid" && !isCheckoutModalOpen}

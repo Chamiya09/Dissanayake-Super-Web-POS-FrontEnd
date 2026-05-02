@@ -202,6 +202,9 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
 
   const openCheckoutModal = useCallback(() => {
     if (items.length === 0 || processing) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setIsCheckoutModalOpen(true);
   }, [items.length, processing]);
 

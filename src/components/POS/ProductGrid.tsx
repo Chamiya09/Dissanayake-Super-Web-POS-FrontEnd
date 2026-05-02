@@ -1,6 +1,13 @@
-﻿import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { LucideIcon } from "lucide-react";
-import { formatCurrency } from "@/utils/formatCurrency";
 import {
   Search, Plus,
   ShoppingBag, Apple, Milk, Coffee, Wheat, Cookie, Beef, Leaf,
@@ -8,32 +15,37 @@ import {
 } from "lucide-react";
 import { categories as staticCategories, products as staticProducts, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface ProductGridProps {
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
-  /** Override the hard-coded product list with data from localStorage */
   products?: Product[];
-  /** Enables keyboard navigation only when the product area is active. */
   keyboardActive?: boolean;
-  /** Shared SKU search suffix from POS checkout search input. */
   searchSuffix?: string;
 }
 
-export function ProductGrid({
+export interface ProductGridHandle {
+  focusGrid: (preferredIndex?: number) => void;
+  focusCategories: () => void;
+}
+
+export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(function ProductGrid({
   onAddToCart,
   products: externalProducts,
   keyboardActive = true,
   searchSuffix = "",
-}: ProductGridProps) {
+}, ref) {
   const productList = externalProducts ?? staticProducts;
   const PAGE_SIZE = 24;
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(0);
+  const [showCategoryRail, setShowCategoryRail] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categoryOptions = useMemo(() => {
     if (externalProducts && externalProducts.length > 0) {
-      const dynamicCategories = [...new Set(externalProducts.map((p) => p.category).filter(Boolean))]
+      const dynamicCategories = [...new Set(externalProducts.map((product) => product.category).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b));
       return ["All", ...dynamicCategories];
     }
@@ -45,15 +57,15 @@ export function ProductGrid({
     if (!categoryOptions.includes(activeCategory)) {
       setActiveCategory("All");
     }
-  }, [categoryOptions, activeCategory]);
+  }, [activeCategory, categoryOptions]);
 
   const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
 
   const filtered = useMemo(() => {
     return productList
-      .filter((p) => {
-        const matchesSearch = !skuQuery || (p.barcode ?? "").toLowerCase().includes(skuQuery);
-        const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+      .filter((product) => {
+        const matchesSearch = !skuQuery || (product.barcode ?? "").toLowerCase().includes(skuQuery);
+        const matchesCategory = activeCategory === "All" || product.category === activeCategory;
         return matchesSearch && matchesCategory;
       })
       .map((product, index) => ({ product, index }))
@@ -66,7 +78,7 @@ export function ProductGrid({
         return a.index - b.index;
       })
       .map(({ product }) => product);
-  }, [productList, skuQuery, activeCategory]);
+  }, [activeCategory, productList, skuQuery]);
 
   const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -82,39 +94,37 @@ export function ProductGrid({
     Vegetables: Leaf,
   };
 
-  // Soft pastel icon-area background per category (light + dark)
   const categoryBg: Record<string, string> = {
-  Fruits:     "bg-rose-50 dark:bg-rose-950/20",
-  Dairy:      "bg-blue-50 dark:bg-blue-950/20",
-  Beverages:  "bg-sky-50 dark:bg-sky-950/20",
-  Bakery:     "bg-amber-50 dark:bg-amber-950/20",
-  Snacks:     "bg-lime-50 dark:bg-lime-950/20",
-  Meat:       "bg-red-50 dark:bg-red-950/20",
-  Vegetables: "bg-green-50 dark:bg-green-950/20",
+    Fruits: "bg-rose-50 dark:bg-rose-950/20",
+    Dairy: "bg-blue-50 dark:bg-blue-950/20",
+    Beverages: "bg-sky-50 dark:bg-sky-950/20",
+    Bakery: "bg-amber-50 dark:bg-amber-950/20",
+    Snacks: "bg-lime-50 dark:bg-lime-950/20",
+    Meat: "bg-red-50 dark:bg-red-950/20",
+    Vegetables: "bg-green-50 dark:bg-green-950/20",
   };
 
-  // Category accent border color (top strip)
   const categoryBorder: Record<string, string> = {
-    Fruits:     "border-t-rose-400",
-    Dairy:      "border-t-blue-400",
-    Beverages:  "border-t-sky-400",
-    Bakery:     "border-t-amber-400",
-    Snacks:     "border-t-lime-500",
-    Meat:       "border-t-red-400",
+    Fruits: "border-t-rose-400",
+    Dairy: "border-t-blue-400",
+    Beverages: "border-t-sky-400",
+    Bakery: "border-t-amber-400",
+    Snacks: "border-t-lime-500",
+    Meat: "border-t-red-400",
     Vegetables: "border-t-green-500",
   };
 
   const stockBadge = (stock: number) => {
-    if (stock === 0)  return { label: "Out of stock", cls: "border border-gray-200 bg-gray-100 text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" };
-    if (stock <= 2)   return { label: `${stock} left!`,  cls: "border border-red-200 bg-red-100 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300" };
-    if (stock <= 9)   return { label: `${stock} left`,   cls: "border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300" };
-    return            { label: `${stock} in stock`,      cls: "border border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300" };
+    if (stock === 0) return { label: "Out of stock", cls: "border border-gray-200 bg-gray-100 text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" };
+    if (stock <= 2) return { label: `${stock} left!`, cls: "border border-red-200 bg-red-100 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300" };
+    if (stock <= 9) return { label: `${stock} left`, cls: "border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300" };
+    return { label: `${stock} in stock`, cls: "border border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300" };
   };
 
-  // Switch placeholder based on dark mode (observes <html class="dark">)
   const [isDark, setIsDark] = useState(() =>
-    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
   );
+
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.classList.contains("dark"));
@@ -125,124 +135,264 @@ export function ProductGrid({
 
   const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
   const isSearching = searchSuffix.trim().length > 0;
-  const gridRef   = useRef<HTMLDivElement>(null);
-  const cardRefs  = useRef<(HTMLDivElement | null)[]>([]);
+  const categoriesVisible = !isSearching || showCategoryRail;
 
-  // Keep stable refs for use inside event handlers (avoid stale closures)
+  const gridRef = useRef<HTMLDivElement>(null);
+  const categoryRailRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const categoryButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const focusedIdxRef = useRef(focusedIndex);
-  const filteredRef   = useRef(visibleProducts);
-  useEffect(() => { focusedIdxRef.current = focusedIndex; }, [focusedIndex]);
-  useEffect(() => { filteredRef.current   = visibleProducts; }, [visibleProducts]);
+  const filteredRef = useRef(visibleProducts);
 
-  // Reset keyboard focus when the visible list changes
+  useEffect(() => {
+    focusedIdxRef.current = focusedIndex;
+  }, [focusedIndex]);
+
+  useEffect(() => {
+    filteredRef.current = visibleProducts;
+  }, [visibleProducts]);
+
+  useEffect(() => {
+    cardRefs.current = cardRefs.current.slice(0, visibleProducts.length);
+  }, [visibleProducts.length]);
+
+  useEffect(() => {
+    categoryButtonRefs.current = categoryButtonRefs.current.slice(0, categoryOptions.length);
+  }, [categoryOptions.length]);
+
+  useEffect(() => {
+    const activeIndex = Math.max(categoryOptions.indexOf(activeCategory), 0);
+    setFocusedCategoryIndex(activeIndex);
+  }, [activeCategory, categoryOptions]);
+
   useEffect(() => {
     setFocusedIndex(-1);
     setVisibleCount(PAGE_SIZE);
-  }, [searchSuffix, activeCategory]);
+  }, [activeCategory, searchSuffix]);
 
-  // Scroll focused card into view
   useEffect(() => {
-    if (focusedIndex >= 0) {
-      cardRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (searchSuffix.trim()) {
+      setShowCategoryRail(false);
+    }
+  }, [searchSuffix]);
+
+  useEffect(() => {
+    if (focusedIndex < 0) return;
+    const focusedCard = cardRefs.current[focusedIndex];
+    focusedCard?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (focusedCard && document.activeElement !== focusedCard) {
+      focusedCard.focus();
     }
   }, [focusedIndex]);
 
-  // Derive column count from the live CSS grid
   const getColCount = () => {
     if (!gridRef.current) return 2;
     return window.getComputedStyle(gridRef.current).gridTemplateColumns.split(" ").length;
   };
 
-  // Keyboard handler: F1 search · arrows navigate · Enter add
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!keyboardActive) return;
+  const focusGrid = useCallback((preferredIndex = 0) => {
+    setShowCategoryRail(false);
 
-      // Let global POS shortcuts (e.g., Alt+Arrow cart navigation) pass through.
-      if (e.altKey) return;
+    const items = filteredRef.current;
+    if (items.length === 0) {
+      setFocusedIndex(-1);
+      gridRef.current?.focus();
+      return;
+    }
+
+    const normalizedIndex = Math.max(
+      0,
+      Math.min(focusedIdxRef.current >= 0 ? focusedIdxRef.current : preferredIndex, items.length - 1),
+    );
+
+    setFocusedIndex(normalizedIndex);
+
+    window.requestAnimationFrame(() => {
+      cardRefs.current[normalizedIndex]?.focus();
+    });
+  }, []);
+
+  const focusCategoryButton = useCallback((index: number) => {
+    if (categoryOptions.length === 0) return;
+
+    const normalizedIndex = ((index % categoryOptions.length) + categoryOptions.length) % categoryOptions.length;
+    setShowCategoryRail(true);
+    setFocusedCategoryIndex(normalizedIndex);
+
+    window.requestAnimationFrame(() => {
+      categoryButtonRefs.current[normalizedIndex]?.focus();
+    });
+  }, [categoryOptions.length]);
+
+  const selectCategory = useCallback((index: number) => {
+    if (categoryOptions.length === 0) return;
+
+    const normalizedIndex = ((index % categoryOptions.length) + categoryOptions.length) % categoryOptions.length;
+    setFocusedCategoryIndex(normalizedIndex);
+    setActiveCategory(categoryOptions[normalizedIndex]);
+  }, [categoryOptions]);
+
+  useImperativeHandle(ref, () => ({
+    focusGrid,
+    focusCategories: () => {
+      const activeIndex = Math.max(categoryOptions.indexOf(activeCategory), 0);
+      focusCategoryButton(activeIndex);
+    },
+  }), [activeCategory, categoryOptions, focusCategoryButton, focusGrid]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (!keyboardActive) return;
+      if (event.altKey) return;
 
       const isInInput =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement;
 
-      if (isInInput) return; // let the search input handle other keys normally
+      if (isInInput) return;
+      if (event.target instanceof Node && categoryRailRef.current?.contains(event.target)) return;
 
       const cols = getColCount();
-      const len  = filteredRef.current.length;
-      const cur  = focusedIdxRef.current;
+      const len = filteredRef.current.length;
+      const current = focusedIdxRef.current;
 
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setFocusedIndex(cur < 0 ? 0 : Math.min(cur + 1, len - 1));
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setFocusedIndex(cur <= 0 ? 0 : cur - 1);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setFocusedIndex(cur < 0 ? 0 : Math.min(cur + cols, len - 1));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setFocusedIndex(cur <= 0 ? 0 : Math.max(cur - cols, 0));
-      } else if ((e.key === "Enter" || e.code === "NumpadEnter") && cur >= 0) {
-        e.preventDefault();
-        const product = filteredRef.current[cur];
-        if (product && product.stock > 0) {
-          const card = cardRefs.current[cur];
-          const rect = card?.getBoundingClientRect();
-          onAddToCart(product, {
-            clientX: rect ? rect.left + rect.width  / 2 : window.innerWidth  / 2,
-            clientY: rect ? rect.top  + rect.height / 2 : window.innerHeight / 2,
-          } as React.MouseEvent);
-        }
+      if (len === 0) {
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setFocusedIndex(current < 0 ? 0 : Math.min(current + 1, len - 1));
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setFocusedIndex(current <= 0 ? 0 : current - 1);
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setFocusedIndex(current < 0 ? 0 : Math.min(current + cols, len - 1));
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setFocusedIndex(current <= 0 ? 0 : Math.max(current - cols, 0));
+        return;
+      }
+
+      if ((event.key === "Enter" || event.code === "NumpadEnter") && current >= 0) {
+        event.preventDefault();
+        const product = filteredRef.current[current];
+        if (!product || product.stock <= 0 || product.status === "DISCONTINUED") return;
+
+        const card = cardRefs.current[current];
+        const rect = card?.getBoundingClientRect();
+        onAddToCart(product, {
+          clientX: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+          clientY: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+        } as React.MouseEvent);
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onAddToCart, keyboardActive]);
+  }, [keyboardActive, onAddToCart]);
+
+  const handleCategoryBlur = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const activeElement = document.activeElement;
+      if (!(activeElement instanceof Node) || !categoryRailRef.current?.contains(activeElement)) {
+        setShowCategoryRail(false);
+      }
+    });
+  }, []);
+
+  const handleCategoryKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusCategoryButton(index + 1);
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusCategoryButton(index - 1);
+      return;
+    }
+
+    if (event.key === "ArrowDown" || (event.key === "Tab" && !event.shiftKey)) {
+      event.preventDefault();
+      focusGrid();
+      return;
+    }
+
+    if (event.key === "Enter" || event.code === "Space" || event.key === " ") {
+      event.preventDefault();
+      selectCategory(index);
+    }
+  }, [focusCategoryButton, focusGrid, selectCategory]);
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* Category pills - slides away while searching */}
       <div
         className={cn(
           "overflow-hidden transition-all duration-300",
-          isSearching ? "max-h-0 opacity-0 pointer-events-none" : "max-h-16 opacity-100"
+          categoriesVisible ? "max-h-16 opacity-100" : "max-h-0 opacity-0 pointer-events-none",
         )}
       >
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {categoryOptions.map((cat) => (
+        <div ref={categoryRailRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {categoryOptions.map((category, index) => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={category}
+              ref={(element) => {
+                categoryButtonRefs.current[index] = element;
+              }}
+              type="button"
+              tabIndex={focusedCategoryIndex === index ? 0 : -1}
+              onFocus={() => {
+                setShowCategoryRail(true);
+                setFocusedCategoryIndex(index);
+              }}
+              onBlur={handleCategoryBlur}
+              onKeyDown={(event) => handleCategoryKeyDown(event, index)}
+              onClick={() => selectCategory(index)}
               className={cn(
                 "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
-                activeCategory === cat
+                activeCategory === category
                   ? "bg-primary text-white shadow-sm"
-                  : "border border-border bg-white text-muted-foreground hover:border-primary hover:text-primary dark:bg-card dark:hover:border-primary"
+                  : "border border-border bg-white text-muted-foreground hover:border-primary hover:text-primary dark:bg-card dark:hover:border-primary",
+                focusedCategoryIndex === index && "ring-2 ring-primary ring-offset-2",
               )}
             >
-              {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
-              {cat}
+              {(() => {
+                const Icon = categoryIcon[category];
+                return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null;
+              })()}
+              {category}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Results count + keyboard hint */}
       <div className="flex items-center justify-between">
         <p className="text-[12px] text-muted-foreground">
           <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
           {filtered.length !== 1 ? "products" : "product"}
           {isSearching ? (
-            <span className="text-primary font-medium"> &middot; search results</span>
+            <span className="font-medium text-primary"> &middot; search results</span>
           ) : activeCategory !== "All" ? (
-            <span className="text-primary font-medium"> &middot; {activeCategory}</span>
+            <span className="font-medium text-primary"> &middot; {activeCategory}</span>
           ) : null}
         </p>
         <p className="hidden select-none items-center gap-1 text-[10px] text-muted-foreground/50 sm:flex">
-          <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">&#8593;&#8595;&#8592;&#8594;</kbd>
+          <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">Alt+C</kbd>
+          <span>categories</span>
+          <span className="mx-0.5">&middot;</span>
+          <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">Arrows</kbd>
           <span>navigate</span>
           <span className="mx-0.5">&middot;</span>
           <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">Enter</kbd>
@@ -250,9 +400,12 @@ export function ProductGrid({
         </p>
       </div>
 
-      {/* â”€â”€ Product grid â”€â”€ */}
-      <div ref={gridRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {visibleProducts.map((product, idx) => {
+      <div
+        ref={gridRef}
+        tabIndex={-1}
+        className="grid grid-cols-2 gap-2 outline-none sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        {visibleProducts.map((product, index) => {
           const outOfStock = product.stock === 0;
           const orderingBlocked = product.status === "DISCONTINUED";
           const unavailable = outOfStock || orderingBlocked;
@@ -260,138 +413,145 @@ export function ProductGrid({
           const salePrice = product.discount
             ? product.price * (1 - product.discount / 100)
             : null;
-          const isFocused = focusedIndex === idx;
+          const isFocused = focusedIndex === index;
 
           return (
-          <div
-            key={product.id}
-            ref={(el) => { cardRefs.current[idx] = el; }}
-            className={cn(
-              "group flex flex-col overflow-hidden rounded-xl border border-border border-t-[3px] bg-card shadow-sm transition-all duration-150 dark:shadow-black/15",
-              unavailable
-                ? "opacity-60 cursor-not-allowed border-t-gray-300"
-                : "hover:shadow-md hover:border-primary/30 cursor-pointer",
-              !unavailable && (categoryBorder[product.category] ?? "border-t-primary"),
-              isFocused && !unavailable && "ring-2 ring-primary ring-offset-2 shadow-lg"
-            )}
-          >
-            {/* Compact image strip */}
             <div
+              key={product.id}
+              ref={(element) => {
+                cardRefs.current[index] = element;
+              }}
+              tabIndex={isFocused ? 0 : -1}
+              onFocus={() => {
+                setShowCategoryRail(false);
+                setFocusedIndex(index);
+              }}
+              aria-disabled={unavailable}
               className={cn(
-                "relative h-20 sm:h-24 overflow-hidden",
-                categoryBg[product.category] ?? "bg-secondary"
+                "group flex flex-col overflow-hidden rounded-xl border border-border border-t-[3px] bg-card shadow-sm transition-all duration-150 outline-none dark:shadow-black/15",
+                unavailable
+                  ? "cursor-not-allowed border-t-gray-300 opacity-60"
+                  : "cursor-pointer hover:border-primary/30 hover:shadow-md",
+                !unavailable && (categoryBorder[product.category] ?? "border-t-primary"),
+                isFocused && !unavailable && "ring-2 ring-primary ring-offset-2 shadow-lg",
               )}
             >
-              <img
-                src={product.image ?? PLACEHOLDER}
-                alt={product.name}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = PLACEHOLDER; }}
+              <div
                 className={cn(
-                  "h-full w-full object-cover transition-transform duration-200",
-                  !unavailable && "group-hover:scale-105"
+                  "relative h-20 overflow-hidden sm:h-24",
+                  categoryBg[product.category] ?? "bg-secondary",
                 )}
-              />
-
-              {/* Unavailable overlay */}
-              {unavailable && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
-                  <PackageX className="h-5 w-5 text-gray-400 dark:text-slate-500" />
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                    {orderingBlocked ? "Ordering Blocked" : "Out of Stock"}
-                  </span>
-                </div>
-              )}
-
-              {/* Promo badge — top left */}
-              {product.isPromo && !unavailable && (
-                <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
-                  <Flame className="h-2.5 w-2.5" />
-                  HOT
-                </span>
-              )}
-
-              {/* New badge */}
-              {!product.isPromo && product.isNew && !unavailable && (
-                <span className="absolute top-1 left-1 flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  NEW
-                </span>
-              )}
-
-              {/* Discount badge — top right */}
-              {product.discount && !unavailable && (
-                <span className="absolute top-1 right-1 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
-                  <Tag className="h-2.5 w-2.5" />
-                  -{product.discount}%
-                </span>
-              )}
-
-              {/* Quick-add button on hover */}
-              {!unavailable && (
-                <button
-                  onClick={(e) => onAddToCart(product, e)}
-                  className="absolute bottom-1.5 right-1.5 flex h-6 w-6 translate-y-1 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-md transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-accent"
-                >
-                  <Plus className="h-3 w-3 stroke-[2.5]" />
-                </button>
-              )}
-            </div>
-
-            {/* Info area */}
-            <div className="flex flex-col gap-1 px-2.5 pt-2 pb-1.5">
-              <p className="truncate text-[11.5px] font-semibold text-foreground leading-tight">
-                {product.name}
-              </p>
-              {orderingBlocked && (
-                <span
-                  title="Ordering Blocked - Discontinued"
-                  className="self-start rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none text-red-700"
-                >
-                  Ordering Blocked - Discontinued
-                </span>
-              )}
-
-              {/* Price row */}
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-baseline gap-1">
-                  {salePrice ? (
-                    <>
-                      <span className="text-[11px] font-bold text-red-500 tabular-nums">{formatCurrency(salePrice)}</span>
-                      <span className="text-[9px] text-muted-foreground line-through tabular-nums">{formatCurrency(product.price)}</span>
-                    </>
-                  ) : (
-                    <span className="text-[11px] font-bold text-primary tabular-nums">{formatCurrency(product.price)}</span>
+              >
+                <img
+                  src={product.image ?? PLACEHOLDER}
+                  alt={product.name}
+                  onError={(event) => {
+                    (event.currentTarget as HTMLImageElement).src = PLACEHOLDER;
+                  }}
+                  className={cn(
+                    "h-full w-full object-cover transition-transform duration-200",
+                    !unavailable && "group-hover:scale-105",
                   )}
-                </div>
-                <span className="text-[9px] text-muted-foreground border border-border rounded px-1 py-0.5 shrink-0">/{product.unit}</span>
+                />
+
+                {unavailable && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
+                    <PackageX className="h-5 w-5 text-gray-400 dark:text-slate-500" />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+                      {orderingBlocked ? "Ordering Blocked" : "Out of Stock"}
+                    </span>
+                  </div>
+                )}
+
+                {product.isPromo && !unavailable && (
+                  <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
+                    <Flame className="h-2.5 w-2.5" />
+                    HOT
+                  </span>
+                )}
+
+                {!product.isPromo && product.isNew && !unavailable && (
+                  <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    NEW
+                  </span>
+                )}
+
+                {product.discount && !unavailable && (
+                  <span className="absolute right-1 top-1 flex items-center gap-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[8.5px] font-bold text-white shadow">
+                    <Tag className="h-2.5 w-2.5" />
+                    -{product.discount}%
+                  </span>
+                )}
+
+                {!unavailable && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={(event) => onAddToCart(product, event)}
+                    className="absolute bottom-1.5 right-1.5 flex h-6 w-6 translate-y-1 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-md transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-accent"
+                  >
+                    <Plus className="h-3 w-3 stroke-[2.5]" />
+                  </button>
+                )}
               </div>
 
-              {/* Stock badge */}
-              <span className={cn("self-start rounded-full px-1.5 py-0.5 text-[8.5px] font-semibold leading-none", stockCls)}>
-                {stockLabel}
-              </span>
-            </div>
+              <div className="flex flex-col gap-1 px-2.5 pb-1.5 pt-2">
+                <p className="truncate text-[11.5px] font-semibold leading-tight text-foreground">
+                  {product.name}
+                </p>
+                {orderingBlocked && (
+                  <span
+                    title="Ordering Blocked - Discontinued"
+                    className="self-start rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[8.5px] font-semibold leading-none text-red-700"
+                  >
+                    Ordering Blocked - Discontinued
+                  </span>
+                )}
 
-            {/* Add to Cart footer */}
-            <button
-              disabled={unavailable}
-              title={orderingBlocked ? "Ordering Blocked - Discontinued" : undefined}
-              onClick={(e) => !unavailable && onAddToCart(product, e)}
-              className={cn(
-                "mt-auto flex items-center justify-center gap-1 border-t border-border py-1.5 text-[11px] font-semibold transition-colors duration-150 shrink-0",
-                unavailable
-                  ? "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed"
-                  : "bg-secondary/50 text-muted-foreground hover:bg-primary hover:text-white"
-              )}
-            >
-              <Plus className="h-3 w-3 stroke-[2.5]" />
-              {orderingBlocked ? "Ordering Blocked" : outOfStock ? "Unavailable" : "Add to Cart"}
-            </button>
-          </div>
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-baseline gap-1">
+                    {salePrice ? (
+                      <>
+                        <span className="tabular-nums text-[11px] font-bold text-red-500">{formatCurrency(salePrice)}</span>
+                        <span className="tabular-nums text-[9px] text-muted-foreground line-through">{formatCurrency(product.price)}</span>
+                      </>
+                    ) : (
+                      <span className="tabular-nums text-[11px] font-bold text-primary">{formatCurrency(product.price)}</span>
+                    )}
+                  </div>
+                  <span className="shrink-0 rounded border border-border px-1 py-0.5 text-[9px] text-muted-foreground">/{product.unit}</span>
+                </div>
+
+                <span className={cn("self-start rounded-full px-1.5 py-0.5 text-[8.5px] font-semibold leading-none", stockCls)}>
+                  {stockLabel}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                tabIndex={-1}
+                disabled={unavailable}
+                title={orderingBlocked ? "Ordering Blocked - Discontinued" : undefined}
+                onClick={(event) => {
+                  if (!unavailable) {
+                    onAddToCart(product, event);
+                  }
+                }}
+                className={cn(
+                  "mt-auto flex shrink-0 items-center justify-center gap-1 border-t border-border py-1.5 text-[11px] font-semibold transition-colors duration-150",
+                  unavailable
+                    ? "cursor-not-allowed bg-secondary/30 text-muted-foreground/40"
+                    : "bg-secondary/50 text-muted-foreground hover:bg-primary hover:text-white",
+                )}
+              >
+                <Plus className="h-3 w-3 stroke-[2.5]" />
+                {orderingBlocked ? "Ordering Blocked" : outOfStock ? "Unavailable" : "Add to Cart"}
+              </button>
+            </div>
           );
         })}
 
-        {/* Empty state */}
         {filtered.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm dark:bg-card dark:shadow-black/15">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
@@ -409,7 +569,7 @@ export function ProductGrid({
         <div className="flex justify-center">
           <button
             type="button"
-            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            onClick={() => setVisibleCount((previous) => previous + PAGE_SIZE)}
             className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
           >
             Load More
@@ -418,4 +578,6 @@ export function ProductGrid({
       )}
     </div>
   );
-}
+});
+
+ProductGrid.displayName = "ProductGrid";

@@ -1,4 +1,4 @@
-import type { KeyboardEventHandler, RefObject } from "react";
+import type { FocusEventHandler, KeyboardEventHandler, RefObject } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ type PiPrefixSearchInputProps = {
   value: string;
   onChange: (nextValue: string) => void;
   onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  onFocus?: FocusEventHandler<HTMLInputElement>;
   placeholder?: string;
   autoFocus?: boolean;
   inputRef?: RefObject<HTMLInputElement>;
@@ -18,6 +19,7 @@ export function PiPrefixSearchInput({
   value,
   onChange,
   onKeyDown,
+  onFocus,
   placeholder = "00001",
   autoFocus = false,
   inputRef,
@@ -50,6 +52,7 @@ export function PiPrefixSearchInput({
           onChange(normalized);
         }}
         onKeyDown={onKeyDown}
+        onFocus={onFocus}
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete="off"
