@@ -1410,13 +1410,6 @@ const InventoryStock = () => {
         </div>
 
         <div className="overflow-x-auto flex-1">
-          {monthlyForecastQuery.isError && (
-            <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-sm font-semibold text-amber-800">
-                AI Engine Offline. Please start the backend server.
-              </p>
-            </div>
-          )}
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="border-b border-slate-100 sticky top-0 z-10 bg-white">
               <tr>
