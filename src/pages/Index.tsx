@@ -493,6 +493,24 @@ const Index = () => {
     productGridRef.current?.focusCategories();
   }, []);
 
+  const triggerCheckoutHotkey = useCallback(() => {
+    const subtotal = cartRef.current.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
+
+    if (subtotal <= 0) {
+      return false;
+    }
+
+    setKeyboardScope("cart");
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setCartOpen(true);
+    }
+    setCheckoutHotkeyNonce((n) => n + 1);
+    return true;
+  }, []);
+
   useEffect(() => {
     cartRef.current = cart;
   }, [cart]);
@@ -532,11 +550,15 @@ const Index = () => {
       }, 1200);
     };
 
-    const isMobileViewport = () => window.matchMedia("(max-width: 767px)").matches;
-
     const handler = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
+      const eventTarget = e.target instanceof HTMLElement ? e.target : null;
       const isInputFocused = isTextEntryElement(activeEl);
+      const isTypingTarget =
+        eventTarget?.tagName === "INPUT" ||
+        eventTarget?.tagName === "TEXTAREA" ||
+        eventTarget?.isContentEditable === true;
+      const isInteractiveTarget = eventTarget?.closest("button, a, [role='button']") !== null;
 
       if (isCheckoutModalOpen) {
         return;
@@ -608,16 +630,29 @@ const Index = () => {
       if (e.key === "F12" || (e.ctrlKey && e.key === "Enter")) {
         if (cartRef.current.length > 0) {
           e.preventDefault();
-          setKeyboardScope("cart");
-          if (isMobileViewport()) {
-            setCartOpen(true);
-          }
-          setCheckoutHotkeyNonce((n) => n + 1);
+          triggerCheckoutHotkey();
         }
         return;
       }
 
-      if (!isInputFocused && (e.code === "Space" || e.key === " ")) {
+      const hasPendingBarcode = scannerBuffer.trim().length >= minBarcodeLength;
+      const isGlobalCheckoutShortcut = e.code === "Space" || e.key === " " || e.key === "Enter";
+      const isProductGridEnter = keyboardScope === "grid" && e.key === "Enter";
+
+      if (
+        isGlobalCheckoutShortcut &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        !e.shiftKey &&
+        !isTypingTarget &&
+        !isInteractiveTarget &&
+        !isProductGridEnter &&
+        !(e.key === "Enter" && hasPendingBarcode)
+      ) {
+        if (triggerCheckoutHotkey()) {
+          e.preventDefault();
+        }
         return;
       }
 
@@ -759,7 +794,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [cart.length, cartOpen, focusProductCategories, focusProductSearch, handleScannedBarcode, isCheckoutModalOpen, isTextEntryElement, keyboardScope, removeItem, setQuantity, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, focusProductCategories, focusProductSearch, handleScannedBarcode, isCheckoutModalOpen, isTextEntryElement, keyboardScope, removeItem, setQuantity, showSuccessPopup, triggerCheckoutHotkey, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
