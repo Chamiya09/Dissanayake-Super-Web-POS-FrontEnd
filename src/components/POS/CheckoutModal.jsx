@@ -1,7 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Banknote, CreditCard, Wallet, ArrowRightLeft } from "lucide-react";
-import { useToast } from "@/context/GlobalToastContext";
 
 const PAYMENT_METHODS = {
   CASH: "CASH",
@@ -16,7 +15,6 @@ export default function CheckoutModal({
   totalAmount,
   onCompleteSale,
 }) {
-  const { showToast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [tenderedInput, setTenderedInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -36,10 +34,19 @@ export default function CheckoutModal({
     return Number.isFinite(n) ? n : NaN;
   }, [tenderedInput]);
 
+  const tenderedAmount = Number.isFinite(parsedTendered) ? parsedTendered : 0;
+  const isCashMode = paymentMethod === PAYMENT_METHODS.CASH;
+  const hasTenderedInput = String(tenderedInput ?? "").trim().length > 0;
+  const isInsufficientCash = isCashMode && tenderedAmount < total;
+  const canSubmit = paymentMethod === PAYMENT_METHODS.CARD || tenderedAmount >= total;
+
   const balance = useMemo(() => {
-    if (!Number.isFinite(parsedTendered)) return 0;
-    return Math.max(0, Number((parsedTendered - total).toFixed(2)));
-  }, [parsedTendered, total]);
+    return Math.max(0, Number((tenderedAmount - total).toFixed(2)));
+  }, [tenderedAmount, total]);
+
+  const amountDue = useMemo(() => {
+    return Math.max(0, Number((total - tenderedAmount).toFixed(2)));
+  }, [tenderedAmount, total]);
 
   const quickCashOptions = useMemo(
     () => [
@@ -121,7 +128,7 @@ export default function CheckoutModal({
   );
 
   const handleSubmit = useCallback(() => {
-    if (submitting) return;
+    if (submitting || !canSubmit) return;
 
     if (paymentMethod === PAYMENT_METHODS.CARD) {
       void completeSale({ method: PAYMENT_METHODS.CARD });
@@ -129,12 +136,6 @@ export default function CheckoutModal({
     }
 
     if (!Number.isFinite(parsedTendered)) {
-      showToast("Enter the cash amount given by the customer", "error");
-      return;
-    }
-
-    if (parsedTendered < total) {
-      showToast("Insufficient cash amount", "error");
       return;
     }
 
@@ -143,7 +144,7 @@ export default function CheckoutModal({
       tendered: Number(parsedTendered.toFixed(2)),
       balance,
     });
-  }, [balance, completeSale, parsedTendered, paymentMethod, showToast, submitting, total]);
+  }, [balance, canSubmit, completeSale, parsedTendered, paymentMethod, submitting]);
 
   const applyTenderedAmount = useCallback(
     (value, nextFocus = "input") => {
@@ -403,27 +404,44 @@ export default function CheckoutModal({
                       step="0.01"
                       value={tenderedInput}
                       onChange={(event) => setTenderedInput(event.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-4 text-2xl font-bold text-slate-900 outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100 dark:focus:ring-emerald-500/20"
+                      className={[
+                        "w-full rounded-2xl border px-4 py-4 text-2xl font-bold text-slate-900 outline-none transition-all [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:bg-slate-900/60 dark:text-slate-100",
+                        isInsufficientCash
+                          ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-100 dark:border-red-400 dark:focus:ring-red-500/20"
+                          : "border-slate-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:focus:ring-emerald-500/20",
+                      ].join(" ")}
                       placeholder="0.00"
                     />
+                    {hasTenderedInput && isInsufficientCash && (
+                      <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">
+                        Insufficient cash amount
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 dark:border-emerald-500/20 dark:from-emerald-500/10 dark:to-slate-900/60">
-                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                <div
+                  className={[
+                    "flex flex-col justify-between rounded-3xl border p-5",
+                    isInsufficientCash
+                      ? "border-red-100 bg-gradient-to-br from-red-50 to-white dark:border-red-500/20 dark:from-red-500/10 dark:to-slate-900/60"
+                      : "border-emerald-100 bg-gradient-to-br from-emerald-50 to-white dark:border-emerald-500/20 dark:from-emerald-500/10 dark:to-slate-900/60",
+                  ].join(" ")}
+                >
+                  <div className={["flex items-center gap-2", isInsufficientCash ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"].join(" ")}>
                     <ArrowRightLeft className="h-4 w-4" />
-                    <p className="text-sm font-semibold">Balance to Return</p>
+                    <p className="text-sm font-semibold">{isInsufficientCash ? "Amount Due" : "Balance to Return"}</p>
                   </div>
                   <div className="py-6">
-                    <p className="text-5xl font-extrabold tracking-tight text-emerald-600">
-                      Rs. {balance.toFixed(2)}
+                    <p className={["text-5xl font-extrabold tracking-tight", isInsufficientCash ? "text-red-600 dark:text-red-300" : "text-emerald-600"].join(" ")}>
+                      Rs. {(isInsufficientCash ? amountDue : balance).toFixed(2)}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
                     <div className="flex items-center justify-between">
                       <span>Tendered</span>
                       <span className="font-semibold text-slate-900 dark:text-slate-100">
-                        Rs. {Number.isFinite(parsedTendered) ? parsedTendered.toFixed(2) : "0.00"}
+                        Rs. {tenderedAmount.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -459,8 +477,8 @@ export default function CheckoutModal({
                 ref={completeButtonRef}
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
-                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                disabled={submitting || !canSubmit}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? "Processing..." : "Complete Sale"}
               </button>
