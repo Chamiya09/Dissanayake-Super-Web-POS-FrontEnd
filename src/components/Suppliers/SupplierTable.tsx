@@ -278,13 +278,15 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onDelete(supplier)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!supplier.isActive && (
+                      <button
+                        onClick={() => onDelete(supplier)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -359,15 +361,17 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAssign, onViewPro
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(supplier)}
-                className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </Button>
+              {!supplier.isActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(supplier)}
+                  className="flex-1 h-10 gap-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         ))}

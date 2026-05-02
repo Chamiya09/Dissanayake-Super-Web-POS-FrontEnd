@@ -34,10 +34,53 @@ interface SalePayloadItem {
 }
 
 interface SalePayload {
-  paymentMethod: string;
+  paymentMethod: "Cash" | "Card";
   totalAmount: number;
-  status: string;
+  status: "Completed";
   items: SalePayloadItem[];
+}
+
+type CheckoutPaymentMethod = "CASH" | "CARD";
+
+function normalizeSalePaymentMethod(method: string): SalePayload["paymentMethod"] {
+  return method === "CARD" ? "Card" : "Cash";
+}
+
+function extractApiErrorMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object" &&
+    (error as { response?: { data?: unknown } }).response?.data
+  ) {
+    const data = (error as { response?: { data?: unknown } }).response?.data;
+    if (typeof data === "string" && data.trim()) {
+      return data.trim();
+    }
+    if (typeof data === "object" && data !== null) {
+      const message = (data as { message?: unknown }).message;
+      const backendError = (data as { error?: unknown }).error;
+      if (typeof message === "string" && message.trim()) {
+        return message.trim();
+      }
+      if (typeof backendError === "string" && backendError.trim()) {
+        return backendError.trim();
+      }
+    }
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string" &&
+    (error as { message: string }).message.trim()
+  ) {
+    return (error as { message: string }).message.trim();
+  }
+
+  return "Failed to record sale. Please try again.";
 }
 
 /** Convert ProductManagement shape → POS Product shape */
@@ -210,7 +253,7 @@ const Index = () => {
   const roundMoney = useCallback((value: number) => Number(value.toFixed(2)), []);
   const roundQuantity = useCallback((value: number) => Number(value.toFixed(3)), []);
 
-  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
+  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: CheckoutPaymentMethod) => {
     const payloadItems: SalePayloadItem[] = [];
 
     for (const cartItem of cart) {
@@ -266,8 +309,10 @@ const Index = () => {
       return;
     }
 
+    const normalizedPaymentMethod = normalizeSalePaymentMethod(paymentMethod);
+
     const payload: SalePayload = {
-      paymentMethod,
+      paymentMethod: normalizedPaymentMethod,
       totalAmount: roundMoney(payloadItems.reduce((sum, item) => sum + item.lineTotal, 0)),
       status: "Completed",
       items: payloadItems,
@@ -280,7 +325,7 @@ const Index = () => {
       const transactionId = data?.transactionId ?? data?.receiptNo ?? "TRX-UNKNOWN";
       setCart([]);
       setCartOpen(false);
-      setLastSale({ transactionId, total: totalAmount, paymentMethod });
+      setLastSale({ transactionId, total: totalAmount, paymentMethod: normalizedPaymentMethod });
       setShowSuccessPopup(true);
       setErrorMsg(null);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
@@ -317,7 +362,7 @@ const Index = () => {
         },
         rawError: err,
       });
-      setErrorMsg("Failed to record sale. Please try again.");
+      setErrorMsg(extractApiErrorMessage(err));
     }
   }, [cart, refreshInventory, roundMoney, roundQuantity, showToast]);
 

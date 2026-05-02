@@ -18,7 +18,7 @@ interface CartPanelProps {
   checkoutHotkeyNonce?: number;
   onCheckoutModalOpenChange?: (isOpen: boolean) => void;
   /** Called with the final charged amount after a successful checkout */
-  onCheckout?: (totalAmount: number, paymentMethod: string) => Promise<void>;
+  onCheckout?: (totalAmount: number, paymentMethod: "CASH" | "CARD") => Promise<void>;
   /** Enables cart keyboard shortcuts only when cart area is active. */
   keyboardActive?: boolean;
 }
@@ -190,7 +190,7 @@ export function CartPanel({ items, onUpdateQuantity, onSetQuantity, onRemoveItem
   const total = subtotal;
   const finalTotal = total;
 
-  const completeCheckout = useCallback(async (method: string) => {
+  const completeCheckout = useCallback(async (method: "CASH" | "CARD") => {
     setProcessing(true);
     try {
       await onCheckout?.(finalTotal, method);
