@@ -973,6 +973,8 @@ const InventoryStock = () => {
   const [logs,           setLogs]           = useState([]);
   const [supplierActivityById, setSupplierActivityById] = useState({});
   const [supplierActivityByEmail, setSupplierActivityByEmail] = useState({});
+  const deleteQty = Number(deleteTarget?.stockQuantity ?? deleteTarget?.quantity ?? 0);
+  const hasActiveStock = deleteQty > 0;
 
   const monthlyForecastQuery = useForecastMap(
     inventoryItems.map((item) => item.productId ?? item.sku),
@@ -1150,6 +1152,10 @@ const InventoryStock = () => {
   // -- Delete inventory record (stops tracking; does NOT delete the product)
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    if (hasActiveStock) {
+      showToast("Cannot remove: stock must be 0 before stopping tracking.", "error");
+      return;
+    }
     setDeleting(true);
     try {
       await api.delete(`/api/inventory/${deleteTarget.inventoryId}`);
@@ -1302,6 +1308,13 @@ const InventoryStock = () => {
               <span className="font-semibold text-slate-900">{deleteTarget.productName}</span>?{" "}
               The product will remain in your catalogue.
             </p>
+            {hasActiveStock && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-xs font-semibold text-amber-800">
+                  Warning: This item currently has active stock ({deleteQty} items). You must adjust the stock to 0 before removing it from tracking.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -1313,8 +1326,8 @@ const InventoryStock = () => {
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 transition-all shadow-sm"
+                disabled={deleting || hasActiveStock}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {deleting
                   ? <><Loader2 size={14} className="animate-spin" />Removing...</>
