@@ -251,7 +251,7 @@ export default function CheckoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-sm dark:bg-black/45">
       <div
         className="absolute inset-0"
         onClick={() => {
@@ -262,19 +262,19 @@ export default function CheckoutModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl outline-none"
+        className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl outline-none dark:border-slate-700 dark:bg-[#1E1E1E]"
       >
-        <div className="border-b border-slate-100 px-6 py-5">
+        <div className="border-b border-slate-100 px-6 py-5 dark:border-slate-800">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Checkout</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Checkout</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Fast cashier mode. <span className="font-medium">F1</span> Cash, <span className="font-medium">F2</span> Card, <span className="font-medium">Enter/Space</span> Complete
               </p>
             </div>
-            <div className="rounded-2xl bg-slate-50 px-5 py-3 text-right">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Total Bill</p>
-              <p className="mt-1 text-3xl font-extrabold text-slate-900">Rs. {total.toFixed(2)}</p>
+            <div className="rounded-2xl bg-slate-50 px-5 py-3 text-right dark:bg-slate-900/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Total Bill</p>
+              <p className="mt-1 text-3xl font-extrabold text-slate-900 dark:text-slate-100">Rs. {total.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -287,8 +287,8 @@ export default function CheckoutModal({
               className={[
                 "flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition-all",
                 paymentMethod === PAYMENT_METHODS.CASH
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
               ].join(" ")}
             >
               <div className="flex items-center gap-3">
@@ -308,8 +308,8 @@ export default function CheckoutModal({
               className={[
                 "flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition-all",
                 paymentMethod === PAYMENT_METHODS.CARD
-                  ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                  ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
               ].join(" ")}
             >
               <div className="flex items-center gap-3">
@@ -329,8 +329,8 @@ export default function CheckoutModal({
               <div className="space-y-5">
                 <div>
                   <div className="mb-2 flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-slate-500" />
-                    <p className="text-sm font-semibold text-slate-700">Quick Cash</p>
+                    <Wallet className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Quick Cash</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {quickCashOptions.map((option, index) => (
@@ -343,7 +343,7 @@ export default function CheckoutModal({
                         onFocus={() => setFocusedQuickCashIndex(index)}
                         onClick={() => applyTenderedAmount(option.value)}
                         className={[
-                          "rounded-xl border px-4 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400",
+                          "rounded-xl border px-4 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:ring-offset-[#1E1E1E]",
                           option.accent,
                           focusedQuickCashIndex === index ? "border-emerald-500 ring-2 ring-emerald-400 ring-offset-1" : "",
                         ].join(" ")}
@@ -355,7 +355,7 @@ export default function CheckoutModal({
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Amount Tendered</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Amount Tendered</label>
                   <input
                     ref={tenderedRef}
                     type="number"
@@ -363,14 +363,14 @@ export default function CheckoutModal({
                     step="0.01"
                     value={tenderedInput}
                     onChange={(e) => setTenderedInput(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-4 text-2xl font-bold text-slate-900 outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-4 text-2xl font-bold text-slate-900 outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100 dark:focus:ring-emerald-500/20"
                     placeholder="0.00"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col justify-between rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5">
-                <div className="flex items-center gap-2 text-emerald-700">
+              <div className="flex flex-col justify-between rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 dark:border-emerald-500/20 dark:from-emerald-500/10 dark:to-slate-900/60">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                   <ArrowRightLeft className="h-4 w-4" />
                   <p className="text-sm font-semibold">Balance to Return</p>
                 </div>
@@ -379,10 +379,10 @@ export default function CheckoutModal({
                     Rs. {balance.toFixed(2)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
                   <div className="flex items-center justify-between">
                     <span>Tendered</span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
                       Rs. {Number.isFinite(parsedTendered) ? parsedTendered.toFixed(2) : "0.00"}
                     </span>
                   </div>
@@ -390,18 +390,18 @@ export default function CheckoutModal({
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-6 py-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+            <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-6 py-8 text-center dark:border-blue-500/20 dark:from-blue-500/10 dark:to-slate-900/60">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
                 <CreditCard className="h-6 w-6" />
               </div>
-              <p className="mt-4 text-lg font-bold text-slate-900">Process payment on Card Terminal</p>
-              <p className="mt-1 text-sm text-slate-500">When payment is approved, press Enter or Space to complete the sale.</p>
+              <p className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">Process payment on Card Terminal</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">When payment is approved, press Enter or Space to complete the sale.</p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4">
-          <p className="text-xs text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/70">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {paymentMethod === PAYMENT_METHODS.CASH
               ? "Cash mode: Enter cash received or use quick buttons"
               : "Card mode: complete after terminal approval"}
@@ -411,7 +411,7 @@ export default function CheckoutModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800 disabled:opacity-50 dark:text-slate-300 dark:hover:text-slate-100"
             >
               Cancel
             </button>

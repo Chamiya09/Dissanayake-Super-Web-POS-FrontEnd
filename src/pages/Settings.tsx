@@ -12,8 +12,6 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Moon,
-  Sun,
   Bell,
   BellOff,
   UserX,
@@ -32,7 +30,6 @@ import {
    ───────────────────────────────────────────────────────────────────────── */
 const API_BASE = "http://localhost:8080";
 
-const LS_DARK  = "pos_dark_mode";
 const LS_EMAIL = "pos_email_notifications";
 
 
@@ -349,6 +346,7 @@ function DeactivateModal({ onConfirm, onCancel, loading }) {
    ───────────────────────────────────────────────────────────────────────── */
 export default function Settings() {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   /* ── Profile email from API ──────────────────────────────────────────────── */
   const [profileEmail, setProfileEmail] = useState("—");
@@ -371,9 +369,6 @@ export default function Settings() {
   const [pwLoading,    setPwLoading]    = useState(false);
 
   /* ── Preferences ─────────────────────────────────────────────────────── */
-  const [darkMode,     setDarkMode]     = useState(
-    () => localStorage.getItem(LS_DARK) === "true"
-  );
   const [emailNotifs,  setEmailNotifs]  = useState(
     () => localStorage.getItem(LS_EMAIL) === "true"
   );
@@ -389,25 +384,7 @@ export default function Settings() {
   const canSeeEmailNotif = ["Owner", "Manager"].includes(user?.role);
 
   /* ── Apply dark mode on mount ────────────────────────────────────────── */
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
-
   /* ─── Handlers ─────────────────────────────────────────────────────────── */
-
-  function toggleDark(val) {
-    setDarkMode(val);
-    localStorage.setItem(LS_DARK, String(val));
-    if (val) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }
 
   function toggleEmailNotifs(val) {
     setEmailNotifs(val);
@@ -585,38 +562,6 @@ export default function Settings() {
             subtitle="Personalise your experience."
           >
             <div className="divide-y divide-slate-100">
-              {/* Dark mode */}
-              <div className="flex items-start justify-between gap-4 py-5 first:pt-0">
-                <div className="flex items-start gap-3">
-                  <div className={cn(
-                    "mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl",
-                    darkMode ? "bg-slate-800 text-yellow-400" : "bg-amber-50 text-amber-500"
-                  )}>
-                    {darkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-bold text-slate-900">Dark Mode</p>
-                    <p className="text-[13px] text-slate-500 mt-0.5 max-w-[250px]">
-                      {darkMode ? "Dark theme is active." : "Light theme is active."}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={darkMode}
-                  onClick={() => toggleDark(!darkMode)}
-                  className={cn(
-                    "relative mt-1 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2",
-                    darkMode ? "bg-teal-600" : "bg-slate-200"
-                  )}
-                >
-                  <span className={cn(
-                    "block h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transform transition-transform duration-200",
-                    darkMode ? "translate-x-5" : "translate-x-0"
-                  )} />
-                </button>
-              </div>
-
               {/* Email notifications — Owner/Manager only */}
               {canSeeEmailNotif && (
                 <div className="flex items-start justify-between gap-4 py-5">

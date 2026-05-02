@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
 import { useToast } from "@/context/GlobalToastContext";
-import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
+import { ShoppingBag, CheckCircle, ScanLine, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductGrid } from "@/components/POS/ProductGrid";
@@ -23,6 +23,21 @@ interface MgmtProduct {
   status?: "ACTIVE" | "DISCONTINUED";
   stockQuantity?: number;
   unit?: string;
+}
+
+interface SalePayloadItem {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+interface SalePayload {
+  paymentMethod: string;
+  totalAmount: number;
+  status: string;
+  items: SalePayloadItem[];
 }
 
 /** Convert ProductManagement shape → POS Product shape */
@@ -94,6 +109,7 @@ const Index = () => {
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
   const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
 
@@ -109,6 +125,15 @@ const Index = () => {
       .then(({ data }) => setRawProducts(data))
       .catch((err) => console.error("Failed to load products:", err));
   }, []);
+
+  useEffect(() => {
+    if (!errorMsg) return;
+    const timer = window.setTimeout(() => {
+      setErrorMsg(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [errorMsg]);
 
   /* ── Merge inventory stock into POS product list ──
    *  Re-runs whenever rawProducts or inventoryItems change,
@@ -182,34 +207,119 @@ const Index = () => {
     );
   }, []);
 
+  const roundMoney = useCallback((value: number) => Number(value.toFixed(2)), []);
+  const roundQuantity = useCallback((value: number) => Number(value.toFixed(3)), []);
+
   const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
-    const payload = {
+    const payloadItems: SalePayloadItem[] = [];
+
+    for (const cartItem of cart) {
+      const productId = Number(cartItem.product.id);
+      const productName = String(cartItem.product.name ?? "").trim();
+      const quantity = roundQuantity(Number(cartItem.quantity));
+      const unitPrice = roundMoney(Number(cartItem.product.price));
+      const lineTotal = roundMoney(quantity * unitPrice);
+
+      if (!Number.isFinite(productId) || productId <= 0) {
+        setErrorMsg(`Invalid product ID for "${productName || "Unknown Product"}".`);
+        return;
+      }
+
+      if (!productName) {
+        setErrorMsg("A cart item is missing its product name.");
+        return;
+      }
+
+      if (!Number.isFinite(quantity) || quantity < 0.001) {
+        setErrorMsg(`Invalid quantity for "${productName}".`);
+        return;
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        setErrorMsg(`Invalid unit price for "${productName}".`);
+        return;
+      }
+
+      if (!Number.isFinite(lineTotal) || lineTotal < 0) {
+        setErrorMsg(`Invalid line total for "${productName}".`);
+        return;
+      }
+
+      if (typeof cartItem.product.stock === "number" && quantity > cartItem.product.stock) {
+        setErrorMsg(
+          `Insufficient stock for "${productName}". Available: ${cartItem.product.stock}, requested: ${quantity}.`,
+        );
+        return;
+      }
+
+      payloadItems.push({
+        productId,
+        productName,
+        quantity,
+        unitPrice,
+        lineTotal,
+      });
+    }
+
+    if (payloadItems.length === 0) {
+      setErrorMsg("Sale must include at least one item.");
+      return;
+    }
+
+    const payload: SalePayload = {
       paymentMethod,
-      totalAmount,
+      totalAmount: roundMoney(payloadItems.reduce((sum, item) => sum + item.lineTotal, 0)),
       status: "Completed",
-      items: cart.map((i) => ({
-        productId:   Number(i.product.id),
-        productName: i.product.name,
-        quantity:    i.quantity,
-        unitPrice:   i.product.price,
-        lineTotal:   i.quantity * i.product.price,
-      })),
+      items: payloadItems,
     };
 
     try {
+      console.info("[POS] submitting sale payload", payload);
       const { data } = await api.post("/api/sales", payload);
+      console.info("[POS] sale recorded successfully", data);
       const transactionId = data?.transactionId ?? data?.receiptNo ?? "TRX-UNKNOWN";
       setCart([]);
       setCartOpen(false);
       setLastSale({ transactionId, total: totalAmount, paymentMethod });
       setShowSuccessPopup(true);
+      setErrorMsg(null);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
       showToast(`Sale ${transactionId} recorded successfully!`, "success", "Success");
     } catch (err) {
-      console.error("Checkout failed:", err);
-      alert("Failed to record sale. Please try again.");
+      const error = err as {
+        message?: string;
+        response?: {
+          status?: number;
+          statusText?: string;
+          data?: unknown;
+          headers?: unknown;
+        };
+        config?: {
+          url?: string;
+          method?: string;
+          data?: unknown;
+        };
+      };
+
+      console.error("[POS] checkout failed", {
+        payload,
+        message: error?.message,
+        request: {
+          method: error?.config?.method,
+          url: error?.config?.url,
+          data: error?.config?.data,
+        },
+        response: {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          headers: error?.response?.headers,
+        },
+        rawError: err,
+      });
+      setErrorMsg("Failed to record sale. Please try again.");
     }
-  }, [cart, refreshInventory, showToast]);
+  }, [cart, refreshInventory, roundMoney, roundQuantity, showToast]);
 
   /* ── SKU / Barcode quick-add ── */
   const [skuInputValue, setSkuInputValue] = useState("");
@@ -583,6 +693,13 @@ const Index = () => {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
+      {errorMsg && (
+        <div className="fixed left-1/2 top-6 z-[10000] flex -translate-x-1/2 items-center gap-3 rounded-xl border-l-4 border-red-500 bg-red-100 px-4 py-3 text-red-700 shadow-lg">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">{errorMsg}</p>
+        </div>
+      )}
+
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">

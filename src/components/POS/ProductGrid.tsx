@@ -84,13 +84,13 @@ export function ProductGrid({
 
   // Soft pastel icon-area background per category (light + dark)
   const categoryBg: Record<string, string> = {
-  Fruits:     "bg-rose-50",
-  Dairy:      "bg-blue-50",
-  Beverages:  "bg-sky-50",
-  Bakery:     "bg-amber-50",
-  Snacks:     "bg-lime-50",
-  Meat:       "bg-red-50",
-  Vegetables: "bg-green-50",
+  Fruits:     "bg-rose-50 dark:bg-rose-950/20",
+  Dairy:      "bg-blue-50 dark:bg-blue-950/20",
+  Beverages:  "bg-sky-50 dark:bg-sky-950/20",
+  Bakery:     "bg-amber-50 dark:bg-amber-950/20",
+  Snacks:     "bg-lime-50 dark:bg-lime-950/20",
+  Meat:       "bg-red-50 dark:bg-red-950/20",
+  Vegetables: "bg-green-50 dark:bg-green-950/20",
   };
 
   // Category accent border color (top strip)
@@ -105,10 +105,10 @@ export function ProductGrid({
   };
 
   const stockBadge = (stock: number) => {
-    if (stock === 0)  return { label: "Out of stock", cls: "bg-gray-100 text-gray-500 border border-gray-200" };
-    if (stock <= 2)   return { label: `${stock} left!`,  cls: "bg-red-100 text-red-600 border border-red-200" };
-    if (stock <= 9)   return { label: `${stock} left`,   cls: "bg-amber-100 text-amber-700 border border-amber-200" };
-    return            { label: `${stock} in stock`,      cls: "bg-emerald-50 text-emerald-600 border border-emerald-200" };
+    if (stock === 0)  return { label: "Out of stock", cls: "border border-gray-200 bg-gray-100 text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" };
+    if (stock <= 2)   return { label: `${stock} left!`,  cls: "border border-red-200 bg-red-100 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300" };
+    if (stock <= 9)   return { label: `${stock} left`,   cls: "border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300" };
+    return            { label: `${stock} in stock`,      cls: "border border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300" };
   };
 
   // Switch placeholder based on dark mode (observes <html class="dark">)
@@ -220,7 +220,7 @@ export function ProductGrid({
                 "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors duration-150",
                 activeCategory === cat
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-white border border-border text-muted-foreground hover:border-teal-600 hover:text-teal-600"
+                  : "border border-border bg-white text-muted-foreground hover:border-primary hover:text-primary dark:bg-card dark:hover:border-primary"
               )}
             >
               {(() => { const Icon = categoryIcon[cat]; return Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null; })()}
@@ -241,7 +241,7 @@ export function ProductGrid({
             <span className="text-primary font-medium"> &middot; {activeCategory}</span>
           ) : null}
         </p>
-        <p className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground/50 select-none">
+        <p className="hidden select-none items-center gap-1 text-[10px] text-muted-foreground/50 sm:flex">
           <kbd className="rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[9px]">&#8593;&#8595;&#8592;&#8594;</kbd>
           <span>navigate</span>
           <span className="mx-0.5">&middot;</span>
@@ -267,7 +267,7 @@ export function ProductGrid({
             key={product.id}
             ref={(el) => { cardRefs.current[idx] = el; }}
             className={cn(
-              "group flex flex-col rounded-xl border-t-[3px] border border-border bg-card shadow-sm overflow-hidden transition-all duration-150",
+              "group flex flex-col overflow-hidden rounded-xl border border-border border-t-[3px] bg-card shadow-sm transition-all duration-150 dark:shadow-black/15",
               unavailable
                 ? "opacity-60 cursor-not-allowed border-t-gray-300"
                 : "hover:shadow-md hover:border-primary/30 cursor-pointer",
@@ -295,8 +295,8 @@ export function ProductGrid({
               {/* Unavailable overlay */}
               {unavailable && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/70 backdrop-blur-[2px]">
-                  <PackageX className="h-5 w-5 text-gray-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                  <PackageX className="h-5 w-5 text-gray-400 dark:text-slate-500" />
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">
                     {orderingBlocked ? "Ordering Blocked" : "Out of Stock"}
                   </span>
                 </div>
@@ -330,7 +330,7 @@ export function ProductGrid({
               {!unavailable && (
                 <button
                   onClick={(e) => onAddToCart(product, e)}
-                  className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-md opacity-0 translate-y-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-accent"
+                  className="absolute bottom-1.5 right-1.5 flex h-6 w-6 translate-y-1 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-md transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-accent"
                 >
                   <Plus className="h-3 w-3 stroke-[2.5]" />
                 </button>
@@ -393,7 +393,7 @@ export function ProductGrid({
 
         {/* Empty state */}
         {filtered.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm">
+          <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-white py-20 shadow-sm dark:bg-card dark:shadow-black/15">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Search className="h-6 w-6" />
             </div>

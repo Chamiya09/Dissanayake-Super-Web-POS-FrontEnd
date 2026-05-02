@@ -126,18 +126,18 @@ export default function ManagerDashboard() {
   }, [showToast]);
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900 dark:bg-background dark:text-foreground">
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-none space-y-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-              <p className="text-sm text-slate-500">Daily operations and store performance control center.</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Manager Dashboard</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Daily operations and store performance control center.</p>
             </div>
           </div>
 
@@ -148,9 +148,9 @@ export default function ManagerDashboard() {
           </div>
 
           {loading && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md">
-              <div className="flex items-center justify-center gap-3 text-slate-600">
-                <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
+              <div className="flex items-center justify-center gap-3 text-slate-600 dark:text-slate-300">
+                <Loader2 className="h-5 w-5 animate-spin text-teal-600 dark:text-teal-300" />
                 <p className="text-sm font-medium">Loading manager dashboard data...</p>
               </div>
             </div>
@@ -162,65 +162,65 @@ export default function ManagerDashboard() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Today's Hourly Sales</h2>
-              <p className="text-xs text-slate-500">Real-time hourly sales from backend</p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Today's Hourly Sales</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Real-time hourly sales from backend</p>
             </div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dashboardData.todaysHourlySales}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="hour" tick={{ fontSize: 12, fill: "#64748b" }} />
-                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" strokeOpacity={0.35} />
+                  <XAxis dataKey="hour" tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(Number(value || 0)), "Sales"]}
-                    contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
+                    contentStyle={{ borderRadius: 10, border: "1px solid #475569", backgroundColor: "#1E1E1E", color: "#E0E0E0" }}
                   />
-                  <Bar dataKey="amount" fill="#4f46e5" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="amount" fill="#14b8a6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             {dashboardData.todaysHourlySales.length === 0 && !loading && (
-              <p className="mt-2 text-center text-sm text-slate-500">No completed sales recorded today.</p>
+              <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">No completed sales recorded today.</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1.4fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-              <h3 className="text-base font-semibold text-slate-900">Quick Actions</h3>
-              <p className="mb-4 text-xs text-slate-500">Jump directly to operational tasks</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Quick Actions</h3>
+              <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">Jump directly to operational tasks</p>
               <div className="grid grid-cols-1 gap-3">
                 <button
                   onClick={() => navigate("/products")}
-                  className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-4 text-left transition hover:bg-indigo-100"
+                  className="flex items-center justify-between rounded-xl border border-teal-200 bg-teal-50 px-4 py-4 text-left transition hover:bg-teal-100 dark:border-teal-500/30 dark:bg-teal-500/10 dark:hover:bg-teal-500/20"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-indigo-800">Add Product</p>
-                    <p className="text-xs text-indigo-700">Create and publish a new product item</p>
+                    <p className="text-sm font-semibold text-teal-800 dark:text-teal-200">Add Product</p>
+                    <p className="text-xs text-teal-700 dark:text-teal-300">Create and publish a new product item</p>
                   </div>
-                  <PlusCircle className="h-5 w-5 text-indigo-700" />
+                  <PlusCircle className="h-5 w-5 text-teal-700 dark:text-teal-300" />
                 </button>
 
                 <button
                   onClick={() => navigate("/inventory")}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:bg-slate-50"
+                  className="flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-4 py-4 text-left transition hover:bg-orange-100 dark:border-orange-500/30 dark:bg-orange-500/10 dark:hover:bg-orange-500/20"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">View Inventory</p>
-                    <p className="text-xs text-slate-600">Monitor stock and reorder levels</p>
+                    <p className="text-sm font-semibold text-orange-900 dark:text-orange-200">View Inventory</p>
+                    <p className="text-xs text-orange-700 dark:text-orange-300">Monitor stock and reorder levels</p>
                   </div>
-                  <Boxes className="h-5 w-5 text-slate-700" />
+                  <Boxes className="h-5 w-5 text-orange-700 dark:text-orange-300" />
                 </button>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-              <h3 className="text-base font-semibold text-slate-900">Low Stock Action List</h3>
-              <p className="mb-3 text-xs text-slate-500">Prioritize replenishment actions</p>
-              <div className="overflow-hidden rounded-lg border border-slate-100">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Low Stock Action List</h3>
+              <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">Prioritize replenishment actions</p>
+              <div className="overflow-hidden rounded-lg border border-slate-100 dark:border-slate-700">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
                     <tr>
                       <th className="px-3 py-2">Product</th>
                       <th className="px-3 py-2 text-right">Stock</th>
@@ -229,13 +229,13 @@ export default function ManagerDashboard() {
                   </thead>
                   <tbody>
                     {dashboardData.lowStockActionList.length === 0 ? (
-                      <tr><td colSpan={3} className="px-3 py-5 text-center text-slate-500">All good. No low stock items.</td></tr>
+                      <tr><td colSpan={3} className="px-3 py-5 text-center text-slate-500 dark:text-slate-400">All good. No low stock items.</td></tr>
                     ) : (
                       dashboardData.lowStockActionList.slice(0, 8).map((row) => (
-                        <tr key={row.productId} className="border-t border-slate-100">
-                          <td className="px-3 py-2">{row.productName}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-rose-700">{row.stockQuantity}</td>
-                          <td className="px-3 py-2 text-right text-slate-700">{row.reorderLevel}</td>
+                        <tr key={row.productId} className="border-t border-slate-100 dark:border-slate-700">
+                          <td className="px-3 py-2 text-slate-900 dark:text-slate-100">{row.productName}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-rose-700 dark:text-rose-300">{row.stockQuantity}</td>
+                          <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">{row.reorderLevel}</td>
                         </tr>
                       ))
                     )}

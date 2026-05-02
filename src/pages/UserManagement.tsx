@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import {
   Trash2,
   Lock,
   UserPlus,
-  Loader2,
   Shield,
   UserCog,
   RefreshCw,
@@ -35,23 +34,18 @@ import EditUserModal from "@/components/Users/EditUserModal";
 import DeleteUserModal from "@/components/Users/DeleteUserModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
 
-/* ── Role-based permission config ── */
 const CAN_ADD_USERS = ["Owner", "Manager"];
 
-/* Which roles can each logged-in role edit or delete */
 const MANAGEABLE_ROLES = {
   Owner: ["Manager", "Staff"],
   Manager: ["Staff"],
   Staff: [],
 };
 
-/* ── Role badge colours ── */
 function RoleBadge({ role, isSenior = false }) {
   const isOwner = role === "Owner";
   const isManager = role === "Manager";
-  // Staff fallback
-  
-  const label = role;
+
   const dot = isOwner ? "bg-red-500" : isManager ? "bg-blue-500" : "bg-green-500";
   const colour = isOwner
     ? "bg-red-50 text-red-600 border-red-200"
@@ -60,14 +54,9 @@ function RoleBadge({ role, isSenior = false }) {
     : "bg-emerald-50 text-emerald-600 border-emerald-200";
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
-        colour
-      )}
-    >
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap", colour)}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
-      {label}
+      {role}
       {role === "Staff" && isSenior && (
         <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
           <BadgeCheck className="h-3 w-3" />
@@ -78,7 +67,6 @@ function RoleBadge({ role, isSenior = false }) {
   );
 }
 
-/* ── Avatar initials helper ── */
 function UserAvatar({ name }) {
   const initials = name
     .split(" ")
@@ -86,8 +74,9 @@ function UserAvatar({ name }) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
+
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 text-[12px] font-bold select-none tracking-wide">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[12px] font-bold tracking-wide text-slate-600 select-none">
       {initials}
     </div>
   );
@@ -95,24 +84,18 @@ function UserAvatar({ name }) {
 
 function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <div
-          className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl",
-            iconBg,
-            iconColor
-          )}
-        >
+        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", iconBg, iconColor)}>
           <Icon className="h-6 w-6" />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
-          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
+          <span className="whitespace-nowrap text-sm font-medium text-slate-500">{label}</span>
+          <span className="mt-1 text-2xl font-bold leading-none text-slate-900">{value}</span>
         </div>
       </div>
       {sub && (
-        <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="mt-4 border-t border-slate-100 pt-4">
           <span className="text-sm text-slate-500">{sub}</span>
         </div>
       )}
@@ -124,6 +107,7 @@ export default function UserManagement() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const currentUserRole = user?.role ?? "Staff";
+  const isManagerView = currentUserRole === "Manager";
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +118,11 @@ export default function UserManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const canAddUsers = CAN_ADD_USERS.includes(currentUserRole);
+
+  const visibleUsers = useMemo(
+    () => (isManagerView ? users.filter((u) => u.role !== "Owner") : users),
+    [isManagerView, users]
+  );
 
   const canManage = (targetUser) =>
     targetUser.username !== "admin" &&
@@ -155,7 +144,7 @@ export default function UserManagement() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const filtered = users.filter((u) => {
+  const filtered = visibleUsers.filter((u) => {
     const q = search.toLowerCase();
     const matchesSearch =
       u.fullName.toLowerCase().includes(q) ||
@@ -218,9 +207,8 @@ export default function UserManagement() {
     }
   };
 
-  const ownerCount = users.filter((u) => u.role === "Owner").length;
-  const managerCount = users.filter((u) => u.role === "Manager").length;
-  const staffCount = users.filter((u) => u.role === "Staff").length;
+  const managerCount = visibleUsers.filter((u) => u.role === "Manager").length;
+  const staffCount = visibleUsers.filter((u) => u.role === "Staff").length;
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
@@ -228,31 +216,29 @@ export default function UserManagement() {
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-none space-y-8">
-
-          {/* ── Page header ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 border border-teal-100 text-teal-600 shrink-0">
-                  <Users size={24} />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    System Users
-                  </h1>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {loading
-                      ? "Loading users..."
-                      : `Manage system access, roles, and staff accounts · ${users.length} active user${users.length !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
+          <div className="flex flex-col justify-between gap-4 px-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-teal-50 text-teal-600">
+                <Users size={24} />
               </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">System Users</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {loading
+                    ? "Loading users..."
+                    : isManagerView
+                    ? `Manage staff accounts for your team · ${visibleUsers.length} visible user${visibleUsers.length !== 1 ? "s" : ""}`
+                    : `Manage system access, roles, and staff accounts · ${visibleUsers.length} active user${visibleUsers.length !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+            </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={fetchUsers}
                 disabled={loading}
                 title="Refresh List"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-teal-600 hover:border-teal-100 hover:bg-teal-50 transition-all disabled:opacity-50 shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:border-teal-100 hover:bg-teal-50 hover:text-teal-600 disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </button>
@@ -260,14 +246,14 @@ export default function UserManagement() {
               {canAddUsers ? (
                 <button
                   onClick={() => setIsAddOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 h-10 rounded-xl text-[13px] font-semibold bg-teal-600 text-white hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shrink-0"
+                  className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-teal-600 px-5 text-[13px] font-semibold text-white shadow-sm transition-all duration-150 hover:bg-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95"
                 >
                   <UserPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add User</span>
+                  <span className="hidden sm:inline">{isManagerView ? "Add Staff" : "Add User"}</span>
                   <span className="sm:hidden">Add</span>
                 </button>
               ) : (
-                <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-medium text-orange-700 shadow-sm shrink-0">
+                <div className="flex shrink-0 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-medium text-orange-700 shadow-sm">
                   <ShieldAlert className="h-4 w-4" />
                   No permission to add
                 </div>
@@ -275,15 +261,14 @@ export default function UserManagement() {
             </div>
           </div>
 
-          {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3 sm:px-6 lg:px-8">
             <SummaryCard
               icon={Users}
               iconBg="bg-teal-50"
               iconColor="text-teal-600"
-              label="Total Users"
-              value={users.length}
-              sub="Active user accounts in the system"
+              label={isManagerView ? "Visible Users" : "Total Users"}
+              value={visibleUsers.length}
+              sub={isManagerView ? "Accounts available in manager view" : "Active user accounts in the system"}
             />
             <SummaryCard
               icon={UserCog}
@@ -303,30 +288,28 @@ export default function UserManagement() {
             />
           </div>
 
-          {/* ── Main content (Filters and Table) ── */}
           <div className="px-4 sm:px-6 lg:px-8">
-            <div className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 py-4 border-b border-slate-100 bg-white">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+            <div className="w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="flex flex-col items-stretch gap-3 border-b border-slate-100 bg-white px-6 py-4 sm:flex-row sm:items-center">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                   <Input
-                    placeholder="Search users..."
-                    className="pl-10 h-10 text-sm bg-white border-slate-200 rounded-xl placeholder:text-slate-400 focus-visible:ring-slate-300"
+                    placeholder={isManagerView ? "Search staff or managers..." : "Search users..."}
+                    className="h-10 rounded-xl border-slate-200 bg-white pl-10 text-sm placeholder:text-slate-400 focus-visible:ring-slate-300"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                
-                <div className="flex items-center gap-2 shrink-0">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                   <Select value={roleFilter} onValueChange={setRoleFilter}>
-                    <SelectTrigger className="h-10 w-44 text-sm bg-white border-slate-200 rounded-xl focus:ring-slate-300">
+                    <SelectTrigger className="h-10 w-44 rounded-xl border-slate-200 bg-white text-sm focus:ring-slate-300">
                       <SelectValue placeholder="All Roles" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="Owner">Owners</SelectItem>
+                      {!isManagerView && <SelectItem value="Owner">Owners</SelectItem>}
                       <SelectItem value="Manager">Managers</SelectItem>
                       <SelectItem value="Staff">Staff</SelectItem>
                     </SelectContent>
@@ -337,66 +320,50 @@ export default function UserManagement() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-10 px-3 text-xs font-medium text-slate-400 hover:text-slate-700 rounded-xl shrink-0"
-                    onClick={() => { setSearch(""); setRoleFilter("all"); }}
+                    className="h-10 shrink-0 rounded-xl px-3 text-xs font-medium text-slate-400 hover:text-slate-700"
+                    onClick={() => {
+                      setSearch("");
+                      setRoleFilter("all");
+                    }}
                   >
                     Clear
                   </Button>
                 )}
               </div>
 
-              {/* Table */}
-              <div className="hidden md:block overflow-x-auto bg-white">
+              <div className="hidden overflow-x-auto bg-white md:block">
                 {loading ? (
-                  <RefreshLoadingTheme
-                    title="Loading Users"
-                    subtitle="Fetching user accounts and roles..."
-                  />
+                  <RefreshLoadingTheme title="Loading Users" subtitle="Fetching user accounts and roles..." />
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <UserCircle2 className="h-12 w-12 text-slate-300 mb-3" />
+                    <UserCircle2 className="mb-3 h-12 w-12 text-slate-300" />
                     <p className="text-sm font-medium text-slate-900">No users found</p>
-                    <p className="text-sm text-slate-500">
-                      Try adjusting your search criteria or add a new user.
-                    </p>
+                    <p className="text-sm text-slate-500">Try adjusting your search criteria or add a new user.</p>
                   </div>
                 ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100">
-                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                          User
-                        </th>
-                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                          Contact
-                        </th>
-                        <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                          Role
-                        </th>
-                        <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400 bg-transparent">
-                          Actions
-                        </th>
+                        <th className="bg-transparent px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">User</th>
+                        <th className="bg-transparent px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Contact</th>
+                        <th className="bg-transparent px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Role</th>
+                        <th className="bg-transparent px-6 py-4 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {filtered.map((u) => (
-                        <tr 
-                          key={u.id} 
-                          className="group transition-colors duration-150 hover:bg-slate-50/60"
-                        >
+                        <tr key={u.id} className="group transition-colors duration-150 hover:bg-slate-50/60">
                           <td className="px-6 py-6">
                             <div className="flex items-center gap-3">
                               <UserAvatar name={u.fullName} />
                               <div>
-                                <p className="font-semibold text-slate-900 leading-tight">
-                                  {u.fullName}
-                                </p>
-                                <p className="text-xs text-slate-400 mt-0.5 font-mono">{u.memberId || `@${u.username}`}</p>
+                                <p className="font-semibold leading-tight text-slate-900">{u.fullName}</p>
+                                <p className="mt-0.5 font-mono text-xs text-slate-400">{u.memberId || `@${u.username}`}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-6">
-                            <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                            <div className="flex items-center gap-1.5 text-sm text-slate-500">
                               <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                               {u.email}
                             </div>
@@ -409,14 +376,14 @@ export default function UserManagement() {
                               {canManage(u) ? (
                                 <>
                                   <button
-                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-teal-50 hover:text-teal-600"
                                     onClick={() => setEditTarget(u)}
                                     title={`Edit ${u.fullName}`}
                                   >
                                     <Edit3 className="h-4 w-4" />
                                   </button>
                                   <button
-                                    className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                                     onClick={() => setDeleteTarget(u)}
                                     title={`Delete ${u.fullName}`}
                                   >
@@ -425,7 +392,7 @@ export default function UserManagement() {
                                 </>
                               ) : (
                                 <button
-                                  className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 cursor-not-allowed"
+                                  className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-lg text-slate-300"
                                   disabled
                                   title={u.username === "admin" ? "Admin account is protected" : "Insufficient permissions"}
                                 >
@@ -441,34 +408,30 @@ export default function UserManagement() {
                 )}
               </div>
 
-              {/* Mobile card list */}
-              <div className="md:hidden divide-y divide-slate-100 bg-white">
+              <div className="divide-y divide-slate-100 bg-white md:hidden">
                 {loading ? (
-                  <RefreshLoadingTheme
-                    title="Loading Users"
-                    subtitle="Fetching user accounts and roles..."
-                  />
+                  <RefreshLoadingTheme title="Loading Users" subtitle="Fetching user accounts and roles..." />
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <UserCircle2 className="h-10 w-10 text-slate-300 mb-2" />
+                    <UserCircle2 className="mb-2 h-10 w-10 text-slate-300" />
                     <p className="text-sm font-medium text-slate-900">No users found</p>
-                    <p className="text-xs text-slate-500 mt-1">Try changing your filters.</p>
+                    <p className="mt-1 text-xs text-slate-500">Try changing your filters.</p>
                   </div>
                 ) : (
                   filtered.map((u) => (
-                    <div key={u.id} className="p-6 space-y-4">
+                    <div key={u.id} className="space-y-4 p-6">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <UserAvatar name={u.fullName} />
                           <div>
-                            <p className="font-semibold text-slate-900 leading-tight">{u.fullName}</p>
-                            <p className="text-xs text-slate-400 mt-0.5 font-mono">{u.memberId || `@${u.username}`}</p>
+                            <p className="font-semibold leading-tight text-slate-900">{u.fullName}</p>
+                            <p className="mt-0.5 font-mono text-xs text-slate-400">{u.memberId || `@${u.username}`}</p>
                           </div>
                         </div>
                         <RoleBadge role={u.role} isSenior={u.isSenior} />
                       </div>
 
-                      <div className="flex items-center gap-2 text-slate-500 text-sm">
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
                         <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         <span className="truncate">{u.email}</span>
                       </div>
@@ -477,13 +440,13 @@ export default function UserManagement() {
                         {canManage(u) ? (
                           <>
                             <button
-                              className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                              className="h-10 flex-1 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-700"
                               onClick={() => setEditTarget(u)}
                             >
                               Edit
                             </button>
                             <button
-                              className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-red-50 hover:text-red-700 transition-colors"
+                              className="h-10 flex-1 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-700"
                               onClick={() => setDeleteTarget(u)}
                             >
                               Delete
@@ -491,7 +454,7 @@ export default function UserManagement() {
                           </>
                         ) : (
                           <button
-                            className="w-full h-10 rounded-xl border border-slate-200 text-slate-400 text-sm font-medium cursor-not-allowed"
+                            className="h-10 w-full cursor-not-allowed rounded-xl border border-slate-200 text-sm font-medium text-slate-400"
                             disabled
                             title={u.username === "admin" ? "Admin account is protected" : "Insufficient permissions"}
                           >
