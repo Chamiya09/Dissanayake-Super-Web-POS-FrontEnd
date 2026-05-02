@@ -702,7 +702,7 @@ const Index = () => {
 
       <AppHeader />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative z-10 flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
 
@@ -737,7 +737,7 @@ const Index = () => {
         <div
           ref={cartIconRef}
           onPointerDown={() => setKeyboardScope("cart")}
-          className="hidden md:flex h-full w-[360px] lg:w-[410px] xl:w-[460px] shrink-0 border-l border-border bg-card p-4 items-stretch"
+          className="relative z-10 hidden h-full w-[360px] shrink-0 items-stretch border-l border-border bg-card p-4 md:flex lg:w-[410px] xl:w-[460px]"
         >
           <CartPanel
             items={cart}

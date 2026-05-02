@@ -70,7 +70,7 @@ export function AppHeader() {
   const avatarGradient = ROLE_AVATAR_GRADIENT[user?.role as keyof typeof ROLE_AVATAR_GRADIENT] ?? "from-zinc-400 to-zinc-600";
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4 shadow-sm backdrop-blur-sm supports-[backdrop-filter]:bg-card/80">
+    <header className="relative z-50 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4 shadow-sm backdrop-blur-sm supports-[backdrop-filter]:bg-card/80">
       <div className="flex shrink-0 items-center">
         <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground" />
       </div>
@@ -93,7 +93,7 @@ export function AppHeader() {
           </div>
         )}
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative z-[100]" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="User menu"
@@ -144,7 +144,7 @@ export function AppHeader() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 animate-in fade-in slide-in-from-top-2 duration-150 dark:shadow-black/35">
+            <div className="absolute right-0 top-full z-[120] mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-black/15 animate-in fade-in slide-in-from-top-2 duration-150 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40">
               <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-teal-50/70 to-cyan-50/60 px-4 py-3.5 dark:from-slate-800 dark:to-slate-800/70">
                 <div className={cn(
                   "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white shadow ring-2 ring-white dark:ring-slate-900",
