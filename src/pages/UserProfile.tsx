@@ -519,39 +519,9 @@ export default function UserProfile() {
               </div>
 
               <div className="border-t border-slate-100 bg-white/80 px-6 py-7 backdrop-blur-sm sm:px-8 lg:border-l lg:border-t-0">
-                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Account Snapshot</p>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Profile at a glance</h2>
-                  </div>
-                  {!editMode ? (
-                    <button
-                      onClick={openEdit}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-[0.98]"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit Profile
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={cancelEdit}
-                        disabled={editSaving}
-                        className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        <X className="h-4 w-4" />
-                        Cancel
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        disabled={editSaving}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 disabled:opacity-60"
-                      >
-                        <Save className="h-4 w-4" />
-                        {editSaving ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  )}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Account Snapshot</p>
+                  <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Profile at a glance</h2>
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -677,6 +647,37 @@ export default function UserProfile() {
                   You can update your personal details here. Username, email, member ID, and role remain controlled by administration.
                 </p>
               )}
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                {!editMode ? (
+                  <button
+                    onClick={openEdit}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-[0.98]"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={editSaving}
+                      className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveEdit}
+                      disabled={editSaving}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 disabled:opacity-60"
+                    >
+                      <Save className="h-4 w-4" />
+                      {editSaving ? "Saving..." : "Save"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
