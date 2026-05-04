@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Loader2, ShieldCheck, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,18 +54,18 @@ export default function SupervisorApprovalModal({
     >
       <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" onClick={() => !isSubmitting && onClose()} />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-600">
-              <ShieldCheck className="h-5 w-5" />
+      <div className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between bg-teal-600 px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white shadow-inner">
+              <Lock className="h-6 w-6" />
             </div>
             <div>
-              <h2 id="supervisor-approval-title" className="text-base font-bold text-slate-900">
-                Supervisor Override
+              <h2 id="supervisor-approval-title" className="text-lg font-bold text-white">
+                Supervisor Authorization
               </h2>
-              <p className="text-xs text-slate-500">
-                Approval is required to process this return.
+              <p className="text-sm text-teal-100">
+                Staff members require authorization to process returns.
               </p>
             </div>
           </div>
@@ -74,17 +74,17 @@ export default function SupervisorApprovalModal({
             onClick={onClose}
             disabled={isSubmitting}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-teal-100 transition-colors hover:bg-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 px-6 py-5">
-            <div className="space-y-1.5">
-              <Label htmlFor="approverId" className="text-[13px] font-semibold text-slate-900">
-                Manager ID
+          <div className="space-y-5 px-6 py-6">
+            <div className="space-y-2">
+              <Label htmlFor="approverId" className="text-sm font-semibold text-slate-700">
+                Senior Staff / Manager ID
               </Label>
               <Input
                 id="approverId"
@@ -92,16 +92,16 @@ export default function SupervisorApprovalModal({
                 type="text"
                 value={approverId}
                 onChange={(event) => setApproverId(event.target.value.toUpperCase())}
-                placeholder="MGR001"
+                placeholder="e.g. MGR001"
                 disabled={isSubmitting}
                 autoComplete="username"
-                className="h-11 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-300"
+                className="h-12 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-teal-500 focus-visible:border-teal-500"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="approverPassword" className="text-[13px] font-semibold text-slate-900">
-                Approver's Password
+            <div className="space-y-2">
+              <Label htmlFor="approverPassword" className="text-sm font-semibold text-slate-700">
+                Password
               </Label>
               <div className="relative">
                 <Input
@@ -112,13 +112,13 @@ export default function SupervisorApprovalModal({
                   placeholder="Enter password"
                   disabled={isSubmitting}
                   autoComplete="current-password"
-                  className="h-11 rounded-xl border-slate-200 pr-11 text-sm focus-visible:ring-indigo-300"
+                  className="h-12 rounded-xl border-slate-200 bg-slate-50 pr-12 text-sm focus-visible:ring-teal-500 focus-visible:border-teal-500"
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -127,11 +127,11 @@ export default function SupervisorApprovalModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <div className="flex items-center justify-end gap-3 bg-slate-50/80 px-6 py-5 border-t border-slate-100">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="rounded-xl font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700">
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl gap-2 bg-teal-600 px-6 py-2.5 font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-4 focus:ring-teal-600/20 transition-all">
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -139,8 +139,8 @@ export default function SupervisorApprovalModal({
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="h-4 w-4" />
-                  Approve Return
+                  <Lock className="h-4 w-4" />
+                  Authorize & Return
                 </>
               )}
             </Button>
