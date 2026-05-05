@@ -370,16 +370,20 @@ const Index = () => {
 
   /* ── SKU / Barcode quick-add ── */
   const [skuInputValue, setSkuInputValue] = useState("");
-  const [debouncedSkuQuery, setDebouncedSkuQuery] = useState("");
   const skuInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSkuQuery(skuInputValue);
-    }, 300);
-
-    return () => window.clearTimeout(timer);
-  }, [skuInputValue]);
+  const normalizedProductSearch = skuInputValue.trim().toLowerCase();
+  const filteredPosProducts = useMemo(
+    () =>
+      posProducts.filter((product) => {
+        if (!normalizedProductSearch) return true;
+        return (
+          String(product.name ?? "").toLowerCase().includes(normalizedProductSearch) ||
+          String(product.id ?? "").toLowerCase().includes(normalizedProductSearch) ||
+          String(product.barcode ?? "").toLowerCase().includes(normalizedProductSearch)
+        );
+      }),
+    [normalizedProductSearch, posProducts],
+  );
 
   const addProductByBarcode = useCallback(
     (rawBarcode: string) => {
@@ -406,48 +410,12 @@ const Index = () => {
       const scannedBarcode = String(barcode).trim();
       if (!scannedBarcode) return;
       console.info("[POS] handleScannedBarcode:", scannedBarcode);
-      addProductByBarcode(scannedBarcode);
-      setSkuInputValue("");
-    },
-    [addProductByBarcode],
-  );
-
-  const addProductBySku = useCallback(
-    async (rawSku: string) => {
-      const sku = rawSku.trim();
-      if (!sku) return;
-
-      try {
-        const { data } = await api.get<MgmtProduct>("/api/products/search", {
-          params: { sku },
-        });
-        const product: Product = {
-          id:       String(data.id),
-          name:     data.productName,
-          price:    data.sellingPrice,
-          category: data.category,
-          unit:     data.unit ?? "pcs",
-          barcode:  data.barcode ?? "",
-          stock:    data.stockQuantity ?? 0,
-          status:   data.status,
-        };
-
-        // Override stock from live inventory if available.
-        const inv = inventoryItems.find((i) => i.productId === data.id);
-        if (inv) product.stock = inv.stockQuantity;
-
-        if (product.status === "DISCONTINUED") {
-          showToast("Ordering is disabled for discontinued products", "warning");
-          return;
-        }
-
-        addToCart(product);
-        showToast(`Added: ${data.productName}`, "success", "Item Added");
-      } catch {
-        showToast(`No product found for SKU "${sku}"`, "error", "Invalid SKU");
+      setSkuInputValue(scannedBarcode);
+      if (posProducts.some((item) => String(item.barcode ?? "").trim() === scannedBarcode)) {
+        productGridRef.current?.focusGrid(0);
       }
     },
-    [addToCart, inventoryItems, showToast],
+    [posProducts],
   );
 
   const focusProductGrid = useCallback(() => {
@@ -456,7 +424,7 @@ const Index = () => {
   }, []);
 
   const handleSkuSearch = useCallback(
-    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         focusProductGrid();
@@ -464,14 +432,12 @@ const Index = () => {
       }
 
       if (e.key !== "Enter") return;
-      const suffix = skuInputValue.trim();
-      if (!suffix) return;
-      await addProductBySku(`PI${suffix}`);
-      setSkuInputValue("");
-      // Re-focus so the next barcode scan / manual entry is instant.
-      skuInputRef.current?.focus();
+      if (filteredPosProducts.length === 1) {
+        e.preventDefault();
+        productGridRef.current?.focusGrid(0);
+      }
     },
-    [addProductBySku, focusProductGrid, skuInputValue],
+    [filteredPosProducts.length, focusProductGrid],
   );
 
   const isTextEntryElement = useCallback((element: HTMLElement | null) => {
@@ -824,7 +790,9 @@ const Index = () => {
               onKeyDown={handleSkuSearch}
               onFocus={() => setKeyboardScope("grid")}
               inputRef={skuInputRef}
-              placeholder="00001"
+              placeholder="Search by name, ID, or scan barcode..."
+              prefixLabel={null}
+              disablePrefixNormalization
               onClear={() => {
                 setSkuInputValue("");
                 skuInputRef.current?.focus();
@@ -839,7 +807,7 @@ const Index = () => {
               onAddToCart={addToCart}
               products={posProducts}
               keyboardActive={keyboardScope === "grid" && !isCheckoutModalOpen}
-              searchSuffix={debouncedSkuQuery}
+              searchQuery={skuInputValue}
             />
           </div>
         </div>

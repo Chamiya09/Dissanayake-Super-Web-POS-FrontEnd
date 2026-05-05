@@ -21,7 +21,7 @@ interface ProductGridProps {
   onAddToCart: (product: Product, e: React.MouseEvent) => void;
   products?: Product[];
   keyboardActive?: boolean;
-  searchSuffix?: string;
+  searchQuery?: string;
 }
 
 export interface ProductGridHandle {
@@ -33,7 +33,7 @@ export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(funct
   onAddToCart,
   products: externalProducts,
   keyboardActive = true,
-  searchSuffix = "",
+  searchQuery = "",
 }, ref) {
   const productList = externalProducts ?? staticProducts;
   const PAGE_SIZE = 24;
@@ -59,12 +59,16 @@ export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(funct
     }
   }, [activeCategory, categoryOptions]);
 
-  const skuQuery = searchSuffix.trim() ? `PI${searchSuffix.trim()}`.toLowerCase() : "";
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filtered = useMemo(() => {
     return productList
       .filter((product) => {
-        const matchesSearch = !skuQuery || (product.barcode ?? "").toLowerCase().includes(skuQuery);
+        const matchesSearch =
+          !normalizedSearchQuery ||
+          String(product.name ?? "").toLowerCase().includes(normalizedSearchQuery) ||
+          String(product.id ?? "").toLowerCase().includes(normalizedSearchQuery) ||
+          String(product.barcode ?? "").toLowerCase().includes(normalizedSearchQuery);
         const matchesCategory = activeCategory === "All" || product.category === activeCategory;
         return matchesSearch && matchesCategory;
       })
@@ -78,7 +82,7 @@ export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(funct
         return a.index - b.index;
       })
       .map(({ product }) => product);
-  }, [activeCategory, productList, skuQuery]);
+  }, [activeCategory, normalizedSearchQuery, productList]);
 
   const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -134,7 +138,7 @@ export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(funct
   }, []);
 
   const PLACEHOLDER = isDark ? "/placeholder-dark.svg" : "/placeholder.svg";
-  const isSearching = searchSuffix.trim().length > 0;
+  const isSearching = searchQuery.trim().length > 0;
   const categoriesVisible = !isSearching || showCategoryRail;
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -168,13 +172,19 @@ export const ProductGrid = forwardRef<ProductGridHandle, ProductGridProps>(funct
   useEffect(() => {
     setFocusedIndex(-1);
     setVisibleCount(PAGE_SIZE);
-  }, [activeCategory, searchSuffix]);
+  }, [activeCategory, searchQuery]);
 
   useEffect(() => {
-    if (searchSuffix.trim()) {
+    if (searchQuery.trim()) {
       setShowCategoryRail(false);
     }
-  }, [searchSuffix]);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (filtered.length === 1) {
+      setFocusedIndex(0);
+    }
+  }, [filtered.length]);
 
   useEffect(() => {
     if (focusedIndex < 0) return;
