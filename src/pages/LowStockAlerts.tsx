@@ -720,7 +720,7 @@ export default function LowStockAlerts() {
   }, [apiAlerts, contextAlerts]);
 
   const visibleAlerts = useMemo(() => {
-    const skuQuery = search.trim() ? `PI${search.trim()}`.toLowerCase() : "";
+    const normalizedSearch = search.trim().toLowerCase();
     return alertSource
       .map((i) => {
         const supplierEmail = normalizeEmail(i.supplierEmail ?? i.supplier?.email);
@@ -735,8 +735,17 @@ export default function LowStockAlerts() {
       .filter((i) => !isInactiveSupplier(i))
       .filter((i) => statusFilter === "all" || i.stockStatus === statusFilter)
       .filter((i) => {
-        const sku = String(i.sku ?? i.productId ?? i.id ?? "").toLowerCase();
-        return !skuQuery || sku.includes(skuQuery);
+        const barcodeSource = i as { barcode?: string | null; product?: { barcode?: string | null } };
+        const productName = String(i.productName ?? "").toLowerCase();
+        const productId = String(i.sku ?? i.productId ?? i.id ?? "").toLowerCase();
+        const barcode = String(barcodeSource.barcode ?? barcodeSource.product?.barcode ?? "").toLowerCase();
+
+        return (
+          !normalizedSearch ||
+          productName.includes(normalizedSearch) ||
+          productId.includes(normalizedSearch) ||
+          barcode.includes(normalizedSearch)
+        );
       });
   }, [alertSource, statusFilter, search, supplierActivityByEmail]);
 
@@ -901,8 +910,10 @@ export default function LowStockAlerts() {
                 <PiPrefixSearchInput
                   value={search}
                   onChange={setSearch}
-                  placeholder="00001"
+                  placeholder="Filter by product name, ID, or scan barcode..."
                   onClear={() => setSearch("")}
+                  prefixLabel={null}
+                  disablePrefixNormalization
                   className="h-10"
                 />
               </div>
