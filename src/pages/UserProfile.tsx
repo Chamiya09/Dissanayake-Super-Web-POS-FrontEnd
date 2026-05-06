@@ -23,24 +23,26 @@ import {
   Shield,
   BriefcaseBusiness,
   CheckCircle2,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ROLE_THEME: Record<
-  string,
-  {
-    badge: string;
-    dot: string;
-    avatar: string;
-    hero: string;
-    iconWrap: string;
-    panelTint: string;
-    title: string;
-    subtitle: string;
-    highlightLabel: string;
-    highlightValue: string;
-  }
-> = {
+type RoleTheme = {
+  badge: string;
+  dot: string;
+  avatar: string;
+  hero: string;
+  iconWrap: string;
+  panelTint: string;
+  title: string;
+  subtitle: string;
+  highlightLabel: string;
+  highlightValue: string;
+  badgeLabel: string;
+  staffStatusLabel?: string;
+};
+
+const ROLE_THEME: Record<string, RoleTheme> = {
   Owner: {
     badge: "border-red-200 bg-red-50 text-red-700",
     dot: "bg-red-500",
@@ -52,6 +54,7 @@ const ROLE_THEME: Record<
     subtitle: "Oversee the full platform, business controls, and strategic account settings.",
     highlightLabel: "Access Level",
     highlightValue: "Full System Control",
+    badgeLabel: "Owner",
   },
   Manager: {
     badge: "border-cyan-200 bg-cyan-50 text-cyan-700",
@@ -64,6 +67,7 @@ const ROLE_THEME: Record<
     subtitle: "Manage day-to-day operations, team workflows, and store performance with confidence.",
     highlightLabel: "Focus Area",
     highlightValue: "Operations & Team",
+    badgeLabel: "Manager",
   },
   Staff: {
     badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -76,8 +80,29 @@ const ROLE_THEME: Record<
     subtitle: "Keep your account details current so daily checkout and store work stays friction-free.",
     highlightLabel: "Primary Role",
     highlightValue: "Frontline Operations",
+    badgeLabel: "Staff",
+    staffStatusLabel: "Active Store Account",
+  },
+  SeniorStaff: {
+    badge: "border-violet-200 bg-violet-50 text-violet-700",
+    dot: "bg-violet-500",
+    avatar: "from-violet-500 via-indigo-500 to-fuchsia-500",
+    hero: "from-violet-50 via-white to-indigo-50",
+    iconWrap: "bg-violet-100 text-violet-700",
+    panelTint: "border-violet-100 bg-violet-50/70",
+    title: "Senior Staff Profile",
+    subtitle: "Lead daily floor coordination, staff supervision, and checkout workflows with elevated store access.",
+    highlightLabel: "Supervisory Operations",
+    highlightValue: "Elevated Staff Access",
+    badgeLabel: "Senior Staff",
+    staffStatusLabel: "Supervisory Operations",
   },
 };
+
+function getRoleTheme(role?: string, isSenior?: boolean): RoleTheme {
+  if (role === "Staff" && isSenior) return ROLE_THEME.SeniorStaff;
+  return ROLE_THEME[role ?? ""] ?? ROLE_THEME.Staff;
+}
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
@@ -117,21 +142,32 @@ const STRENGTH_LABEL = ["Too weak", "Weak", "Fair", "Good", "Strong"];
 const STRENGTH_BAR = ["bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500", "bg-emerald-500"];
 const STRENGTH_TEXT = ["text-red-600", "text-orange-600", "text-amber-600", "text-lime-600", "text-emerald-600"];
 
-function AvatarCircle({ name, role }: { name?: string; role?: string }) {
+function AvatarCircle({ name, role, isSenior = false }: { name?: string; role?: string; isSenior?: boolean }) {
   const initials = (name ?? "U")
     .split(" ")
     .slice(0, 2)
     .map((part) => part[0])
     .join("")
     .toUpperCase();
-  const theme = ROLE_THEME[role ?? ""] ?? ROLE_THEME.Staff;
+  const theme = getRoleTheme(role, isSenior);
 
   return (
     <div className="relative">
       <div className={cn("absolute inset-0 rounded-[28px] blur-xl opacity-35", theme.panelTint)} />
-      <div className={cn("relative flex h-28 w-28 items-center justify-center rounded-[28px] bg-gradient-to-br text-3xl font-black text-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)] ring-4 ring-white", theme.avatar)}>
+      <div
+        className={cn(
+          "relative flex h-28 w-28 items-center justify-center rounded-[28px] bg-gradient-to-br text-3xl font-black text-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)] ring-4",
+          isSenior ? "ring-violet-100" : "ring-white",
+          theme.avatar,
+        )}
+      >
         {initials}
       </div>
+      {role === "Staff" && isSenior ? (
+        <span className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-2xl border border-violet-200 bg-white text-violet-600 shadow-lg">
+          <Star className="h-4 w-4 fill-current" />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -333,7 +369,8 @@ export default function UserProfile() {
   const [pwLoading, setPwLoading] = useState(false);
 
   const lastLogin = jwtIat((user as any)?.token);
-  const theme = ROLE_THEME[user?.role ?? ""] ?? ROLE_THEME.Staff;
+  const isSeniorStaff = user?.role === "Staff" && Boolean(user?.isSenior);
+  const theme = getRoleTheme(user?.role, isSeniorStaff);
   const displayName = profileFullName || user?.name || "";
 
   const roleSummary = useMemo(() => {
@@ -349,11 +386,17 @@ export default function UserProfile() {
         { icon: CheckCircle2, label: "Team Access", value: "Operational control", tone: "border-sky-100 bg-sky-50/70 text-sky-700" },
       ];
     }
+    if (isSeniorStaff) {
+      return [
+        { icon: BriefcaseBusiness, label: "Responsibility", value: "Staff Supervision & POS workflow", tone: "border-violet-100 bg-violet-50/70 text-violet-700" },
+        { icon: Shield, label: "Access Level", value: "Elevated Staff Access", tone: "border-indigo-100 bg-indigo-50/70 text-indigo-700" },
+      ];
+    }
     return [
       { icon: CheckCircle2, label: "Work Mode", value: "Daily POS workflow", tone: "border-emerald-100 bg-emerald-50/70 text-emerald-700" },
       { icon: Shield, label: "Account Type", value: "Store staff access", tone: "border-teal-100 bg-teal-50/70 text-teal-700" },
     ];
-  }, [user?.role]);
+  }, [isSeniorStaff, user?.role]);
 
   useEffect(() => {
     if (!user) return;
@@ -475,17 +518,20 @@ export default function UserProfile() {
             <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="px-6 py-7 sm:px-8">
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
-                  <AvatarCircle name={displayName} role={user?.role} />
+                  <AvatarCircle name={displayName} role={user?.role} isSenior={isSeniorStaff} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", theme.badge)}>
                         <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
-                        {theme.title}
+                        {theme.badgeLabel}
                       </span>
                       {user?.role === "Staff" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-3 py-1 text-[11px] font-semibold",
+                          isSeniorStaff ? "border-violet-200 text-violet-700" : "border-emerald-200 text-emerald-700",
+                        )}>
                           <Sparkles className="h-3 w-3" />
-                          {profileMemberId ? "Active Store Account" : "Account Ready"}
+                          {profileMemberId ? theme.staffStatusLabel : "Account Ready"}
                         </span>
                       )}
                     </div>
@@ -534,7 +580,7 @@ export default function UserProfile() {
                   <ReadField icon={ShieldCheck} label="Role">
                     <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
                       <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
-                      {user?.role}
+                      {theme.badgeLabel}
                     </span>
                   </ReadField>
                   <ReadField icon={Sparkles} label={theme.highlightLabel}>
@@ -582,7 +628,7 @@ export default function UserProfile() {
                     <ReadField icon={ShieldCheck} label="Role">
                       <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
                         <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
-                        {user?.role}
+                        {theme.badgeLabel}
                       </span>
                     </ReadField>
                     <ReadField icon={Hash} label="Employee ID">
@@ -622,7 +668,7 @@ export default function UserProfile() {
                     <ReadField icon={ShieldCheck} label="Role">
                       <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
                         <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
-                        {user?.role}
+                        {theme.badgeLabel}
                       </span>
                     </ReadField>
                     <ReadField icon={Hash} label="Employee ID">

@@ -17,7 +17,7 @@ import {
   RefreshCw,
   Mail,
   SlidersHorizontal,
-  BadgeCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   Select,
@@ -45,29 +45,26 @@ const MANAGEABLE_ROLES = {
 function RoleBadge({ role, isSenior = false }) {
   const isOwner = role === "Owner";
   const isManager = role === "Manager";
+  const isSeniorStaff = role === "Staff" && isSenior;
 
-  const dot = isOwner ? "bg-red-500" : isManager ? "bg-blue-500" : "bg-green-500";
+  const dot = isOwner ? "bg-red-500" : isManager ? "bg-blue-500" : isSeniorStaff ? "bg-violet-500" : "bg-green-500";
   const colour = isOwner
     ? "bg-red-50 text-red-600 border-red-200"
     : isManager
     ? "bg-blue-50 text-blue-600 border-blue-200"
+    : isSeniorStaff
+    ? "bg-violet-50 text-violet-700 border-violet-200"
     : "bg-emerald-50 text-emerald-600 border-emerald-200";
 
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap", colour)}>
       <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
-      {role}
-      {role === "Staff" && isSenior && (
-        <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-          <BadgeCheck className="h-3 w-3" />
-          Senior
-        </span>
-      )}
+      {isSeniorStaff ? "Senior Staff" : role}
     </span>
   );
 }
 
-function UserAvatar({ name }) {
+function UserAvatar({ name, isSenior = false }) {
   const initials = name
     .split(" ")
     .slice(0, 2)
@@ -76,8 +73,22 @@ function UserAvatar({ name }) {
     .toUpperCase();
 
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[12px] font-bold tracking-wide text-slate-600 select-none">
-      {initials}
+    <div className="relative">
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold tracking-wide select-none",
+          isSenior
+            ? "border border-violet-200 bg-violet-50 text-violet-700 shadow-sm"
+            : "bg-slate-100 text-slate-600",
+        )}
+      >
+        {initials}
+      </div>
+      {isSenior ? (
+        <span className="absolute -right-1 -top-1 flex h-4.5 w-4.5 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-600 shadow-sm">
+          <Sparkles className="h-2.5 w-2.5" />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -355,7 +366,7 @@ export default function UserManagement() {
                         <tr key={u.id} className="group transition-colors duration-150 hover:bg-slate-50/60">
                           <td className="px-6 py-6">
                             <div className="flex items-center gap-3">
-                              <UserAvatar name={u.fullName} />
+                              <UserAvatar name={u.fullName} isSenior={u.role === "Staff" && Boolean(u.isSenior)} />
                               <div>
                                 <p className="font-semibold leading-tight text-slate-900">{u.fullName}</p>
                                 <p className="mt-0.5 font-mono text-xs text-slate-400">{u.memberId || `@${u.username}`}</p>
@@ -422,7 +433,7 @@ export default function UserManagement() {
                     <div key={u.id} className="space-y-4 p-6">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <UserAvatar name={u.fullName} />
+                          <UserAvatar name={u.fullName} isSenior={u.role === "Staff" && Boolean(u.isSenior)} />
                           <div>
                             <p className="font-semibold leading-tight text-slate-900">{u.fullName}</p>
                             <p className="mt-0.5 font-mono text-xs text-slate-400">{u.memberId || `@${u.username}`}</p>

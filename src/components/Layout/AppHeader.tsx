@@ -18,12 +18,14 @@ const ROLE_BADGE = {
   Owner:   "bg-teal-100  text-teal-700  border-teal-200",
   Manager: "bg-cyan-100  text-cyan-700  border-cyan-200",
   Staff:   "bg-emerald-100 text-emerald-700 border-emerald-200",
+  SeniorStaff: "bg-violet-100 text-violet-700 border-violet-200",
 };
-const ROLE_DOT = { Owner: "bg-teal-500", Manager: "bg-cyan-500", Staff: "bg-emerald-500" };
+const ROLE_DOT = { Owner: "bg-teal-500", Manager: "bg-cyan-500", Staff: "bg-emerald-500", SeniorStaff: "bg-violet-500" };
 const ROLE_AVATAR_GRADIENT = {
   Owner:   "from-teal-500  to-teal-700",
   Manager: "from-cyan-500  to-cyan-700",
   Staff:   "from-emerald-500 to-emerald-700",
+  SeniorStaff: "from-violet-500 to-indigo-700",
 };
 
 function getInitials(name: string | undefined) {
@@ -66,8 +68,11 @@ export function AppHeader() {
     navigate(path);
   };
 
+  const isSeniorStaff = user?.role === "Staff" && user?.isSenior === true;
+  const roleKey = isSeniorStaff ? "SeniorStaff" : (user?.role as keyof typeof ROLE_BADGE);
+  const roleLabel = isSeniorStaff ? "Senior Staff" : (user?.role ?? "Guest");
   const initials = getInitials(user?.name);
-  const avatarGradient = ROLE_AVATAR_GRADIENT[user?.role as keyof typeof ROLE_AVATAR_GRADIENT] ?? "from-zinc-400 to-zinc-600";
+  const avatarGradient = ROLE_AVATAR_GRADIENT[roleKey as keyof typeof ROLE_AVATAR_GRADIENT] ?? "from-zinc-400 to-zinc-600";
 
   return (
     <header className="relative z-50 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4 shadow-sm backdrop-blur-sm supports-[backdrop-filter]:bg-card/80">
@@ -122,7 +127,7 @@ export function AppHeader() {
               </div>
               <span className={cn(
                 "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-white",
-                ROLE_DOT[user?.role as keyof typeof ROLE_DOT],
+                ROLE_DOT[roleKey as keyof typeof ROLE_DOT],
               )} />
             </div>
 
@@ -130,8 +135,13 @@ export function AppHeader() {
               <span className="max-w-[72px] truncate text-[12.5px] font-bold leading-tight text-slate-800">
                 {user?.name?.split(" ")[0] ?? "Guest"}
               </span>
-              <span className="mt-1 inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-teal-700">
-                {user?.role}
+              <span
+                className={cn(
+                  "mt-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                  isSeniorStaff ? "bg-violet-50 text-violet-700" : "bg-teal-50 text-teal-700",
+                )}
+              >
+                {roleLabel}
               </span>
             </div>
 
@@ -157,15 +167,15 @@ export function AppHeader() {
                   <span
                     className={cn(
                       "mt-0.5 inline-flex items-center gap-1 rounded-full border px-2 py-px text-[10px] font-semibold",
-                      ROLE_BADGE[user?.role as keyof typeof ROLE_BADGE],
+                      ROLE_BADGE[roleKey as keyof typeof ROLE_BADGE],
                     )}
                     style={{
-                      backgroundColor: PROFILE_PALETTE.badgeBg,
-                      borderColor: PROFILE_PALETTE.badgeBorder,
+                      backgroundColor: isSeniorStaff ? "rgba(124, 58, 237, 0.12)" : PROFILE_PALETTE.badgeBg,
+                      borderColor: isSeniorStaff ? "rgba(124, 58, 237, 0.30)" : PROFILE_PALETTE.badgeBorder,
                     }}
                   >
-                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", ROLE_DOT[user?.role as keyof typeof ROLE_DOT])} />
-                    {user?.role}
+                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", ROLE_DOT[roleKey as keyof typeof ROLE_DOT])} />
+                    {roleLabel}
                   </span>
                 </div>
               </div>
