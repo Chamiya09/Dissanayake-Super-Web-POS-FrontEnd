@@ -462,7 +462,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                                     {p.productName}
                                   </span>
                                   <span className="text-[11px] text-slate-500 mt-0.5">
-                                    {p.sku}
+                                    {p.sku}{p.barcode ? ` • ${p.barcode}` : ""}
                                   </span>
                                 </span>
                                 <span className={`ml-auto flex-shrink-0 text-[12px] font-semibold ${
@@ -1226,6 +1226,10 @@ const InventoryStock = () => {
     }
   };
 
+  const productById = new Map(
+    products.map((product) => [Number(product.id), product])
+  );
+
   // -- Derived category list for the filter dropdown
   const categoryOptions = [...new Set(inventoryItems.map((i) => i.category).filter(Boolean))].sort();
 
@@ -1236,7 +1240,13 @@ const InventoryStock = () => {
     .filter((item) => {
       const { productName, category, sku } = item;
       const barcodeSource = item as { barcode?: string | null; product?: { barcode?: string | null } };
-      const barcode = String(barcodeSource.barcode ?? barcodeSource.product?.barcode ?? "").toLowerCase();
+      const linkedProduct = productById.get(Number(item.productId));
+      const barcode = String(
+        barcodeSource.barcode ??
+        barcodeSource.product?.barcode ??
+        linkedProduct?.barcode ??
+        ""
+      ).toLowerCase();
       const matchesSearch =
         !normalizedInventorySearch ||
         String(productName ?? "").toLowerCase().includes(normalizedInventorySearch) ||
