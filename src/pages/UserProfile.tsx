@@ -1,22 +1,109 @@
-﻿import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { useToast } from "@/context/GlobalToastContext";
 import { LS_KEY, useAuth } from "@/context/AuthContext";
 import api from "@/lib/axiosInstance";
-import SuccessPopup from "@/components/ui/SuccessPopup";
 import {
-  User, AtSign, Mail, ShieldCheck, KeyRound,
-  Eye, EyeOff, Save, Pencil, X, Clock, Calendar, Hash,
+  User,
+  AtSign,
+  Mail,
+  ShieldCheck,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Save,
+  Pencil,
+  X,
+  Clock3,
+  CalendarDays,
+  Hash,
+  Phone,
+  MapPin,
+  Sparkles,
+  Shield,
+  BriefcaseBusiness,
+  CheckCircle2,
+  Star,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-/* ── Role config ─────────────────────────────────────────────────────── */
-const ROLE_CFG: Record<string, { badge: string; dot: string; grad: string }> = {
-  Owner:   { badge: "bg-red-50 text-red-700 border-red-200",            dot: "bg-red-500",     grad: "from-red-400 to-red-600"       },
-  Manager: { badge: "bg-blue-50 text-blue-700 border-blue-200",         dot: "bg-blue-500",    grad: "from-blue-400 to-indigo-600"   },
-  Staff:   { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", grad: "from-emerald-400 to-teal-600"  },
+type RoleTheme = {
+  badge: string;
+  dot: string;
+  avatar: string;
+  hero: string;
+  iconWrap: string;
+  panelTint: string;
+  title: string;
+  subtitle: string;
+  highlightLabel: string;
+  highlightValue: string;
+  badgeLabel: string;
+  staffStatusLabel?: string;
 };
 
-/* ── Helpers ─────────────────────────────────────────────────────────── */
+const ROLE_THEME: Record<string, RoleTheme> = {
+  Owner: {
+    badge: "border-red-200 bg-red-50 text-red-700",
+    dot: "bg-red-500",
+    avatar: "from-rose-500 via-red-500 to-orange-500",
+    hero: "from-red-50 via-white to-orange-50",
+    iconWrap: "bg-red-100 text-red-700",
+    panelTint: "border-red-100 bg-red-50/60",
+    title: "Owner Profile",
+    subtitle: "Oversee the full platform, business controls, and strategic account settings.",
+    highlightLabel: "Access Level",
+    highlightValue: "Full System Control",
+    badgeLabel: "Owner",
+  },
+  Manager: {
+    badge: "border-cyan-200 bg-cyan-50 text-cyan-700",
+    dot: "bg-cyan-500",
+    avatar: "from-cyan-500 via-sky-500 to-indigo-500",
+    hero: "from-cyan-50 via-white to-sky-50",
+    iconWrap: "bg-cyan-100 text-cyan-700",
+    panelTint: "border-cyan-100 bg-cyan-50/60",
+    title: "Manager Profile",
+    subtitle: "Manage day-to-day operations, team workflows, and store performance with confidence.",
+    highlightLabel: "Focus Area",
+    highlightValue: "Operations & Team",
+    badgeLabel: "Manager",
+  },
+  Staff: {
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    dot: "bg-emerald-500",
+    avatar: "from-emerald-500 via-teal-500 to-cyan-500",
+    hero: "from-emerald-50 via-white to-teal-50",
+    iconWrap: "bg-emerald-100 text-emerald-700",
+    panelTint: "border-emerald-100 bg-emerald-50/70",
+    title: "Staff Profile",
+    subtitle: "Keep your account details current so daily checkout and store work stays friction-free.",
+    highlightLabel: "Primary Role",
+    highlightValue: "Frontline Operations",
+    badgeLabel: "Staff",
+    staffStatusLabel: "Active Store Account",
+  },
+  SeniorStaff: {
+    badge: "border-violet-200 bg-violet-50 text-violet-700",
+    dot: "bg-violet-500",
+    avatar: "from-violet-500 via-indigo-500 to-fuchsia-500",
+    hero: "from-violet-50 via-white to-indigo-50",
+    iconWrap: "bg-violet-100 text-violet-700",
+    panelTint: "border-violet-100 bg-violet-50/70",
+    title: "Senior Staff Profile",
+    subtitle: "Lead daily floor coordination, staff supervision, and checkout workflows with elevated store access.",
+    highlightLabel: "Supervisory Operations",
+    highlightValue: "Elevated Staff Access",
+    badgeLabel: "Senior Staff",
+    staffStatusLabel: "Supervisory Operations",
+  },
+};
+
+function getRoleTheme(role?: string, isSenior?: boolean): RoleTheme {
+  if (role === "Staff" && isSenior) return ROLE_THEME.SeniorStaff;
+  return ROLE_THEME[role ?? ""] ?? ROLE_THEME.Staff;
+}
+
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
@@ -33,136 +120,299 @@ function jwtIat(token?: string): string | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
     return payload.iat ? new Date(payload.iat * 1000).toISOString() : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function empId(id?: number | null): string {
   return id ? `EMP-${String(id).padStart(4, "0")}` : "—";
 }
 
-function getStrength(pw: string): number {
-  let s = 0;
-  if (pw.length >= 8)          s++;
-  if (/[A-Z]/.test(pw))        s++;
-  if (/[0-9]/.test(pw))        s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  return s;
+function getStrength(password: string): number {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  return score;
 }
-const STR_LABEL = ["Too weak", "Weak", "Fair", "Good", "Strong"];
-const STR_BAR   = ["bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500", "bg-emerald-500"];
-const STR_TEXT  = ["text-red-600", "text-orange-600", "text-amber-600", "text-lime-600", "text-emerald-600"];
 
-/* ── Sub-components ──────────────────────────────────────────────────── */
-function AvatarCircle({ name, role }: { name?: string; role?: string }) {
-  const initials = (name ?? "U").split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
-  const grad = ROLE_CFG[role ?? ""]?.grad ?? "from-slate-400 to-slate-600";
+const STRENGTH_LABEL = ["Too weak", "Weak", "Fair", "Good", "Strong"];
+const STRENGTH_BAR = ["bg-red-500", "bg-orange-500", "bg-amber-500", "bg-lime-500", "bg-emerald-500"];
+const STRENGTH_TEXT = ["text-red-600", "text-orange-600", "text-amber-600", "text-lime-600", "text-emerald-600"];
+
+function AvatarCircle({ name, role, isSenior = false }: { name?: string; role?: string; isSenior?: boolean }) {
+  const initials = (name ?? "U")
+    .split(" ")
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  const theme = getRoleTheme(role, isSenior);
+
   return (
-    <div className={`flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br ${grad} text-3xl font-extrabold text-white shadow-xl ring-4 ring-white shrink-0`}>
-      {initials}
+    <div className="relative">
+      <div className={cn("absolute inset-0 rounded-[28px] blur-xl opacity-35", theme.panelTint)} />
+      <div
+        className={cn(
+          "relative flex h-28 w-28 items-center justify-center rounded-[28px] bg-gradient-to-br text-3xl font-black text-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)] ring-4",
+          isSenior ? "ring-violet-100" : "ring-white",
+          theme.avatar,
+        )}
+      >
+        {initials}
+      </div>
+      {role === "Staff" && isSenior ? (
+        <span className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-2xl border border-violet-200 bg-white text-violet-600 shadow-lg">
+          <Star className="h-4 w-4 fill-current" />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function StatPill({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  return (
+    <div className={cn("flex h-full flex-col rounded-2xl border px-4 py-3", tone)}>
+      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <p className="mt-2 text-sm font-semibold tracking-tight text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function ReadField({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-full flex-col justify-between space-y-2 rounded-2xl border border-slate-100 bg-white px-4 py-3.5 shadow-sm">
+      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </span>
+      <div className="text-sm font-semibold leading-snug text-slate-900">{children}</div>
+    </div>
+  );
+}
+
+function EditableField({
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  error,
+  textarea = false,
+}: {
+  label: string;
+  icon: React.ElementType;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+  error?: string;
+  textarea?: boolean;
+}) {
+  const baseClass = cn(
+    "w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition",
+    error
+      ? "border-red-400 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+      : "border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100",
+  );
+
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </label>
+      {textarea ? (
+        <textarea
+          rows={3}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={baseClass}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={baseClass}
+        />
+      )}
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 }
 
 function PasswordStrength({ password }: { password: string }) {
-  const s = getStrength(password);
+  const score = getStrength(password);
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex gap-1.5">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < s ? STR_BAR[s] : "bg-slate-200"}`} />
+        {[0, 1, 2, 3].map((index) => (
+          <div
+            key={index}
+            className={cn("h-2 flex-1 rounded-full transition-all duration-300", index < score ? STRENGTH_BAR[score] : "bg-slate-200")}
+          />
         ))}
       </div>
-      <p className={`text-xs font-semibold ${STR_TEXT[s]}`}>{STR_LABEL[s]}</p>
+      <p className={cn("text-xs font-semibold", STRENGTH_TEXT[score])}>{STRENGTH_LABEL[score]}</p>
     </div>
   );
 }
 
-function PwField({ id, label, value, onChange, show, onToggle, error, placeholder }: {
-  id: string; label: string; value: string;
-  onChange: (v: string) => void; show: boolean; onToggle: () => void;
-  error?: string; placeholder: string;
+function PwField({
+  id,
+  label,
+  value,
+  onChange,
+  show,
+  onToggle,
+  error,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  error?: string;
+  placeholder: string;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-[13px] font-semibold text-slate-700">{label}</label>
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-[13px] font-semibold text-slate-700">
+        {label}
+      </label>
       <div className="relative">
         <input
-          id={id} type={show ? "text" : "password"} autoComplete="new-password"
-          placeholder={placeholder} value={value}
+          id={id}
+          type={show ? "text" : "password"}
+          autoComplete="new-password"
+          placeholder={placeholder}
+          value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full rounded-lg border ${error ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:ring-indigo-100"} bg-white px-4 py-2.5 pr-12 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:ring-2 focus:border-indigo-400`}
+          className={cn(
+            "w-full rounded-2xl border bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition",
+            error
+              ? "border-red-400 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+              : "border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100",
+          )}
         />
-        <button type="button" tabIndex={-1} onClick={onToggle}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={onToggle}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
+        >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 }
 
-function ReadField({ icon: Icon, label, children }: {
-  icon: React.ElementType; label: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-        <Icon className="h-3 w-3" />{label}
-      </span>
-      <div className="text-sm font-semibold text-slate-900 leading-snug">{children}</div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   UserProfile Page
-   ═══════════════════════════════════════════════════════════════════════ */
 export default function UserProfile() {
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const [profileId,       setProfileId]       = useState<number | null>(null);
+  const [profileId, setProfileId] = useState<number | null>(null);
   const [profileMemberId, setProfileMemberId] = useState("");
-  const [profileEmail,    setProfileEmail]     = useState("");
-  const [profileFullName, setProfileFullName]  = useState(user?.name ?? "");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileFullName, setProfileFullName] = useState(user?.name ?? "");
   const [profilePhoneNumber, setProfilePhoneNumber] = useState("");
   const [profileAddress, setProfileAddress] = useState("");
-  const [createdAt,       setCreatedAt]        = useState<string | null>(null);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
 
-  const [editMode,   setEditMode]   = useState(false);
-  const [editName,   setEditName]   = useState("");
-  const [editEmail,  setEditEmail]  = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editPhoneNumber, setEditPhoneNumber] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
-  const [current,   setCurrent]   = useState("");
-  const [newPass,   setNewPass]   = useState("");
-  const [confirm,   setConfirm]   = useState("");
-  const [showCur,   setShowCur]   = useState(false);
-  const [showNew,   setShowNew]   = useState(false);
-  const [showCon,   setShowCon]   = useState(false);
-  const [pwErrors,  setPwErrors]  = useState<Record<string, string>>({});
+  const [current, setCurrent] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showCur, setShowCur] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showCon, setShowCon] = useState(false);
+  const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
   const [pwLoading, setPwLoading] = useState(false);
 
-  const [popup, setPopup] = useState({ show: false, type: "success" as const, message: "" });
-
   const lastLogin = jwtIat((user as any)?.token);
+  const isSeniorStaff = user?.role === "Staff" && Boolean(user?.isSenior);
+  const theme = getRoleTheme(user?.role, isSeniorStaff);
+  const displayName = profileFullName || user?.name || "";
+
+  const roleSummary = useMemo(() => {
+    if (user?.role === "Owner") {
+      return [
+        { icon: Shield, label: "Security Scope", value: "Admin-level access", tone: "border-red-100 bg-red-50/70 text-red-700" },
+        { icon: BriefcaseBusiness, label: "Responsibility", value: "Business oversight", tone: "border-orange-100 bg-orange-50/70 text-orange-700" },
+      ];
+    }
+    if (user?.role === "Manager") {
+      return [
+        { icon: BriefcaseBusiness, label: "Responsibility", value: "Store coordination", tone: "border-cyan-100 bg-cyan-50/70 text-cyan-700" },
+        { icon: CheckCircle2, label: "Team Access", value: "Operational control", tone: "border-sky-100 bg-sky-50/70 text-sky-700" },
+      ];
+    }
+    if (isSeniorStaff) {
+      return [
+        { icon: BriefcaseBusiness, label: "Responsibility", value: "Staff Supervision & POS workflow", tone: "border-violet-100 bg-violet-50/70 text-violet-700" },
+        { icon: Shield, label: "Access Level", value: "Elevated Staff Access", tone: "border-indigo-100 bg-indigo-50/70 text-indigo-700" },
+      ];
+    }
+    return [
+      { icon: CheckCircle2, label: "Work Mode", value: "Daily POS workflow", tone: "border-emerald-100 bg-emerald-50/70 text-emerald-700" },
+      { icon: Shield, label: "Account Type", value: "Store staff access", tone: "border-teal-100 bg-teal-50/70 text-teal-700" },
+    ];
+  }, [isSeniorStaff, user?.role]);
 
   useEffect(() => {
     if (!user) return;
-    api.get("/api/users/profile").then((r) => {
-      const me = r.data as any;
-      setProfileId(me.id ?? null);
-      setProfileMemberId(me.memberId ?? "");
-      setProfileEmail(me.email ?? "");
-      setProfileFullName(me.fullName ?? user.name ?? "");
-      setProfilePhoneNumber(me.phoneNumber ?? "");
-      setProfileAddress(me.address ?? "");
-      if (me.createdAt) setCreatedAt(me.createdAt);
-    }).catch(() => {});
+    api
+      .get("/api/users/profile")
+      .then((response) => {
+        const me = response.data as any;
+        setProfileId(me.id ?? null);
+        setProfileMemberId(me.memberId ?? "");
+        setProfileEmail(me.email ?? "");
+        setProfileFullName(me.fullName ?? user.name ?? "");
+        setProfilePhoneNumber(me.phoneNumber ?? "");
+        setProfileAddress(me.address ?? "");
+        if (me.createdAt) setCreatedAt(me.createdAt);
+      })
+      .catch(() => {});
   }, [user?.username]);
 
   function openEdit() {
@@ -180,24 +430,30 @@ export default function UserProfile() {
   }
 
   async function saveEdit() {
-    const errs: Record<string, string> = {};
-    if (!editName.trim())  errs.name  = "Full name is required.";
-    if (Object.keys(errs).length) { setEditErrors(errs); return; }
+    const errors: Record<string, string> = {};
+    if (!editName.trim()) errors.name = "Full name is required.";
+    if (Object.keys(errors).length) {
+      setEditErrors(errors);
+      return;
+    }
 
     setEditSaving(true);
     try {
       const raw = localStorage.getItem(LS_KEY);
       const token = raw ? (JSON.parse(raw) as any)?.token : null;
 
-      const { data }: any = await api.put("/api/users/profile", {
-        fullName: editName.trim(),
-        phoneNumber: editPhoneNumber.trim(),
-        address: editAddress.trim(),
-      }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const { data }: any = await api.put(
+        "/api/users/profile",
+        {
+          fullName: editName.trim(),
+          phoneNumber: editPhoneNumber.trim(),
+          address: editAddress.trim(),
+        },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        },
+      );
 
-      // Immediate local state update so UI reflects changes without refresh.
       setProfileFullName(data.fullName ?? editName.trim());
       setProfileEmail(data.email ?? profileEmail);
       setProfilePhoneNumber(data.phoneNumber ?? editPhoneNumber.trim());
@@ -205,323 +461,352 @@ export default function UserProfile() {
       setEditMode(false);
       showToast("Profile updated successfully!", "success");
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? "Failed to update profile.";
-      setEditErrors({ name: msg });
+      const message = err?.response?.data?.message ?? "Failed to update profile.";
+      setEditErrors({ name: message });
     } finally {
       setEditSaving(false);
     }
   }
 
   function validatePw() {
-    const e: Record<string, string> = {};
-    if (!current.trim())               e.current = "Current password is required.";
-    if (newPass.length < 6)            e.newPass  = "New password must be at least 6 characters.";
-    if (newPass !== confirm)           e.confirm  = "Passwords do not match.";
-    if (newPass === current && newPass) e.newPass  = "New password must differ from current.";
-    return e;
+    const errors: Record<string, string> = {};
+    if (!current.trim()) errors.current = "Current password is required.";
+    if (newPass.length < 6) errors.newPass = "New password must be at least 6 characters.";
+    if (newPass !== confirm) errors.confirm = "Passwords do not match.";
+    if (newPass === current && newPass) errors.newPass = "New password must differ from current.";
+    return errors;
   }
 
-  async function handleChangePw(evt: React.FormEvent) {
-    evt.preventDefault();
-    const e = validatePw();
-    if (Object.keys(e).length) { setPwErrors(e); return; }
-    setPwErrors({}); setPwLoading(true);
+  async function handleChangePw(event: React.FormEvent) {
+    event.preventDefault();
+    const errors = validatePw();
+    if (Object.keys(errors).length) {
+      setPwErrors(errors);
+      return;
+    }
+
+    setPwErrors({});
+    setPwLoading(true);
     try {
       await api.put("/api/users/change-password", {
-        username: user?.username, currentPassword: current, newPassword: newPass,
+        username: user?.username,
+        currentPassword: current,
+        newPassword: newPass,
       });
-      setCurrent(""); setNewPass(""); setConfirm("");
+      setCurrent("");
+      setNewPass("");
+      setConfirm("");
       showToast("Password updated successfully!", "success");
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Current password is incorrect.";
-      setPwErrors({ current: msg });
+      const message =
+        err?.response?.data?.message ??
+        err?.response?.data?.detail ??
+        "Current password is incorrect.";
+      setPwErrors({ current: message });
     } finally {
       setPwLoading(false);
     }
   }
 
-  const roleCfg = ROLE_CFG[user?.role ?? ""] ?? {
-    badge: "bg-slate-100 text-slate-600 border-slate-200",
-    dot:   "bg-slate-400",
-    grad:  "from-slate-400 to-slate-600",
-  };
-
-  const displayName = profileFullName || user?.name || "";
-
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
       <AppHeader />
 
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-5xl space-y-6">
+      <main className="flex-1 overflow-y-auto py-8">
+        <div className="mx-auto w-full max-w-6xl space-y-8 px-4 sm:px-6 lg:px-8">
+          <section className={cn("overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-sm", theme.hero)}>
+            <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="px-6 py-7 sm:px-8">
+                <div className="flex flex-col items-start gap-4 sm:flex-row">
+                  <AvatarCircle name={displayName} role={user?.role} isSenior={isSeniorStaff} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", theme.badge)}>
+                        <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
+                        {theme.badgeLabel}
+                      </span>
+                      {user?.role === "Staff" && (
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-3 py-1 text-[11px] font-semibold",
+                          isSeniorStaff ? "border-violet-200 text-violet-700" : "border-emerald-200 text-emerald-700",
+                        )}>
+                          <Sparkles className="h-3 w-3" />
+                          {profileMemberId ? theme.staffStatusLabel : "Account Ready"}
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{displayName || "My Profile"}</h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{theme.subtitle}</p>
 
-          {/* Page heading */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight">My Profile</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Manage your personal information and account security
-              </p>
-            </div>
-          </div>
-
-          {/* Profile card */}
-          <div className="rounded-xl border border-border bg-card shadow-md overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border">
-
-              {/* LEFT: Avatar panel */}
-              <div className="flex flex-col items-center gap-5 bg-muted/30 px-8 py-10">
-                <AvatarCircle name={displayName} role={user?.role} />
-
-                <div className="text-center space-y-2">
-                  <h2 className="text-xl font-extrabold text-foreground leading-tight">{displayName}</h2>
-                  <p className="text-sm font-mono text-muted-foreground">@{user?.username}</p>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${roleCfg.badge}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${roleCfg.dot}`} />
-                    {user?.role}
-                  </span>
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3.5 py-2 shadow-sm">
+                        <AtSign className="h-4 w-4 text-slate-400" />
+                        <span className="font-semibold text-slate-800">@{user?.username}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3.5 py-2 shadow-sm">
+                        <Hash className="h-4 w-4 text-slate-400" />
+                        <span className="font-semibold text-slate-800">{profileMemberId || empId(profileId)}</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Last Login */}
-                <div className="w-full rounded-xl border border-border bg-card px-4 py-3.5 text-center shadow-sm">
-                  <p className="flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
-                    <Clock className="h-3 w-3" /> Last Login
-                  </p>
-                  <p className="text-[12px] font-semibold text-foreground leading-snug">
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {roleSummary.map((item) => (
+                    <StatPill
+                      key={item.label}
+                      icon={item.icon}
+                      label={item.label}
+                      value={item.value}
+                      tone={item.tone}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 bg-white/80 px-6 py-7 backdrop-blur-sm sm:px-8 lg:border-l lg:border-t-0">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Account Snapshot</p>
+                  <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Profile at a glance</h2>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <ReadField icon={Clock3} label="Last Login">
                     {fmtDateTime(lastLogin)}
+                  </ReadField>
+                  <ReadField icon={CalendarDays} label="Joined Date">
+                    {fmtDate(createdAt)}
+                  </ReadField>
+                  <ReadField icon={ShieldCheck} label="Role">
+                    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
+                      {theme.badgeLabel}
+                    </span>
+                  </ReadField>
+                  <ReadField icon={Sparkles} label={theme.highlightLabel}>
+                    {theme.highlightValue}
+                  </ReadField>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+            <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", theme.iconWrap)}>
+                  <User className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900">Profile Details</h3>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {editMode ? "Update your personal details below and save when you are ready." : "Your personal information and staff account details."}
                   </p>
                 </div>
               </div>
 
-              {/* RIGHT: Details panel */}
-              <div className="lg:col-span-2 px-8 py-8 space-y-6">
-
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">Profile Details</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {editMode ? "Update your information below, then save." : "Your personal information on file."}
-                    </p>
-                  </div>
-                  {!editMode ? (
-                    <button
-                      onClick={openEdit}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit Profile
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={cancelEdit}
-                        disabled={editSaving}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Cancel
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        disabled={editSaving}
-                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {editSaving ? (
-                          <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                          </svg>
-                        ) : <Save className="h-3.5 w-3.5" />}
-                        {editSaving ? "Saving…" : "Save Changes"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Fields grid */}
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                  {/* Full Name */}
-                  <div className="space-y-1.5">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <User className="h-3 w-3" /> Full Name
-                    </span>
-                    {editMode ? (
-                      <div>
-                        <input
-                          type="text" value={editName}
-                          onChange={(e) => { setEditName(e.target.value); setEditErrors((v) => ({ ...v, name: "" })); }}
-                          className={`w-full rounded-xl border ${editErrors.name ? "border-red-400" : "border-border"} bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
-                          placeholder="Full name"
-                        />
-                        {editErrors.name && <p className="mt-1 text-xs text-red-600">{editErrors.name}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-foreground">{displayName || "—"}</p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1.5">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <Mail className="h-3 w-3" /> Email Address
-                    </span>
-                    {editMode ? (
-                      <div>
-                        <input
-                          type="email" value={editEmail}
-                          onChange={(e) => { setEditEmail(e.target.value); setEditErrors((v) => ({ ...v, email: "" })); }}
-                          className={`w-full rounded-xl border ${editErrors.email ? "border-red-400" : "border-border"} bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400`}
-                          placeholder="you@example.com"
-                        />
-                        {editErrors.email && <p className="mt-1 text-xs text-red-600">{editErrors.email}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-foreground">{profileEmail || "—"}</p>
-                    )}
-                  </div>
-
-                  {/* Username */}
-                  <ReadField icon={AtSign} label="Username">
-                    <span className="font-mono">@{user?.username}</span>
-                  </ReadField>
-
-                  {/* Role */}
-                  <ReadField icon={ShieldCheck} label="Role">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-semibold ${roleCfg.badge}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${roleCfg.dot}`} />
-                      {user?.role}
-                    </span>
-                  </ReadField>
-
-                  {/* Employee ID */}
-                  <ReadField icon={Hash} label="Employee ID">
-                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-0.5 font-mono text-xs font-semibold text-indigo-700">{profileMemberId || empId(profileId)}</span>
-                  </ReadField>
-
-                  {/* Phone Number */}
-                  <div className="space-y-1.5">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <AtSign className="h-3 w-3" /> Phone Number
-                    </span>
-                    {editMode ? (
-                      <input
-                        type="text"
-                        value={editPhoneNumber}
-                        onChange={(e) => setEditPhoneNumber(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
-                        placeholder="e.g. +94 77 123 4567"
-                      />
-                    ) : (
-                      <p className="text-sm font-semibold text-foreground">{profilePhoneNumber || "—"}</p>
-                    )}
-                  </div>
-
-                  {/* Address */}
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <Mail className="h-3 w-3" /> Address
-                    </span>
-                    {editMode ? (
-                      <textarea
+              <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                {editMode ? (
+                  <>
+                    <EditableField
+                      label="Full Name"
+                      icon={User}
+                      value={editName}
+                      onChange={(value) => {
+                        setEditName(value);
+                        setEditErrors((prev) => ({ ...prev, name: "" }));
+                      }}
+                      placeholder="Full name"
+                      error={editErrors.name}
+                    />
+                    <ReadField icon={Mail} label="Email Address">
+                      {profileEmail || "—"}
+                    </ReadField>
+                    <ReadField icon={AtSign} label="Username">
+                      <span className="font-mono">@{user?.username}</span>
+                    </ReadField>
+                    <ReadField icon={ShieldCheck} label="Role">
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
+                        <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
+                        {theme.badgeLabel}
+                      </span>
+                    </ReadField>
+                    <ReadField icon={Hash} label="Employee ID">
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-xs font-semibold text-slate-700">
+                        {profileMemberId || empId(profileId)}
+                      </span>
+                    </ReadField>
+                    <EditableField
+                      label="Phone Number"
+                      icon={Phone}
+                      value={editPhoneNumber}
+                      onChange={setEditPhoneNumber}
+                      placeholder="e.g. +94 77 123 4567"
+                    />
+                    <div className="md:col-span-2">
+                      <EditableField
+                        label="Address"
+                        icon={MapPin}
                         value={editAddress}
-                        onChange={(e) => setEditAddress(e.target.value)}
-                        rows={3}
-                        className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+                        onChange={setEditAddress}
                         placeholder="Enter address"
+                        textarea
                       />
-                    ) : (
-                      <p className="text-sm font-semibold text-foreground">{profileAddress || "—"}</p>
-                    )}
-                  </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <ReadField icon={User} label="Full Name">
+                      {displayName || "—"}
+                    </ReadField>
+                    <ReadField icon={Mail} label="Email Address">
+                      {profileEmail || "—"}
+                    </ReadField>
+                    <ReadField icon={AtSign} label="Username">
+                      <span className="font-mono">@{user?.username}</span>
+                    </ReadField>
+                    <ReadField icon={ShieldCheck} label="Role">
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold", theme.badge)}>
+                        <span className={cn("h-1.5 w-1.5 rounded-full", theme.dot)} />
+                        {theme.badgeLabel}
+                      </span>
+                    </ReadField>
+                    <ReadField icon={Hash} label="Employee ID">
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-xs font-semibold text-slate-700">
+                        {profileMemberId || empId(profileId)}
+                      </span>
+                    </ReadField>
+                    <ReadField icon={Phone} label="Phone Number">
+                      {profilePhoneNumber || "—"}
+                    </ReadField>
+                    <div className="md:col-span-2">
+                      <ReadField icon={MapPin} label="Address">
+                        {profileAddress || "—"}
+                      </ReadField>
+                    </div>
+                  </>
+                )}
+              </div>
 
-                  {/* Joined Date */}
-                  <ReadField icon={Calendar} label="Joined Date">
-                    {fmtDate(createdAt)}
-                  </ReadField>
+              {!editMode && (
+                <p className="mt-5 text-[12px] italic text-slate-500">
+                  You can update your personal details here. Username, email, member ID, and role remain controlled by administration.
+                </p>
+              )}
 
-                </div>
-
-                {!editMode && (
-                  <p className="text-[11px] text-muted-foreground italic">
-                    Click "Edit Profile" to modify your name or email. Username and role can only be changed by an administrator.
-                  </p>
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                {!editMode ? (
+                  <button
+                    onClick={openEdit}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-[0.98]"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={editSaving}
+                      className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveEdit}
+                      disabled={editSaving}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 disabled:opacity-60"
+                    >
+                      <Save className="h-4 w-4" />
+                      {editSaving ? "Saving..." : "Save"}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Security — Change Password */}
-          <div className="rounded-xl border border-border bg-card shadow-md p-8">
-            <div className="flex items-center gap-3 mb-7">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <KeyRound className="h-5 w-5 text-primary" />
+            <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", theme.iconWrap)}>
+                  <KeyRound className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900">Security</h3>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    Keep your account protected with a strong password and regular updates.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-foreground">Security</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Update your password. Choose a strong password — minimum 6 characters.
+
+              <div className={cn("mt-5 rounded-2xl border px-4 py-3", theme.panelTint)}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Security Note</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  Use a password with at least 6 characters. Adding uppercase letters, numbers, and symbols improves protection.
                 </p>
               </div>
+
+              <form onSubmit={handleChangePw} className="mt-6 space-y-5">
+                <PwField
+                  id="cur-pass"
+                  label="Current Password"
+                  placeholder="Enter your current password"
+                  value={current}
+                  onChange={(value) => {
+                    setCurrent(value);
+                    setPwErrors((prev) => ({ ...prev, current: "" }));
+                  }}
+                  show={showCur}
+                  onToggle={() => setShowCur((prev) => !prev)}
+                  error={pwErrors.current}
+                />
+
+                <div className="grid gap-4">
+                  <PwField
+                    id="new-pass"
+                    label="New Password"
+                    placeholder="Minimum 6 characters"
+                    value={newPass}
+                    onChange={(value) => {
+                      setNewPass(value);
+                      setPwErrors((prev) => ({ ...prev, newPass: "" }));
+                    }}
+                    show={showNew}
+                    onToggle={() => setShowNew((prev) => !prev)}
+                    error={pwErrors.newPass}
+                  />
+                  <PwField
+                    id="con-pass"
+                    label="Confirm New Password"
+                    placeholder="Repeat new password"
+                    value={confirm}
+                    onChange={(value) => {
+                      setConfirm(value);
+                      setPwErrors((prev) => ({ ...prev, confirm: "" }));
+                    }}
+                    show={showCon}
+                    onToggle={() => setShowCon((prev) => !prev)}
+                    error={pwErrors.confirm}
+                  />
+                </div>
+
+                {newPass.length > 0 && <PasswordStrength password={newPass} />}
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={pwLoading}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Save className="h-4 w-4" />
+                    {pwLoading ? "Updating..." : "Update Password"}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleChangePw} className="space-y-5">
-              <PwField
-                id="cur-pass" label="Current Password" placeholder="Enter your current password"
-                value={current}
-                onChange={(v) => { setCurrent(v); setPwErrors((e) => ({ ...e, current: "" })); }}
-                show={showCur} onToggle={() => setShowCur((v) => !v)} error={pwErrors.current}
-              />
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <PwField
-                  id="new-pass" label="New Password" placeholder="Min. 6 characters"
-                  value={newPass}
-                  onChange={(v) => { setNewPass(v); setPwErrors((e) => ({ ...e, newPass: "" })); }}
-                  show={showNew} onToggle={() => setShowNew((v) => !v)} error={pwErrors.newPass}
-                />
-                <PwField
-                  id="con-pass" label="Confirm New Password" placeholder="Repeat new password"
-                  value={confirm}
-                  onChange={(v) => { setConfirm(v); setPwErrors((e) => ({ ...e, confirm: "" })); }}
-                  show={showCon} onToggle={() => setShowCon((v) => !v)} error={pwErrors.confirm}
-                />
-              </div>
-
-              {newPass.length > 0 && <PasswordStrength password={newPass} />}
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  disabled={pwLoading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pwLoading ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                      </svg>
-                      Updating…
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Update Password
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-
+          </section>
         </div>
       </main>
-
-      
     </div>
   );
 }

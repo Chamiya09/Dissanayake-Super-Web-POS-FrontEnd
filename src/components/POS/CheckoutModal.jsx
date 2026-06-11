@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useToast } from "@/context/GlobalToastContext";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Banknote, CreditCard, Wallet, ArrowRightLeft } from "lucide-react";
 
-const STEP = {
-  METHOD: "METHOD",
-  CARD_AWAIT: "CARD_AWAIT",
-  CASH_INPUT: "CASH_INPUT",
-  CASH_CONFIRM: "CASH_CONFIRM",
+const PAYMENT_METHODS = {
+  CASH: "CASH",
+  CARD: "CARD",
 };
 
-const METHODS = ["CASH", "CARD"];
+const QUICK_CASH_VALUES = [500, 1000, 5000];
 
 export default function CheckoutModal({
   isOpen,
@@ -16,16 +15,13 @@ export default function CheckoutModal({
   totalAmount,
   onCompleteSale,
 }) {
-  const { showToast } = useToast();
-
-  const [step, setStep] = useState(STEP.METHOD);
-  const [methodIndex, setMethodIndex] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [tenderedInput, setTenderedInput] = useState("");
-  const [balance, setBalance] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
+  const [focusedQuickCashIndex, setFocusedQuickCashIndex] = useState(0);
   const tenderedRef = useRef(null);
+  const completeButtonRef = useRef(null);
+  const quickCashButtonRefs = useRef([]);
 
   const total = useMemo(() => {
     const n = Number(totalAmount);
@@ -33,35 +29,89 @@ export default function CheckoutModal({
   }, [totalAmount]);
 
   const parsedTendered = useMemo(() => {
-    const n = Number(tenderedInput);
+    const normalized = String(tenderedInput ?? "").replace(/[^0-9.]+/g, "");
+    const n = Number(normalized);
     return Number.isFinite(n) ? n : NaN;
   }, [tenderedInput]);
 
+  const tenderedAmount = Number.isFinite(parsedTendered) ? parsedTendered : 0;
+  const isCashMode = paymentMethod === PAYMENT_METHODS.CASH;
+  const hasTenderedInput = String(tenderedInput ?? "").trim().length > 0;
+  const isInsufficientCash = isCashMode && tenderedAmount < total;
+  const canSubmit = paymentMethod === PAYMENT_METHODS.CARD || tenderedAmount >= total;
+
+  const balance = useMemo(() => {
+    return Math.max(0, Number((tenderedAmount - total).toFixed(2)));
+  }, [tenderedAmount, total]);
+
+  const amountDue = useMemo(() => {
+    return Math.max(0, Number((total - tenderedAmount).toFixed(2)));
+  }, [tenderedAmount, total]);
+
+  const quickCashOptions = useMemo(
+    () => [
+      { label: "Exact Amount", value: total, accent: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
+      ...QUICK_CASH_VALUES.map((value) => ({
+        label: `Rs. ${value.toLocaleString()}`,
+        value,
+        accent: "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+      })),
+    ],
+    [total],
+  );
+
   const resetState = useCallback(() => {
-    setStep(STEP.METHOD);
-    setMethodIndex(0);
-    setPaymentMethod("CASH");
+    setPaymentMethod(PAYMENT_METHODS.CASH);
     setTenderedInput("");
-    setBalance(null);
     setSubmitting(false);
+    setFocusedQuickCashIndex(0);
   }, []);
 
-  useEffect(() => {
+  const focusTendered = useCallback((select = true) => {
+    const input = tenderedRef.current;
+    if (!input) return;
+    input.focus();
+    if (select) {
+      input.select();
+    } else {
+      const valueLength = input.value.length;
+      input.setSelectionRange(valueLength, valueLength);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
     if (!isOpen) return;
     resetState();
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   }, [isOpen, resetState]);
 
   useEffect(() => {
-    if (!isOpen || step !== STEP.CASH_INPUT) return;
-    const timer = window.setTimeout(() => {
-      if (tenderedRef.current) {
-        tenderedRef.current.focus();
-        tenderedRef.current.select();
-      }
-    }, 0);
+    if (!isOpen) return;
+    if (paymentMethod === PAYMENT_METHODS.CASH) {
+      focusTendered();
+      return;
+    }
+    completeButtonRef.current?.focus();
+  }, [focusTendered, isOpen, paymentMethod]);
 
-    return () => window.clearTimeout(timer);
-  }, [isOpen, step]);
+  const handleOpenAutoFocus = useCallback((event) => {
+    event.preventDefault();
+    window.requestAnimationFrame(() => {
+      if (tenderedRef.current) {
+        focusTendered();
+        return;
+      }
+      completeButtonRef.current?.focus();
+    });
+  }, [focusTendered]);
+
+  const handleOpenChange = useCallback((nextOpen) => {
+    if (!nextOpen && !submitting) {
+      onClose();
+    }
+  }, [onClose, submitting]);
 
   const completeSale = useCallback(
     async (payload) => {
@@ -74,231 +124,368 @@ export default function CheckoutModal({
         setSubmitting(false);
       }
     },
-    [onClose, onCompleteSale, submitting]
+    [onClose, onCompleteSale, submitting],
   );
 
-  const handleMethodConfirm = useCallback(() => {
-    const selected = METHODS[methodIndex];
-    setPaymentMethod(selected);
+  const handleSubmit = useCallback(() => {
+    if (submitting || !canSubmit) return;
 
-    if (selected === "CARD") {
-      setStep(STEP.CARD_AWAIT);
+    if (paymentMethod === PAYMENT_METHODS.CARD) {
+      void completeSale({ method: PAYMENT_METHODS.CARD });
       return;
     }
 
-    setStep(STEP.CASH_INPUT);
-  }, [methodIndex]);
-
-  const handleCheckout = useCallback(() => {
-    const toCleanNumber = (value) => Number(String(value ?? "").replace(/[^0-9.-]+/g, ""));
-
-    const cleanBill = toCleanNumber(totalAmount);
-    const cleanGiven = toCleanNumber(tenderedInput);
-
-    console.log("Parsed Bill:", cleanBill, "Parsed Tendered:", cleanGiven);
-
-    if (Number.isNaN(cleanGiven) || Number.isNaN(cleanBill)) {
-      showToast("Invalid number format", "error");
+    if (!Number.isFinite(parsedTendered)) {
       return;
     }
 
-    if (cleanGiven < cleanBill) {
-      showToast("Insufficient amount", "error");
-      return;
-    }
+    void completeSale({
+      method: PAYMENT_METHODS.CASH,
+      tendered: Number(parsedTendered.toFixed(2)),
+      balance,
+    });
+  }, [balance, canSubmit, completeSale, parsedTendered, paymentMethod, submitting]);
 
-    const changeAmount = Number((cleanGiven - cleanBill).toFixed(2));
-    setBalance(changeAmount);
-    setStep(STEP.CASH_CONFIRM);
-  }, [showToast, tenderedInput, totalAmount]);
-
-  const handleEnter = useCallback(() => {
-    if (submitting) return;
-
-    if (step === STEP.METHOD) {
-      handleMethodConfirm();
-      return;
-    }
-
-    if (step === STEP.CARD_AWAIT) {
-      void completeSale({ method: "CARD" });
-      return;
-    }
-
-    if (step === STEP.CASH_INPUT) {
-      handleCheckout();
-      return;
-    }
-
-    if (step === STEP.CASH_CONFIRM) {
-      if (!Number.isFinite(parsedTendered) || balance === null) {
-        showToast("Insufficient amount", "error");
-        return;
-      }
-      void completeSale({
-        method: "CASH",
-        tendered: parsedTendered,
-        balance,
+  const applyTenderedAmount = useCallback(
+    (value, nextFocus = "input") => {
+      setTenderedInput(value.toFixed(2));
+      window.requestAnimationFrame(() => {
+        if (nextFocus === "complete") {
+          completeButtonRef.current?.focus();
+          return;
+        }
+        focusTendered();
       });
-    }
-  }, [
-    balance,
-    completeSale,
-    handleCheckout,
-    handleMethodConfirm,
-    parsedTendered,
-    showToast,
-    step,
-    submitting,
-  ]);
+    },
+    [focusTendered],
+  );
+
+  const focusQuickCashButton = useCallback((index) => {
+    const normalizedIndex = Math.max(0, Math.min(index, quickCashOptions.length - 1));
+    setFocusedQuickCashIndex(normalizedIndex);
+    quickCashButtonRefs.current[normalizedIndex]?.focus();
+  }, [quickCashOptions.length]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const onKeyDown = (e) => {
-      const isActivationKey = e.key === "Enter" || e.code === "Space";
+    const handleWindowKeyDown = (event) => {
+      const isArrowKey = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key);
+      const activeEl = document.activeElement;
+      const quickCashIndex = quickCashButtonRefs.current.findIndex((button) => button === activeEl);
+      const quickCashFocused = paymentMethod === PAYMENT_METHODS.CASH && quickCashIndex !== -1;
 
-      if (e.key === "Escape") {
-        e.preventDefault();
+      if (isArrowKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+
+        if (paymentMethod !== PAYMENT_METHODS.CASH) {
+          return;
+        }
+
+        const baseIndex = quickCashFocused ? quickCashIndex : focusedQuickCashIndex;
+
+        if (event.key === "ArrowRight") {
+          focusQuickCashButton(baseIndex + 1);
+          return;
+        }
+
+        if (event.key === "ArrowLeft") {
+          focusQuickCashButton(baseIndex - 1);
+          return;
+        }
+
+        if (event.key === "ArrowDown") {
+          focusQuickCashButton(baseIndex + 2);
+          return;
+        }
+
+        if (event.key === "ArrowUp") {
+          focusQuickCashButton(baseIndex - 2);
+          return;
+        }
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
         if (!submitting) onClose();
         return;
       }
 
-      if (step === STEP.METHOD) {
-        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-          e.preventDefault();
-          setMethodIndex(0);
-          setPaymentMethod("CASH");
+      if (event.key === "F1") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        setPaymentMethod(PAYMENT_METHODS.CASH);
+        return;
+      }
+
+      if (event.key === "F2") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        setPaymentMethod(PAYMENT_METHODS.CARD);
+        return;
+      }
+
+      if (paymentMethod === PAYMENT_METHODS.CASH) {
+        const numericKey = /^[0-9]$/.test(event.key) ? event.key : null;
+        const numpadDigit = /^Numpad[0-9]$/.test(event.code) ? event.code.replace("Numpad", "") : null;
+        const decimalKey = event.key === "." || event.code === "NumpadDecimal" ? "." : null;
+
+        if ((numericKey !== null || numpadDigit !== null || decimalKey !== null) && quickCashFocused) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation?.();
+          const nextValue = numericKey ?? numpadDigit ?? decimalKey;
+          setTenderedInput(nextValue === "." ? "0." : nextValue);
+          focusTendered(false);
           return;
         }
 
-        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-          e.preventDefault();
-          setMethodIndex(1);
-          setPaymentMethod("CARD");
+        if (event.key === "Enter" && focusedQuickCashIndex >= 0 && quickCashFocused) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation?.();
+          applyTenderedAmount(quickCashOptions[focusedQuickCashIndex].value, "complete");
           return;
         }
       }
 
-      if (isActivationKey) {
-        e.preventDefault();
-        handleEnter();
+      if (event.key === "Enter" || event.code === "Space" || event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        handleSubmit();
       }
     };
 
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [handleEnter, isOpen, onClose, step, submitting]);
-
-  if (!isOpen) return null;
+    window.addEventListener("keydown", handleWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
+  }, [
+    applyTenderedAmount,
+    focusQuickCashButton,
+    focusTendered,
+    focusedQuickCashIndex,
+    handleSubmit,
+    isOpen,
+    onClose,
+    paymentMethod,
+    quickCashOptions,
+    submitting,
+  ]);
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div
-        className="absolute inset-0"
-        onClick={() => {
-          if (!submitting) onClose();
-        }}
-      />
+    <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          onOpenAutoFocus={handleOpenAutoFocus}
+          onEscapeKeyDown={(event) => {
+            if (submitting) {
+              event.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(event) => {
+            if (submitting) {
+              event.preventDefault();
+            }
+          }}
+          className="fixed left-1/2 top-1/2 z-[101] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl outline-none dark:border-slate-700 dark:bg-[#1E1E1E]"
+        >
+          <div className="border-b border-slate-100 px-6 py-5 dark:border-slate-800">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogPrimitive.Title className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  Checkout
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Fast cashier mode. <span className="font-medium">F1</span> Cash, <span className="font-medium">F2</span> Card, <span className="font-medium">Enter/Space</span> Complete
+                </DialogPrimitive.Description>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-5 py-3 text-right dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Total Bill</p>
+                <p className="mt-1 text-3xl font-extrabold text-slate-900 dark:text-slate-100">Rs. {total.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
 
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-5">
-          <h2 className="text-xl font-bold text-slate-900">Checkout</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Total: <span className="font-semibold">Rs. {total.toFixed(2)}</span>
-          </p>
-        </div>
-
-        {step === STEP.METHOD && (
-          <div>
-            <p className="mb-4 text-sm font-medium text-slate-700">Select Payment Method</p>
-
+          <div className="space-y-5 px-6 py-6">
             <div className="grid grid-cols-2 gap-3">
-              {METHODS.map((method, index) => {
-                const active = methodIndex === index;
-                return (
-                  <button
-                    key={method}
-                    type="button"
-                    onMouseEnter={() => {
-                      setMethodIndex(index);
-                      setPaymentMethod(method);
-                    }}
-                    onClick={() => {
-                      setMethodIndex(index);
-                      setPaymentMethod(method);
-                    }}
-                    className={[
-                      "h-24 rounded-xl border-2 text-lg font-bold transition-all",
-                      active
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
-                    ].join(" ")}
-                  >
-                    {method}
-                  </button>
-                );
-              })}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod(PAYMENT_METHODS.CASH)}
+                className={[
+                  "flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition-all",
+                  paymentMethod === PAYMENT_METHODS.CASH
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
+                ].join(" ")}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80">
+                    <Banknote className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">CASH</p>
+                    <p className="text-xs opacity-80">F1 shortcut</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
+                className={[
+                  "flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition-all",
+                  paymentMethod === PAYMENT_METHODS.CARD
+                    ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-300"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
+                ].join(" ")}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">CARD</p>
+                    <p className="text-xs opacity-80">F2 shortcut</p>
+                  </div>
+                </div>
+              </button>
             </div>
 
-            <p className="mt-4 text-xs text-slate-500">Use Arrow Keys to select, then Space or Enter to continue</p>
+            {paymentMethod === PAYMENT_METHODS.CASH ? (
+              <div className="grid gap-5 lg:grid-cols-[1.25fr_0.95fr]">
+                <div className="space-y-5">
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Quick Cash</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {quickCashOptions.map((option, index) => (
+                        <button
+                          key={`${option.label}-${option.value}`}
+                          type="button"
+                          ref={(element) => {
+                            quickCashButtonRefs.current[index] = element;
+                          }}
+                          onFocus={() => setFocusedQuickCashIndex(index)}
+                          onClick={() => applyTenderedAmount(option.value)}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " " && event.code !== "Space") {
+                              return;
+                            }
+                            event.preventDefault();
+                            applyTenderedAmount(option.value, "complete");
+                          }}
+                          className={[
+                            "rounded-xl border px-4 py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:ring-offset-[#1E1E1E]",
+                            option.accent,
+                            focusedQuickCashIndex === index ? "border-emerald-500 ring-2 ring-emerald-400 ring-offset-1" : "",
+                          ].join(" ")}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Amount Tendered</label>
+                    <input
+                      ref={tenderedRef}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tenderedInput}
+                      onChange={(event) => setTenderedInput(event.target.value)}
+                      className={[
+                        "w-full rounded-2xl border px-4 py-4 text-2xl font-bold text-slate-900 outline-none transition-all [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none dark:bg-slate-900/60 dark:text-slate-100",
+                        isInsufficientCash
+                          ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-100 dark:border-red-400 dark:focus:ring-red-500/20"
+                          : "border-slate-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:focus:ring-emerald-500/20",
+                      ].join(" ")}
+                      placeholder="0.00"
+                    />
+                    {hasTenderedInput && isInsufficientCash && (
+                      <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">
+                        Insufficient cash amount
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className={[
+                    "flex flex-col justify-between rounded-3xl border p-5",
+                    isInsufficientCash
+                      ? "border-red-100 bg-gradient-to-br from-red-50 to-white dark:border-red-500/20 dark:from-red-500/10 dark:to-slate-900/60"
+                      : "border-emerald-100 bg-gradient-to-br from-emerald-50 to-white dark:border-emerald-500/20 dark:from-emerald-500/10 dark:to-slate-900/60",
+                  ].join(" ")}
+                >
+                  <div className={["flex items-center gap-2", isInsufficientCash ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"].join(" ")}>
+                    <ArrowRightLeft className="h-4 w-4" />
+                    <p className="text-sm font-semibold">{isInsufficientCash ? "Amount Due" : "Balance to Return"}</p>
+                  </div>
+                  <div className="py-6">
+                    <p className={["text-5xl font-extrabold tracking-tight", isInsufficientCash ? "text-red-600 dark:text-red-300" : "text-emerald-600"].join(" ")}>
+                      Rs. {(isInsufficientCash ? amountDue : balance).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+                    <div className="flex items-center justify-between">
+                      <span>Tendered</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        Rs. {tenderedAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-6 py-8 text-center dark:border-blue-500/20 dark:from-blue-500/10 dark:to-slate-900/60">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+                  <CreditCard className="h-6 w-6" />
+                </div>
+                <p className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">Process payment on Card Terminal</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">When payment is approved, press Enter or Space to complete the sale.</p>
+              </div>
+            )}
           </div>
-        )}
 
-        {step === STEP.CARD_AWAIT && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
-              <p className="text-sm text-slate-500">Awaiting Card Payment...</p>
-              <p className="mt-1 text-base font-semibold text-slate-800">Swipe / Insert Card</p>
-              <p className="mt-3 text-2xl font-bold text-slate-900">Rs. {total.toFixed(2)}</p>
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/70">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {paymentMethod === PAYMENT_METHODS.CASH
+                ? "Cash mode: Enter cash received or use quick buttons"
+                : "Card mode: complete after terminal approval"}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={submitting}
+                className="px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800 disabled:opacity-50 dark:text-slate-300 dark:hover:text-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                ref={completeButtonRef}
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting || !canSubmit}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? "Processing..." : "Complete Sale"}
+              </button>
             </div>
-            <p className="text-center text-xs text-slate-500">Press Space or Enter to complete sale</p>
           </div>
-        )}
-
-        {step === STEP.CASH_INPUT && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Total Bill</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">Rs. {total.toFixed(2)}</p>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Amount Tendered (Cash Given)</label>
-              <input
-                ref={tenderedRef}
-                type="number"
-                min="0"
-                step="0.01"
-                value={tenderedInput}
-                onChange={(e) => setTenderedInput(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-3 text-lg font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                placeholder="0.00"
-              />
-            </div>
-
-            <p className="text-xs text-slate-500">Press Space or Enter to calculate balance</p>
-          </div>
-        )}
-
-        {step === STEP.CASH_CONFIRM && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Total Bill</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">Rs. {total.toFixed(2)}</p>
-              <p className="mt-3 text-sm text-slate-600">Amount Tendered</p>
-              <p className="mt-1 text-xl font-semibold text-slate-900">Rs. {Number(parsedTendered).toFixed(2)}</p>
-            </div>
-
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-              <p className="text-sm text-emerald-700">Balance to Return</p>
-              <p className="mt-1 text-3xl font-extrabold text-emerald-600">Rs. {(balance ?? 0).toFixed(2)}</p>
-            </div>
-
-            <p className="text-center text-xs text-slate-500">Press Space or Enter again to complete sale</p>
-          </div>
-        )}
-      </div>
-    </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

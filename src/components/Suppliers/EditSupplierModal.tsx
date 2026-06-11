@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Building2, User, Mail, Phone, Clock, Loader2, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X, Building2, User, Mail, Phone, Clock, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -60,7 +59,6 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
     leadTime: "",
   });
   const [errors, setErrors] = useState<Partial<FormFields>>({});
-  const [autoReorder, setAutoReorder] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +73,6 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
         phone:         supplier.phone,
         leadTime:      String(supplier.leadTime),
       });
-      setAutoReorder(supplier.isAutoReorderEnabled);
       setErrors({});
       setApiError(null);
       setSaving(false);
@@ -136,7 +133,7 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
         email:                form.email.trim(),
         phone:                form.phone.trim(),
         leadTime:             Number(form.leadTime),
-        isAutoReorderEnabled: autoReorder,
+        isAutoReorderEnabled: supplier!.isAutoReorderEnabled,
         isActive:             supplier!.isActive,
       });
       onClose();
@@ -296,45 +293,6 @@ export function EditSupplierModal({ isOpen, onClose, supplier, onSave }: EditSup
             </div>
           </FormRow>
 
-          {/* AI Auto-Reorder toggle */}
-          <div className={cn(
-            "flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition-colors",
-            autoReorder
-              ? "border-emerald-200 bg-emerald-50/50"
-              : "border-slate-200"
-          )}>
-            <div className="flex items-center gap-2.5">
-              <div className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                autoReorder ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
-              )}>
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold text-slate-900 leading-tight">Enable AI Auto-Reorder</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Automatically reorder stock for this supplier</p>
-              </div>
-            </div>
-            {/* Toggle switch */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={autoReorder}
-              onClick={() => setAutoReorder((v) => !v)}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent",
-                "transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
-                autoReorder ? "bg-emerald-500" : "bg-slate-200"
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ease-in-out",
-                  autoReorder ? "translate-x-5" : "translate-x-0"
-                )}
-              />
-            </button>
-          </div>
         </div>
 
         {/* Footer */}

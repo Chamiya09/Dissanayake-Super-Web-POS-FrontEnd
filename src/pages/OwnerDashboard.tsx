@@ -54,6 +54,7 @@ type OwnerDashboardData = {
 };
 
 const PIE_COLORS = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const OWNER_ACCENT = "#5b8def";
 
 const EMPTY_OWNER_DATA: OwnerDashboardData = {
   kpis: {
@@ -107,19 +108,19 @@ function KpiCard({
   iconClass,
 }: {
   title: string;
-  value: string;
+    value: string;
   icon: ElementType;
   iconClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40] dark:shadow-black/20">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconClass}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }
@@ -160,18 +161,18 @@ export default function OwnerDashboard() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900 dark:bg-background dark:text-foreground">
       <AppHeader />
 
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-none space-y-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
               <Crown className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Owner Dashboard</h1>
-              <p className="text-sm text-slate-500">High-level business analytics and governance visibility.</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Owner Dashboard</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">High-level business analytics and governance visibility.</p>
             </div>
           </div>
 
@@ -186,7 +187,7 @@ export default function OwnerDashboard() {
               title="Net Profit"
               value={formatCurrency(dashboardData.kpis.netProfit)}
               icon={Landmark}
-              iconClass="bg-indigo-100 text-indigo-700"
+              iconClass="bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
             />
             <KpiCard
               title="Total Users"
@@ -203,9 +204,9 @@ export default function OwnerDashboard() {
           </div>
 
           {loading && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md">
-              <div className="flex items-center justify-center gap-3 text-slate-600">
-                <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
+              <div className="flex items-center justify-center gap-3 text-slate-600 dark:text-slate-300">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-300" />
                 <p className="text-sm font-medium">Loading owner dashboard data...</p>
               </div>
             </div>
@@ -219,31 +220,31 @@ export default function OwnerDashboard() {
 
           {!loading && (
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
                 <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-slate-900">Last 30 Days Revenue Trend</h2>
-                  <p className="text-xs text-slate-500">Interactive area chart from real backend revenue data</p>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Last 30 Days Revenue Trend</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Interactive area chart from real backend revenue data</p>
                 </div>
                 <div className="h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={trendData}>
                       <defs>
                         <linearGradient id="ownerRevenueGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.02} />
+                          <stop offset="5%" stopColor={OWNER_ACCENT} stopOpacity={0.35} />
+                          <stop offset="95%" stopColor={OWNER_ACCENT} stopOpacity={0.02} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#475569" strokeOpacity={0.35} />
+                      <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                      <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
                       <Tooltip
                         formatter={(value: number) => [formatCurrency(Number(value || 0)), "Revenue"]}
-                        contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
+                        contentStyle={{ borderRadius: 10, border: "1px solid #475569", backgroundColor: "#1E1E1E", color: "#E0E0E0" }}
                       />
                       <Area
                         type="monotone"
                         dataKey="revenue"
-                        stroke="#4f46e5"
+                        stroke={OWNER_ACCENT}
                         strokeWidth={3}
                         fill="url(#ownerRevenueGradient)"
                       />
@@ -251,14 +252,14 @@ export default function OwnerDashboard() {
                   </ResponsiveContainer>
                 </div>
                 {trendData.length === 0 && (
-                  <p className="mt-2 text-center text-sm text-slate-500">No revenue trend data available.</p>
+                  <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">No revenue trend data available.</p>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
                 <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-slate-900">Sales by Category</h2>
-                  <p className="text-xs text-slate-500">Category mix with hover details</p>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Sales by Category</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Category mix with hover details</p>
                 </div>
                 <div className="h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -287,25 +288,25 @@ export default function OwnerDashboard() {
                           formatCurrency(Number(value || 0)),
                           payload?.payload?.category || "Category",
                         ]}
-                        contentStyle={{ borderRadius: 10, border: "1px solid #e2e8f0" }}
+                        contentStyle={{ borderRadius: 10, border: "1px solid #475569", backgroundColor: "#1E1E1E", color: "#E0E0E0" }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 {dashboardData.salesByCategory.length === 0 && (
-                  <p className="mt-2 text-center text-sm text-slate-500">No category sales data available.</p>
+                  <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">No category sales data available.</p>
                 )}
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-              <h3 className="text-base font-semibold text-slate-900">Top Selling Products</h3>
-              <p className="mb-3 text-xs text-slate-500">By sold quantity</p>
-              <div className="overflow-hidden rounded-lg border border-slate-100">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md dark:border-slate-700 dark:bg-[#2A2A40]">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Top Selling Products</h3>
+              <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">By sold quantity</p>
+              <div className="overflow-hidden rounded-lg border border-slate-100 dark:border-slate-700">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
                     <tr>
                       <th className="px-3 py-2">Product</th>
                       <th className="px-3 py-2 text-right">Qty</th>
@@ -314,15 +315,15 @@ export default function OwnerDashboard() {
                   <tbody>
                     {dashboardData.topSellingProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={2} className="px-3 py-5 text-center text-slate-500">
+                        <td colSpan={2} className="px-3 py-5 text-center text-slate-500 dark:text-slate-400">
                           No product performance data yet.
                         </td>
                       </tr>
                     ) : (
                       dashboardData.topSellingProducts.map((row) => (
-                        <tr key={row.name} className="border-t border-slate-100">
-                          <td className="px-3 py-2">{row.name}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{row.qty}</td>
+                        <tr key={row.name} className="border-t border-slate-100 dark:border-slate-700">
+                          <td className="px-3 py-2 text-slate-900 dark:text-slate-100">{row.name}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900 dark:text-slate-100">{row.qty}</td>
                         </tr>
                       ))
                     )}

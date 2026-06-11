@@ -24,6 +24,23 @@ type RawForecastResponse = {
   demand?: number;
 };
 
+function normalizeForecastIdentifier(productId: ForecastIdentifier): string {
+  const raw = String(productId ?? "").trim();
+  if (!raw) return "";
+
+  const numericOnly = raw.match(/^\d+$/);
+  if (numericOnly) {
+    return `PI${raw.padStart(5, "0")}`;
+  }
+
+  const prefixed = raw.match(/^PI(\d+)$/i);
+  if (prefixed) {
+    return `PI${prefixed[1].padStart(5, "0")}`;
+  }
+
+  return raw;
+}
+
 function normalizeForecastData(
   productId: ForecastIdentifier,
   timeframe: ForecastTimeframe,
@@ -42,12 +59,17 @@ function normalizeForecastData(
 
 export const forecastApi = {
   async getForecast(productId: ForecastIdentifier, timeframe: ForecastTimeframe): Promise<ForecastResponse> {
-    const normalizedId = String(productId ?? "").trim();
+    const requestProductId = String(productId ?? "").trim();
+    const normalizedId = normalizeForecastIdentifier(productId);
     if (!normalizedId) {
       throw new Error("product_id is empty. Cannot request forecast.");
     }
 
-    console.log("Forecast Request Params:", { product_id: normalizedId, timeframe });
+    console.log("Forecast Request Params:", {
+      requested_product_id: requestProductId,
+      product_id: normalizedId,
+      timeframe,
+    });
 
     const response = await mlApi.get<RawForecastResponse>("/api/forecast", {
       params: {
@@ -58,7 +80,7 @@ export const forecastApi = {
 
     console.log("API Response:", response.data);
 
-    return normalizeForecastData(normalizedId, timeframe, response.data ?? {});
+    return normalizeForecastData(requestProductId, timeframe, response.data ?? {});
   },
 
   async getForecastForProducts(

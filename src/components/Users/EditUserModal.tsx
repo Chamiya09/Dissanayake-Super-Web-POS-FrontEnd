@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Pencil, User, Mail, ShieldCheck, Info, Hash, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,14 +15,14 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/context/GlobalToastContext";
 
 const ALLOWED_ROLES = {
-  Owner:   ["Manager", "Staff"],
+  Owner: ["Manager", "Staff"],
   Manager: ["Staff"],
 };
 
 const ROLE_PILL_STYLES = {
-  Owner:   "bg-red-50 text-red-600 border-red-200",
+  Owner: "bg-red-50 text-red-600 border-red-200",
   Manager: "bg-blue-50 text-blue-600 border-blue-200",
-  Staff:   "bg-emerald-50 text-emerald-600 border-emerald-200",
+  Staff: "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 const ROLE_DOT = { Owner: "bg-red-500", Manager: "bg-blue-500", Staff: "bg-emerald-500" };
 
@@ -70,6 +70,7 @@ function validateForm(form) {
 export default function EditUserModal({ user, onClose, onSave, currentUserRole }) {
   const { showToast } = useToast();
   const allowedRoles = ALLOWED_ROLES[currentUserRole] ?? [];
+  const isManagerView = currentUserRole === "Manager";
 
   const [form, setForm] = useState({ fullName: "", memberId: "", username: "", email: "", role: "", isSenior: false });
   const [errors, setErrors] = useState({});
@@ -135,8 +136,6 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="edit-user-title">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div className={cn("relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl", "animate-in fade-in-0 zoom-in-95 duration-200")}>
-
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -154,21 +153,20 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
           </button>
         </div>
 
-        {/* Permission notice */}
         <div className="mx-6 mt-5 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
           <p className="text-xs text-blue-700 leading-relaxed font-medium">
-            Signed in as <RolePill role={currentUserRole} />. You can only assign{" "}
-            {allowedRoles.map((r, i) => (
-              <span key={r}><RolePill role={r} />{i < allowedRoles.length - 1 ? " or " : ""}</span>
-            ))}{" "}roles.
+            Signed in as <RolePill role={currentUserRole} />.{" "}
+            {isManagerView
+              ? "You can only manage staff accounts from this view."
+              : <>You can only assign {allowedRoles.map((r, i) => (
+                  <span key={r}><RolePill role={r} />{i < allowedRoles.length - 1 ? " or " : ""}</span>
+                ))} roles.</>}
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="space-y-5 px-6 py-5">
-
             <FormRow id="edit-fullName" label="Full Name" icon={User} error={errors.fullName}>
               <Input id="edit-fullName" ref={firstInputRef} value={form.fullName}
                 onChange={(e) => handleChange("fullName", e.target.value)}
@@ -181,7 +179,7 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
                 className={cn("h-10 text-[13px] font-mono bg-white border-slate-200 focus-visible:ring-slate-300", errors.username && "border-red-400 focus-visible:ring-red-400")} />
             </FormRow>
 
-            <FormRow id="edit-memberId" label="Staff / Manager ID" icon={Hash} error={errors.memberId}>
+            <FormRow id="edit-memberId" label={form.role === "Manager" ? "Manager ID" : "Staff ID"} icon={Hash} error={errors.memberId}>
               <Input
                 id="edit-memberId"
                 value={form.memberId}
@@ -199,9 +197,9 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
 
             <FormRow id="edit-role" label="Role" icon={ShieldCheck} error={errors.role}>
               {isRoleLocked ? (
-                <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 gap-2">
+                <div className="flex h-10 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 gap-2">
                   <RolePill role={allowedRoles[0]} />
-                  <span className="text-[12px] text-slate-500">Only assignable role for your access level</span>
+                  <span className="text-[12px] text-emerald-700">Only assignable role for your access level</span>
                 </div>
               ) : (
                 <Select value={form.role} onValueChange={(v) => handleChange("role", v)}>
@@ -244,10 +242,8 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
                 </div>
               </div>
             )}
-
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
             <Button type="button" variant="outline" onClick={onClose} className="h-10 px-5 text-[13px] border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">Cancel</Button>
             <Button type="submit" className="h-10 px-5 text-[13px] gap-2 shadow-sm bg-amber-500 text-white hover:bg-amber-600">
@@ -256,7 +252,6 @@ export default function EditUserModal({ user, onClose, onSave, currentUserRole }
             </Button>
           </div>
         </form>
-
       </div>
     </div>
   );

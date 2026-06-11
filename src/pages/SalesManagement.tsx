@@ -160,7 +160,11 @@ export default function SalesManagement() {
   const { confirm } = useConfirmDialog();
   const { user } = useAuth();
   const isStaffView = user?.role === "Staff";
-  const canReturnWithoutApproval = user?.role === "Owner" || user?.role === "Manager";
+  const userRole = (user?.role ?? "").toUpperCase().trim();
+  const isAuthorized =
+    userRole === "OWNER" ||
+    userRole === "MANAGER" ||
+    user?.isSenior === true;
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -315,7 +319,7 @@ export default function SalesManagement() {
   };
 
   const handleReturnItems = async (payload) => {
-    if (canReturnWithoutApproval) {
+    if (isAuthorized) {
       await submitReturnRequest(payload);
       return;
     }

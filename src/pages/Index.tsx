@@ -1,10 +1,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import api from "@/lib/axiosInstance";
 import { useToast } from "@/context/GlobalToastContext";
-import { ShoppingBag, CheckCircle, ScanLine } from "lucide-react";
+import { ShoppingBag, CheckCircle, ScanLine, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/Layout/AppHeader";
-import { ProductGrid } from "@/components/POS/ProductGrid";
+import { ProductGrid, type ProductGridHandle } from "@/components/POS/ProductGrid";
 import { CartPanel } from "@/components/POS/CartPanel";
 import { PiPrefixSearchInput } from "@/components/ui/PiPrefixSearchInput";
 import type { Product, CartItem } from "@/data/products";
@@ -23,6 +23,64 @@ interface MgmtProduct {
   status?: "ACTIVE" | "DISCONTINUED";
   stockQuantity?: number;
   unit?: string;
+}
+
+interface SalePayloadItem {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+interface SalePayload {
+  paymentMethod: "Cash" | "Card";
+  totalAmount: number;
+  status: "Completed";
+  items: SalePayloadItem[];
+}
+
+type CheckoutPaymentMethod = "CASH" | "CARD";
+
+function normalizeSalePaymentMethod(method: string): SalePayload["paymentMethod"] {
+  return method === "CARD" ? "Card" : "Cash";
+}
+
+function extractApiErrorMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object" &&
+    (error as { response?: { data?: unknown } }).response?.data
+  ) {
+    const data = (error as { response?: { data?: unknown } }).response?.data;
+    if (typeof data === "string" && data.trim()) {
+      return data.trim();
+    }
+    if (typeof data === "object" && data !== null) {
+      const message = (data as { message?: unknown }).message;
+      const backendError = (data as { error?: unknown }).error;
+      if (typeof message === "string" && message.trim()) {
+        return message.trim();
+      }
+      if (typeof backendError === "string" && backendError.trim()) {
+        return backendError.trim();
+      }
+    }
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string" &&
+    (error as { message: string }).message.trim()
+  ) {
+    return (error as { message: string }).message.trim();
+  }
+
+  return "Failed to record sale. Please try again.";
 }
 
 /** Convert ProductManagement shape → POS Product shape */
@@ -58,6 +116,9 @@ function FlyingDot({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    el.style.left = `${startX - 12}px`;
+    el.style.top = `${startY - 12}px`;
+    el.style.opacity = "1";
     // Force initial paint, then apply transition to target
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -74,7 +135,6 @@ function FlyingDot({
     <div
       ref={ref}
       className="pointer-events-none fixed z-[9999] h-6 w-6 rounded-full bg-primary shadow-lg ring-2 ring-white"
-      style={{ left: startX - 12, top: startY - 12, opacity: 1 }}
     />
   );
 }
@@ -92,8 +152,11 @@ const Index = () => {
   const [lastSale, setLastSale] = useState<{ transactionId: string; total: number; paymentMethod: string } | null>(null);
   const [checkoutHotkeyNonce, setCheckoutHotkeyNonce] = useState(0);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [cartFocusNonce, setCartFocusNonce] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const activeBucketIndexRef = useRef(-1);
   const cartRef = useRef<CartItem[]>([]);
+  const productGridRef = useRef<ProductGridHandle>(null);
 
   /* ── Live inventory data from shared context ── */
   const { inventoryItems, refreshInventory } = useInventory();
@@ -107,6 +170,15 @@ const Index = () => {
       .then(({ data }) => setRawProducts(data))
       .catch((err) => console.error("Failed to load products:", err));
   }, []);
+
+  useEffect(() => {
+    if (!errorMsg) return;
+    const timer = window.setTimeout(() => {
+      setErrorMsg(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [errorMsg]);
 
   /* ── Merge inventory stock into POS product list ──
    *  Re-runs whenever rawProducts or inventoryItems change,
@@ -180,47 +252,138 @@ const Index = () => {
     );
   }, []);
 
-  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: string) => {
-    const payload = {
-      paymentMethod,
-      totalAmount,
+  const roundMoney = useCallback((value: number) => Number(value.toFixed(2)), []);
+  const roundQuantity = useCallback((value: number) => Number(value.toFixed(3)), []);
+
+  const handleCheckout = useCallback(async (totalAmount: number, paymentMethod: CheckoutPaymentMethod) => {
+    const payloadItems: SalePayloadItem[] = [];
+
+    for (const cartItem of cart) {
+      const productId = Number(cartItem.product.id);
+      const productName = String(cartItem.product.name ?? "").trim();
+      const quantity = roundQuantity(Number(cartItem.quantity));
+      const unitPrice = roundMoney(Number(cartItem.product.price));
+      const lineTotal = roundMoney(quantity * unitPrice);
+
+      if (!Number.isFinite(productId) || productId <= 0) {
+        setErrorMsg(`Invalid product ID for "${productName || "Unknown Product"}".`);
+        return;
+      }
+
+      if (!productName) {
+        setErrorMsg("A cart item is missing its product name.");
+        return;
+      }
+
+      if (!Number.isFinite(quantity) || quantity < 0.001) {
+        setErrorMsg(`Invalid quantity for "${productName}".`);
+        return;
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        setErrorMsg(`Invalid unit price for "${productName}".`);
+        return;
+      }
+
+      if (!Number.isFinite(lineTotal) || lineTotal < 0) {
+        setErrorMsg(`Invalid line total for "${productName}".`);
+        return;
+      }
+
+      if (typeof cartItem.product.stock === "number" && quantity > cartItem.product.stock) {
+        setErrorMsg(
+          `Insufficient stock for "${productName}". Available: ${cartItem.product.stock}, requested: ${quantity}.`,
+        );
+        return;
+      }
+
+      payloadItems.push({
+        productId,
+        productName,
+        quantity,
+        unitPrice,
+        lineTotal,
+      });
+    }
+
+    if (payloadItems.length === 0) {
+      setErrorMsg("Sale must include at least one item.");
+      return;
+    }
+
+    const normalizedPaymentMethod = normalizeSalePaymentMethod(paymentMethod);
+
+    const payload: SalePayload = {
+      paymentMethod: normalizedPaymentMethod,
+      totalAmount: roundMoney(payloadItems.reduce((sum, item) => sum + item.lineTotal, 0)),
       status: "Completed",
-      items: cart.map((i) => ({
-        productId:   Number(i.product.id),
-        productName: i.product.name,
-        quantity:    i.quantity,
-        unitPrice:   i.product.price,
-        lineTotal:   i.quantity * i.product.price,
-      })),
+      items: payloadItems,
     };
 
     try {
+      console.info("[POS] submitting sale payload", payload);
       const { data } = await api.post("/api/sales", payload);
+      console.info("[POS] sale recorded successfully", data);
       const transactionId = data?.transactionId ?? data?.receiptNo ?? "TRX-UNKNOWN";
       setCart([]);
       setCartOpen(false);
-      setLastSale({ transactionId, total: totalAmount, paymentMethod });
+      setLastSale({ transactionId, total: totalAmount, paymentMethod: normalizedPaymentMethod });
       setShowSuccessPopup(true);
+      setErrorMsg(null);
       refreshInventory();   // re-fetch inventory so stock levels update across all pages
       showToast(`Sale ${transactionId} recorded successfully!`, "success", "Success");
     } catch (err) {
-      console.error("Checkout failed:", err);
-      alert("Failed to record sale. Please try again.");
+      const error = err as {
+        message?: string;
+        response?: {
+          status?: number;
+          statusText?: string;
+          data?: unknown;
+          headers?: unknown;
+        };
+        config?: {
+          url?: string;
+          method?: string;
+          data?: unknown;
+        };
+      };
+
+      console.error("[POS] checkout failed", {
+        payload,
+        message: error?.message,
+        request: {
+          method: error?.config?.method,
+          url: error?.config?.url,
+          data: error?.config?.data,
+        },
+        response: {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          headers: error?.response?.headers,
+        },
+        rawError: err,
+      });
+      setErrorMsg(extractApiErrorMessage(err));
     }
-  }, [cart, refreshInventory]);
+  }, [cart, refreshInventory, roundMoney, roundQuantity, showToast]);
 
   /* ── SKU / Barcode quick-add ── */
   const [skuInputValue, setSkuInputValue] = useState("");
-  const [debouncedSkuQuery, setDebouncedSkuQuery] = useState("");
   const skuInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSkuQuery(skuInputValue);
-    }, 300);
-
-    return () => window.clearTimeout(timer);
-  }, [skuInputValue]);
+  const normalizedProductSearch = skuInputValue.trim().toLowerCase();
+  const filteredPosProducts = useMemo(
+    () =>
+      posProducts.filter((product) => {
+        if (!normalizedProductSearch) return true;
+        return (
+          String(product.name ?? "").toLowerCase().includes(normalizedProductSearch) ||
+          String(product.id ?? "").toLowerCase().includes(normalizedProductSearch) ||
+          String(product.barcode ?? "").toLowerCase().includes(normalizedProductSearch)
+        );
+      }),
+    [normalizedProductSearch, posProducts],
+  );
 
   const addProductByBarcode = useCallback(
     (rawBarcode: string) => {
@@ -247,62 +410,72 @@ const Index = () => {
       const scannedBarcode = String(barcode).trim();
       if (!scannedBarcode) return;
       console.info("[POS] handleScannedBarcode:", scannedBarcode);
-      addProductByBarcode(scannedBarcode);
-      setSkuInputValue("");
-    },
-    [addProductByBarcode],
-  );
-
-  const addProductBySku = useCallback(
-    async (rawSku: string) => {
-      const sku = rawSku.trim();
-      if (!sku) return;
-
-      try {
-        const { data } = await api.get<MgmtProduct>("/api/products/search", {
-          params: { sku },
-        });
-        const product: Product = {
-          id:       String(data.id),
-          name:     data.productName,
-          price:    data.sellingPrice,
-          category: data.category,
-          unit:     data.unit ?? "pcs",
-          barcode:  data.barcode ?? "",
-          stock:    data.stockQuantity ?? 0,
-          status:   data.status,
-        };
-
-        // Override stock from live inventory if available.
-        const inv = inventoryItems.find((i) => i.productId === data.id);
-        if (inv) product.stock = inv.stockQuantity;
-
-        if (product.status === "DISCONTINUED") {
-          showToast("Ordering is disabled for discontinued products", "warning");
-          return;
-        }
-
-        addToCart(product);
-        showToast(`Added: ${data.productName}`, "success", "Item Added");
-      } catch {
-        showToast(`No product found for SKU "${sku}"`, "error", "Invalid SKU");
+      setSkuInputValue(scannedBarcode);
+      if (posProducts.some((item) => String(item.barcode ?? "").trim() === scannedBarcode)) {
+        productGridRef.current?.focusGrid(0);
       }
     },
-    [addToCart, inventoryItems, showToast],
+    [posProducts],
   );
 
+  const focusProductGrid = useCallback(() => {
+    setKeyboardScope("grid");
+    productGridRef.current?.focusGrid();
+  }, []);
+
   const handleSkuSearch = useCallback(
-    async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+        e.preventDefault();
+        focusProductGrid();
+        return;
+      }
+
       if (e.key !== "Enter") return;
-      const suffix = skuInputValue.trim();
-      if (!suffix) return;
-      await addProductBySku(`PI${suffix}`);
-      setSkuInputValue("");
-      // Re-focus so the next barcode scan / manual entry is instant.
-      skuInputRef.current?.focus();
+      if (filteredPosProducts.length === 1) {
+        e.preventDefault();
+        productGridRef.current?.focusGrid(0);
+      }
     },
-    [addProductBySku, skuInputValue],
+    [filteredPosProducts.length, focusProductGrid],
   );
+
+  const isTextEntryElement = useCallback((element: HTMLElement | null) => {
+    if (!element) return false;
+    return element.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName);
+  }, []);
+
+  const focusProductSearch = useCallback(() => {
+    setKeyboardScope("grid");
+    const input = skuInputRef.current;
+    if (!input) return;
+    input.focus();
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  }, []);
+
+  const focusProductCategories = useCallback(() => {
+    setKeyboardScope("grid");
+    productGridRef.current?.focusCategories();
+  }, []);
+
+  const triggerCheckoutHotkey = useCallback(() => {
+    const subtotal = cartRef.current.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
+
+    if (subtotal <= 0) {
+      return false;
+    }
+
+    setKeyboardScope("cart");
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setCartOpen(true);
+    }
+    setCheckoutHotkeyNonce((n) => n + 1);
+    return true;
+  }, []);
 
   useEffect(() => {
     cartRef.current = cart;
@@ -345,7 +518,13 @@ const Index = () => {
 
     const handler = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
-      const isInputFocused = !!activeEl && ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
+      const eventTarget = e.target instanceof HTMLElement ? e.target : null;
+      const isInputFocused = isTextEntryElement(activeEl);
+      const isTypingTarget =
+        eventTarget?.tagName === "INPUT" ||
+        eventTarget?.tagName === "TEXTAREA" ||
+        eventTarget?.isContentEditable === true;
+      const isInteractiveTarget = eventTarget?.closest("button, a, [role='button']") !== null;
 
       if (isCheckoutModalOpen) {
         return;
@@ -357,50 +536,50 @@ const Index = () => {
       // Global search focus shortcut (Ctrl/Cmd+K).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         skuInputRef.current?.select();
         return;
       }
 
-      // Conflict-free cart navigation.
-      if (!isInputFocused && e.shiftKey && e.key === "ArrowUp") {
+      if (e.key === "F3") {
         e.preventDefault();
-        setKeyboardScope("cart");
-        setActiveBucketIndex((prev) => {
-          if (cartRef.current.length === 0) return -1;
-          const next = prev <= 0 ? 0 : prev - 1;
-          activeBucketIndexRef.current = next;
-          return next;
-        });
+        focusProductSearch();
         return;
       }
 
-      if (!isInputFocused && e.shiftKey && e.key === "ArrowDown") {
+      if (!isInputFocused && e.key === "/") {
+        e.preventDefault();
+        focusProductSearch();
+        return;
+      }
+
+      if (e.altKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        focusProductCategories();
+        return;
+      }
+
+      // Conflict-free cart navigation.
+      if (!isInputFocused && e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
         e.preventDefault();
         setKeyboardScope("cart");
-        setActiveBucketIndex((prev) => {
-          if (cartRef.current.length === 0) return -1;
-          const maxIndex = Math.max(cartRef.current.length - 1, 0);
-          const next = prev < 0 ? 0 : Math.min(prev + 1, maxIndex);
-          activeBucketIndexRef.current = next;
-          return next;
-        });
+        if (cartRef.current.length > 0) {
+          setActiveBucketIndex(0);
+          setCartFocusNonce((n) => n + 1);
+        }
         return;
       }
 
       if (e.key === "F2") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         skuInputRef.current?.select();
         return;
       }
 
       if (e.altKey && e.key === "1") {
         e.preventDefault();
-        setKeyboardScope("grid");
-        skuInputRef.current?.focus();
+        focusProductSearch();
         return;
       }
 
@@ -417,20 +596,28 @@ const Index = () => {
       if (e.key === "F12" || (e.ctrlKey && e.key === "Enter")) {
         if (cartRef.current.length > 0) {
           e.preventDefault();
-          setKeyboardScope("cart");
-          setCartOpen(true);
-          setCheckoutHotkeyNonce((n) => n + 1);
+          triggerCheckoutHotkey();
         }
         return;
       }
 
-      // Spacebar shortcut: open checkout when user is not typing in any input.
-      if (!isInputFocused && e.code === "Space") {
-        if (cartRef.current.length > 0) {
-          e.preventDefault(); // Prevent page scroll on space press.
-          setKeyboardScope("cart");
-          setCartOpen(true);
-          setCheckoutHotkeyNonce((n) => n + 1);
+      const hasPendingBarcode = scannerBuffer.trim().length >= minBarcodeLength;
+      const isGlobalCheckoutShortcut = e.code === "Space" || e.key === " " || e.key === "Enter";
+      const isProductGridEnter = keyboardScope === "grid" && e.key === "Enter";
+
+      if (
+        isGlobalCheckoutShortcut &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        !e.shiftKey &&
+        !isTypingTarget &&
+        !isInteractiveTarget &&
+        !isProductGridEnter &&
+        !(e.key === "Enter" && hasPendingBarcode)
+      ) {
+        if (triggerCheckoutHotkey()) {
+          e.preventDefault();
         }
         return;
       }
@@ -540,7 +727,6 @@ const Index = () => {
           e.preventDefault();
           handleScannedBarcode(scannedBarcode);
           setSkuInputValue("");
-          skuInputRef.current?.focus();
         }
         scannerBuffer = "";
         lastKeystrokeTime = 0;
@@ -558,6 +744,13 @@ const Index = () => {
 
       scannerBuffer += e.key;
       lastKeystrokeTime = now;
+
+      // If no input is focused, always treat rapid key sequences as scanner input.
+      // This prevents barcode keystrokes from being misinterpreted as cart quantity edits.
+      if (!isInputFocused) {
+        e.preventDefault();
+        return;
+      }
     };
 
     window.addEventListener("keydown", handler);
@@ -567,7 +760,7 @@ const Index = () => {
         window.clearTimeout(quantityBufferTimer);
       }
     };
-  }, [cart.length, cartOpen, handleScannedBarcode, isCheckoutModalOpen, keyboardScope, removeItem, showSuccessPopup, updateQuantity]);
+  }, [cart.length, cartOpen, focusProductCategories, focusProductSearch, handleScannedBarcode, isCheckoutModalOpen, isTextEntryElement, keyboardScope, removeItem, setQuantity, showSuccessPopup, triggerCheckoutHotkey, updateQuantity]);
   const total = useMemo(
     () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cart]
@@ -575,9 +768,16 @@ const Index = () => {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
+      {errorMsg && (
+        <div className="fixed left-1/2 top-6 z-[10000] flex -translate-x-1/2 items-center gap-3 rounded-xl border-l-4 border-red-500 bg-red-100 px-4 py-3 text-red-700 shadow-lg">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">{errorMsg}</p>
+        </div>
+      )}
+
       <AppHeader />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative z-10 flex flex-1 overflow-hidden">
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 lg:p-6 pb-24 md:pb-5">
 
@@ -588,8 +788,11 @@ const Index = () => {
               value={skuInputValue}
               onChange={setSkuInputValue}
               onKeyDown={handleSkuSearch}
+              onFocus={() => setKeyboardScope("grid")}
               inputRef={skuInputRef}
-              placeholder="00001"
+              placeholder="Search by name, ID, or scan barcode..."
+              prefixLabel={null}
+              disablePrefixNormalization
               onClear={() => {
                 setSkuInputValue("");
                 skuInputRef.current?.focus();
@@ -600,10 +803,11 @@ const Index = () => {
 
           <div onPointerDown={() => setKeyboardScope("grid")}>
             <ProductGrid
+              ref={productGridRef}
               onAddToCart={addToCart}
               products={posProducts}
-              keyboardActive={keyboardScope === "grid"}
-              searchSuffix={debouncedSkuQuery}
+              keyboardActive={keyboardScope === "grid" && !isCheckoutModalOpen}
+              searchQuery={skuInputValue}
             />
           </div>
         </div>
@@ -612,7 +816,7 @@ const Index = () => {
         <div
           ref={cartIconRef}
           onPointerDown={() => setKeyboardScope("cart")}
-          className="hidden md:flex h-full w-[360px] lg:w-[410px] xl:w-[460px] shrink-0 border-l border-border bg-card p-4 items-stretch"
+          className="relative z-10 hidden h-full w-[360px] shrink-0 items-stretch border-l border-border bg-card p-4 md:flex lg:w-[410px] xl:w-[460px]"
         >
           <CartPanel
             items={cart}
@@ -621,6 +825,8 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            onActiveBucketIndexChange={setActiveBucketIndex}
+            focusFirstItemNonce={cartFocusNonce}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}
@@ -668,6 +874,8 @@ const Index = () => {
             onRemoveItem={removeItem}
             highlightId={highlightId}
             activeBucketIndex={activeBucketIndex}
+            onActiveBucketIndexChange={setActiveBucketIndex}
+            focusFirstItemNonce={cartFocusNonce}
             checkoutHotkeyNonce={checkoutHotkeyNonce}
             onCheckoutModalOpenChange={setIsCheckoutModalOpen}
             onCheckout={handleCheckout}

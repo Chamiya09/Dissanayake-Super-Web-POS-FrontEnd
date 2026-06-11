@@ -36,6 +36,7 @@ const NAV_BY_ROLE = {
     { title: "Reorder Management", url: "/reorder",         icon: ClipboardList },
     { title: "Suppliers",          url: "/suppliers",       icon: Building2 },
     { title: "Mail Box",           url: "/mailbox",         icon: Mail },
+    { title: "Users",              url: "/users",           icon: Users },
   ],
   Staff: [
     { title: "POS Checkout",       url: "/",                icon: ShoppingCart },
@@ -49,7 +50,7 @@ export function AppSidebar() {
   const visibleItems = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Staff;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border bg-sidebar-background">
+    <Sidebar collapsible="icon" className="border-r border-border bg-sidebar-background/95 backdrop-blur-sm">
       {/* Brand */}
       <SidebarHeader className="border-b border-border px-5 py-5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-4">
         <div className="flex items-center justify-start gap-3 group-data-[collapsible=icon]:justify-center">
@@ -60,7 +61,7 @@ export function AppSidebar() {
               alt="Supermarket Logo"
               width={44}
               height={44}
-              className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm"
+              className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-black/5 dark:ring-white/10"
             />
             <div className="flex flex-col leading-tight">
               <span className="text-[15px] font-bold text-sidebar-foreground tracking-widest uppercase">
@@ -97,7 +98,7 @@ export function AppSidebar() {
                       to={item.url}
                       end
                       className="flex items-center gap-3 rounded-lg px-3 py-4 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:py-4 mx-0.5"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm ring-1 ring-sidebar-ring/20"
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0 group-data-[collapsible=icon]:h-[22px] group-data-[collapsible=icon]:w-[22px]" />
                       <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>

@@ -93,11 +93,14 @@ const App = () => (
                   <Route path="/expenses"   element={<PlaceholderPage title="Expenses" />} />
                 </Route>
 
+                <Route element={<ProtectedRoute allowedRoles={["Owner", "Manager"]} />}>
+                  <Route path="/users" element={<UserManagement />} />
+                </Route>
+
                 {/* ── Owner-only routes ── */}
                 <Route element={<ProtectedRoute allowedRoles={["Owner"]} />}>
                   <Route path="/ai-reorder" element={<InventoryForecastDashboard />} />
                   <Route path="/data-export" element={<DataExport />} />
-                  <Route path="/users"      element={<UserManagement />} />
                 </Route>
               </Route>
             </Route>

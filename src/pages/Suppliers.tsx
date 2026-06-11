@@ -8,7 +8,7 @@ import { DeleteConfirmModal } from "@/components/Suppliers/DeleteConfirmModal";
 import { AssignProductsModal, type MgmtProduct } from "@/components/Suppliers/AssignProductsModal";
 import { ViewAssignedProductsModal } from "@/components/Suppliers/ViewAssignedProductsModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
-import { PlusCircle, RefreshCw, Building2, Zap, Clock, Truck } from "lucide-react";
+import { PlusCircle, RefreshCw, Building2, Clock, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Supplier } from "@/data/suppliers";
 import { supplierApi } from "@/lib/supplierApi";
@@ -17,37 +17,39 @@ import { useToast } from "@/context/GlobalToastContext";
 
 function SummaryCard({
   icon: Icon,
-  iconBg,
-  iconColor,
+  surface,
+  iconTone,
+  valueTone,
   label,
   value,
   sub,
 }: {
-  icon: any;
-  iconBg: string;
-  iconColor: string;
+  icon: React.ElementType;
+  surface: string;
+  iconTone: string;
+  valueTone: string;
   label: string;
   value: number;
   sub?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <div className="flex items-center gap-4">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}
-        >
-          <Icon className="h-6 w-6" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${surface} ${iconTone}`}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{label}</p>
+              {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-slate-500 whitespace-nowrap">{label}</span>
-          <span className="mt-1 text-2xl font-bold text-slate-900 leading-none">{value}</span>
+        <div className="shrink-0 text-right">
+          <span className={`block text-3xl font-bold leading-none ${valueTone}`}>{value}</span>
         </div>
       </div>
-      {sub && (
-        <div className="mt-4 pt-4 border-t border-slate-100">
-          <span className="text-sm text-slate-500">{sub}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -175,7 +177,7 @@ export default function Suppliers() {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
-  }, [fetchSuppliers]);
+  }, [fetchSuppliers, showToast]);
 
   const handleToggleActive = useCallback(async (supplier: Supplier, isActive: boolean) => {
     setSuppliers((prev) =>
@@ -210,7 +212,7 @@ export default function Suppliers() {
       showToast("Something went wrong. Please try again.", "error");
       throw new Error(extractApiError(err));
     }
-  }, [fetchSuppliers]);
+  }, [fetchSuppliers, showToast]);
 
   /* ── DELETE ── */
   const handleDelete = useCallback(async () => {
@@ -225,7 +227,7 @@ export default function Suppliers() {
       showToast({ type: "error", title, message });
       throw new Error(message);
     }
-  }, [deleteTarget, fetchSuppliers]);
+  }, [deleteTarget, fetchSuppliers, showToast]);
 
   /* ── ASSIGN products to a supplier ── */
   const handleAssign = useCallback(
@@ -241,8 +243,11 @@ export default function Suppliers() {
         throw new Error(extractApiError(err));
       }
     },
-    [assignTarget],
+    [assignTarget, showToast],
   );
+
+  const activeSuppliers = suppliers.filter((s) => s.isActive).length;
+  const slowSuppliers = suppliers.filter((s) => s.leadTime > 5).length;
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -271,7 +276,7 @@ export default function Suppliers() {
                 <p className="text-sm text-slate-500 mt-1">
                   {loading
                     ? "Loading supplier network..."
-                    : `Manage your supplier network · ${suppliers.length} active supplier${suppliers.length !== 1 ? "s" : ""}`}
+                    : `Manage your supplier network · ${activeSuppliers} active of ${suppliers.length} supplier${suppliers.length !== 1 ? "s" : ""}`}
                 </p>
               </div>
             </div>
@@ -307,31 +312,36 @@ export default function Suppliers() {
           )}
 
           {/* ── Stats strip ── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6 lg:px-8">
-            <SummaryCard 
-              icon={Truck}
-              iconBg="bg-indigo-50"
-              iconColor="text-indigo-600"
-              label="Total Suppliers"
-              value={suppliers.length}
-              sub="Suppliers currently active in network"
-            />
-            <SummaryCard 
-              icon={Zap}
-              iconBg="bg-emerald-50"
-              iconColor="text-emerald-600"
-              label="AI Auto-Reorder"
-              value={suppliers.filter((s) => s.isAutoReorderEnabled).length}
-              sub="Suppliers enabled for auto reorder"
-            />
-            <SummaryCard 
-              icon={Clock}
-              iconBg="bg-amber-50"
-              iconColor="text-amber-600"
-              label="Slow Delivery (> 5 Days)"
-              value={suppliers.filter((s) => s.leadTime > 5).length}
-              sub="Suppliers exceeding lead-time threshold"
-            />
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <SummaryCard
+                icon={Building2}
+                surface="bg-slate-100"
+                iconTone="text-slate-600"
+                valueTone="text-slate-900"
+                label="Total Suppliers"
+                value={suppliers.length}
+                sub="registered"
+              />
+              <SummaryCard
+                icon={Truck}
+                surface="bg-teal-50"
+                iconTone="text-teal-600"
+                valueTone="text-teal-700"
+                label="Active Suppliers"
+                value={activeSuppliers}
+                sub="currently enabled"
+              />
+              <SummaryCard
+                icon={Clock}
+                surface="bg-amber-50"
+                iconTone="text-amber-600"
+                valueTone={slowSuppliers > 0 ? "text-amber-700" : "text-slate-900"}
+                label="Slow Deliveries"
+                value={slowSuppliers}
+                sub="over 5 days"
+              />
+            </div>
           </div>
 
           {/* ── Main content ── */}

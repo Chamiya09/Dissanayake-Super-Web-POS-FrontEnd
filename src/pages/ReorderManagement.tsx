@@ -518,7 +518,7 @@ export default function ReorderManagement() {
   // Product injected by Low Stock Alerts via navigate state
   const [product, setProduct] = useState(location.state?.product ?? null);
   const [selectedProductId, setSelectedProductId] = useState(() =>
-    String(location.state?.product?.sku ?? location.state?.product?.productId ?? location.state?.product?.id ?? "")
+    String(location.state?.product?.productId ?? location.state?.product?.sku ?? location.state?.product?.id ?? "")
   );
   const [timeframe, setTimeframe] = useState("monthly");
   const [predictedDemand, setPredictedDemand] = useState(0);
@@ -557,7 +557,7 @@ export default function ReorderManagement() {
 
   useEffect(() => {
     if (product) {
-      setSelectedProductId(String(product.sku ?? product.productId ?? product.id ?? ""));
+        setSelectedProductId(String(product.productId ?? product.sku ?? product.id ?? ""));
     }
   }, [product]);
 
