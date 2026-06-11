@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { AppHeader } from "@/components/Layout/AppHeader";
 import { ProductTable } from "@/components/Products/ProductTable";
 import { AddProductModal } from "@/components/Products/AddProductModal";
@@ -7,10 +7,12 @@ import { DeleteProductModal } from "@/components/Products/DeleteProductModal";
 import { ViewProductModal } from "@/components/Products/ViewProductModal";
 import { ImportProductsCsvModal } from "@/components/Products/ImportProductsCsvModal";
 import { RefreshLoadingTheme } from "@/components/ui/RefreshLoadingTheme";
-import { Package, PlusCircle, Upload, Loader2, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
+import { Package, PlusCircle, Upload, AlertCircle, RefreshCw, Layers, TrendingUp } from "lucide-react";
 import type { Product } from "@/data/product-management";
 import { productApi } from "@/api/productApi";
 import { useToast } from "@/context/GlobalToastContext";
+import { useGlobalBarcodeScanner } from "@/hooks/useGlobalBarcodeScanner";
+import { getProductDisplayId } from "@/utils/productId";
 export type { Product };
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -59,78 +61,184 @@ function SummaryCard({
   );
 }
 
-
-/* ─────────────────────────────────────────────────────────────────────────
-   ProductManagement  —  main page
-   ───────────────────────────────────────────────────────────────────────── */
 export default function ProductManagement() {
   const { showToast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const skipNextEnterRef = useRef(false);
+  const activeSearchTermRef = useRef("");
 
-  /* ── Server state ── */
-  const [products,  setProducts]  = useState<Product[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [searchMode, setSearchMode] = useState<"scan" | "text">("scan");
+  const [searchEntrySource, setSearchEntrySource] = useState<"scan" | "manual" | null>(null);
+  const [highlightedProductId, setHighlightedProductId] = useState<number | null>(null);
 
-  /* ── Modal state ── */
-  const [isAddOpen,    setIsAddOpen]    = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<Product | null>(null);
-  const [editTarget,   setEditTarget]   = useState<Product | null>(null);
+  const [viewTarget, setViewTarget] = useState<Product | null>(null);
+  const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
-  const isEditOpen   = editTarget   !== null;
+  const isEditOpen = editTarget !== null;
   const isDeleteOpen = deleteTarget !== null;
+  const isSearchLocked =
+    searchMode === "scan" && searchEntrySource === "scan" && searchInput.trim().length > 0;
+  const areModalsOpen =
+    isAddOpen || isImportOpen || isEditOpen || isDeleteOpen || viewTarget !== null;
+  const searchTerm = searchInput.trim().toLowerCase();
 
-  /* ── Initial fetch ── */
+  const clearSearch = useCallback(() => {
+    activeSearchTermRef.current = "";
+    setSearchInput("");
+    setSearchEntrySource(null);
+    setHighlightedProductId(null);
+    setPage(0);
+    setIsSearching(false);
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+  }, []);
+
+  const submitSearch = useCallback((rawValue: string, source: "scan" | "manual") => {
+    const nextValue = rawValue.trim();
+    activeSearchTermRef.current = nextValue;
+    setSearchInput(nextValue);
+    setSearchEntrySource(source);
+    setHighlightedProductId(null);
+    setPage(0);
+    setIsSearching(false);
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const response = await productApi.getPage({
-        page,
-        limit: pageSize,
-        search: debouncedSearch || undefined,
-      });
-      setProducts(response.content);
-      setTotalElements(response.totalElements);
-      setTotalPages(response.totalPages);
+      const allProducts = await productApi.getAll();
+      setProducts(allProducts);
     } catch {
       setFetchError("Failed to load products. Make sure the backend is running on port 8080.");
     } finally {
       setLoading(false);
-    }
-  }, [debouncedSearch, page, pageSize]);
-
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
-
-  /* ── Debounced server-side search ── */
-  useEffect(() => {
-    setIsSearching(true);
-    const timer = window.setTimeout(() => {
-      const typed = searchInput.trim();
-      setDebouncedSearch(typed ? `PI${typed}` : "");
-      setPage(0);
       setIsSearching(false);
-    }, 500);
+    }
+  }, []);
 
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
-  /* ── Sync the current page snapshot to localStorage ── */
   useEffect(() => {
     if (!loading) {
       localStorage.setItem("products", JSON.stringify(products));
     }
   }, [products, loading]);
 
-  /* ── CRUD handlers ── */
+  useEffect(() => {
+    if (highlightedProductId === null) return;
+    const timer = window.setTimeout(() => {
+      setHighlightedProductId(null);
+    }, 1600);
+    return () => window.clearTimeout(timer);
+  }, [highlightedProductId]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products;
+
+    return products.filter((product) => {
+      const productId = getProductDisplayId(product).toLowerCase();
+      const productName = String(product.productName ?? "").toLowerCase();
+      const barcode = String(product.barcode ?? "").toLowerCase();
+
+      return (
+        productId.includes(searchTerm) ||
+        productName.includes(searchTerm) ||
+        barcode.includes(searchTerm)
+      );
+    });
+  }, [products, searchTerm]);
+
+  const totalElements = filteredProducts.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / pageSize);
+  const paginatedProducts = useMemo(() => {
+    const start = page * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, page, pageSize]);
+
+  useEffect(() => {
+    if (page > 0 && page >= Math.max(totalPages, 1)) {
+      setPage(Math.max(totalPages - 1, 0));
+    }
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    if (searchEntrySource === "scan") {
+      const exactMatch = filteredProducts.find(
+        (product) =>
+          String(product.barcode ?? "").trim().toLowerCase() ===
+          activeSearchTermRef.current.trim().toLowerCase(),
+      );
+      setHighlightedProductId(exactMatch?.id ?? null);
+      return;
+    }
+
+    if (searchTerm) {
+      setHighlightedProductId(null);
+    }
+  }, [filteredProducts, searchEntrySource, searchTerm]);
+
+  const handleSearchInputChange = useCallback((value: string) => {
+    setSearchInput(value);
+    setSearchEntrySource("manual");
+    setHighlightedProductId(null);
+    setPage(0);
+    setIsSearching(false);
+
+    if (!value.trim()) {
+      activeSearchTermRef.current = "";
+    }
+  }, []);
+
+  const handleToggleSearchMode = useCallback(() => {
+    setSearchMode((current) => (current === "scan" ? "text" : "scan"));
+    clearSearch();
+  }, [clearSearch]);
+
+  const handleSearchKeyDown = useCallback<React.KeyboardEventHandler<HTMLInputElement>>((event) => {
+    if (event.key !== "Enter") return;
+
+    if (skipNextEnterRef.current) {
+      skipNextEnterRef.current = false;
+      event.preventDefault();
+      return;
+    }
+
+    const typedValue = searchInput.trim();
+    if (!typedValue) return;
+
+    event.preventDefault();
+    submitSearch(typedValue, searchMode === "scan" ? searchEntrySource ?? "manual" : "manual");
+  }, [searchEntrySource, searchInput, searchMode, submitSearch]);
+
+  useGlobalBarcodeScanner({
+    enabled: searchMode === "scan" && !isSearchLocked && !areModalsOpen,
+    onScan: (barcode) => {
+      const scannedValue = barcode.trim();
+      if (!scannedValue) return;
+
+      skipNextEnterRef.current = true;
+      window.setTimeout(() => {
+        skipNextEnterRef.current = false;
+      }, 0);
+
+      submitSearch(scannedValue, "scan");
+    },
+  });
+
   const handleAdd = useCallback(async (data: Omit<Product, "id">) => {
     try {
       await productApi.create(data);
@@ -195,12 +303,12 @@ export default function ProductManagement() {
       if (result.failedCount === 0) {
         showToast(
           `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"} successfully!`,
-          "success"
+          "success",
         );
       } else if (result.importedCount > 0) {
         showToast(
           `Imported ${result.importedCount} product${result.importedCount === 1 ? "" : "s"}. ${result.failedCount} row${result.failedCount === 1 ? "" : "s"} failed.`,
-          "warning"
+          "warning",
         );
       } else {
         showToast("No products were imported. Please review failed rows.", "error");
@@ -213,19 +321,18 @@ export default function ProductManagement() {
         typeof message === "string" && message.trim()
           ? message
           : "CSV import failed. Please try again.",
-        "error"
+        "error",
       );
       throw error;
     }
   }, [fetchProducts, showToast]);
 
-  /* ── Derived stats ── */
   const avgMargin =
     products.length === 0
       ? 0
       : products.reduce((sum, p) =>
           sum + (p.buyingPrice > 0 ? ((p.sellingPrice - p.buyingPrice) / p.buyingPrice) * 100 : 0),
-          0
+          0,
         ) / products.length;
 
   const categories = [...new Set(products.map((p) => p.category))].length;
@@ -236,145 +343,146 @@ export default function ProductManagement() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="w-full max-w-none py-8 space-y-8 px-4 sm:px-6 lg:px-8">
-
-        {/* ── Page header ── */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
-              <Package size={24} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-                Product Management
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">
-                {loading
-                  ? "Loading products…"
-                  : `${totalElements} product${totalElements !== 1 ? "s" : ""} registered`
-                }
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsImportOpen(true)}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              <Upload size={15} strokeWidth={2.5} />
-              Import CSV
-            </button>
-
-            <button
-              onClick={() => setIsAddOpen(true)}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              <PlusCircle size={16} strokeWidth={2.5} />
-              Add Product
-            </button>
-          </div>
-        </div>
-
-        {/* ── Stats strip ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              label: "Total Products",
-              value: loading ? "—" : totalElements,
-              bg: "bg-blue-50",
-              text: "text-blue-600",
-              icon: Package,
-              sub: "Products currently registered",
-            },
-            {
-              label: "Categories",
-              value: loading ? "—" : categories,
-              bg: "bg-indigo-50",
-              text: "text-indigo-600",
-              icon: Layers,
-              sub: "Unique product categories",
-            },
-            {
-              label: "Avg. Margin",
-              value: loading ? "—" : `${avgMargin.toFixed(1)}%`,
-              bg: "bg-emerald-50",
-              text: "text-emerald-600",
-              icon: TrendingUp,
-              sub: "Average gross margin percentage",
-            },
-          ].map((stat) => (
-            <SummaryCard
-              key={stat.label}
-              label={stat.label}
-              value={stat.value}
-              icon={stat.icon}
-              iconBg={stat.bg}
-              iconColor={stat.text}
-              sub={stat.sub}
-            />
-          ))}
-        </div>
-
-        {/* ── Loading state ── */}
-        {loading && (
-          <RefreshLoadingTheme
-            title="Loading Products"
-            subtitle="Syncing product catalog..."
-          />
-        )}
-
-        {/* ── Error state ── */}
-        {!loading && fetchError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 flex items-start gap-3 max-w-md w-full">
-              <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-red-700">
-                  Could not fetch products
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shrink-0 border border-teal-100">
+                <Package size={24} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 leading-tight">
+                  Product Management
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {loading
+                    ? "Loading products…"
+                    : `${totalElements} product${totalElements !== 1 ? "s" : ""} registered`
+                  }
                 </p>
-                <p className="text-xs text-red-600/80">{fetchError}</p>
               </div>
             </div>
-            <button
-              onClick={fetchProducts}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <RefreshCw size={14} />
-              Retry
-            </button>
-          </div>
-        )}
 
-        {/* ── Table ── */}
-        {!loading && !fetchError && (
-          <ProductTable
-            products={products}
-            totalElements={totalElements}
-            totalPages={totalPages}
-            page={page}
-            pageSize={pageSize}
-            searchInput={searchInput}
-            isSearching={isSearching}
-            onSearchInputChange={setSearchInput}
-            onPageChange={(nextPage) => {
-              if (nextPage < 0 || nextPage >= Math.max(totalPages, 1)) return;
-              setPage(nextPage);
-            }}
-            onPageSizeChange={(nextSize) => {
-              setPageSize(nextSize);
-              setPage(0);
-            }}
-            onView={(p) => setViewTarget(p)}
-            onEdit={(p) => setEditTarget(p)}
-            onDelete={(p) => setDeleteTarget(p)}
-          />
-        )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsImportOpen(true)}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+              >
+                <Upload size={15} strokeWidth={2.5} />
+                Import CSV
+              </button>
+
+              <button
+                onClick={() => setIsAddOpen(true)}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-teal-600 text-[13px] font-semibold text-white shadow-sm hover:bg-teal-700 transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+              >
+                <PlusCircle size={16} strokeWidth={2.5} />
+                Add Product
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                label: "Total Products",
+                value: loading ? "—" : totalElements,
+                bg: "bg-blue-50",
+                text: "text-blue-600",
+                icon: Package,
+                sub: "Products currently registered",
+              },
+              {
+                label: "Categories",
+                value: loading ? "—" : categories,
+                bg: "bg-indigo-50",
+                text: "text-indigo-600",
+                icon: Layers,
+                sub: "Unique product categories",
+              },
+              {
+                label: "Avg. Margin",
+                value: loading ? "—" : `${avgMargin.toFixed(1)}%`,
+                bg: "bg-emerald-50",
+                text: "text-emerald-600",
+                icon: TrendingUp,
+                sub: "Average gross margin percentage",
+              },
+            ].map((stat) => (
+              <SummaryCard
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                iconBg={stat.bg}
+                iconColor={stat.text}
+                sub={stat.sub}
+              />
+            ))}
+          </div>
+
+          {loading && (
+            <RefreshLoadingTheme
+              title="Loading Products"
+              subtitle="Syncing product catalog..."
+            />
+          )}
+
+          {!loading && fetchError && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 flex items-start gap-3 max-w-md w-full">
+                <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-red-700">
+                    Could not fetch products
+                  </p>
+                  <p className="text-xs text-red-600/80">{fetchError}</p>
+                </div>
+              </div>
+              <button
+                onClick={fetchProducts}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <RefreshCw size={14} />
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!loading && !fetchError && (
+            <ProductTable
+              products={paginatedProducts}
+              totalElements={totalElements}
+              totalPages={totalPages}
+              page={page}
+              pageSize={pageSize}
+              searchInput={searchInput}
+              isSearching={isSearching}
+              searchMode={searchMode}
+              isSearchLocked={isSearchLocked}
+              inputRef={searchInputRef}
+              onSearchInputChange={handleSearchInputChange}
+              onSearchKeyDown={handleSearchKeyDown}
+              onSearchClear={clearSearch}
+              onToggleSearchMode={handleToggleSearchMode}
+              onPageChange={(nextPage) => {
+                if (nextPage < 0 || nextPage >= Math.max(totalPages, 1)) return;
+                setPage(nextPage);
+              }}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPage(0);
+              }}
+              onView={(p) => setViewTarget(p)}
+              onEdit={(p) => setEditTarget(p)}
+              onDelete={(p) => setDeleteTarget(p)}
+              highlightedProductId={highlightedProductId}
+              showSearchStatus={products.length >= 100}
+            />
+          )}
         </div>
       </main>
 
-      {/* ── Modals ── */}
       <AddProductModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}

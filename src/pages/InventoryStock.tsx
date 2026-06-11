@@ -129,6 +129,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   const [productSearch, setProductSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const comboRef = useRef(null);
+  const quantityInputRef = useRef(null);
 
   // -- Current stock resolved from inventoryItems (no extra API call needed)
   const [currentStock, setCurrentStock] = useState(null);
@@ -184,8 +185,6 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setReorderLevel(String(tracked?.reorderLevel ?? selectedProduct?.reorderLevel ?? 10));
   }, [selectedId, inventoryItems, products]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!open) return null;
-
   // -- Derived values (parseFloat so decimal quantities like 1.5 kg are supported)
   const qtyNum    = parseFloat(qtyToAdd);
   const reorderLevelNum = parseFloat(reorderLevel);
@@ -193,16 +192,47 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
   const validReorderLevel = !isNaN(reorderLevelNum) && reorderLevelNum >= 0;
   const newTotal  = currentStock !== null && validQty ? currentStock + qtyNum : null;
   const belowZero = newTotal !== null && newTotal < 0;
-  const productSearchQuery = productSearch.trim() ? `PI${productSearch.trim()}`.toLowerCase() : "";
+  const productSearchQuery = productSearch.trim().toLowerCase();
 
   const filteredProducts = productsWithInventory.filter(
-    (p) =>
-      p.supplierActive !== false &&
-      (!productSearchQuery || (p.sku ?? "").toLowerCase().includes(productSearchQuery))
+    (p) => {
+      if (p.supplierActive === false) return false;
+      if (!productSearchQuery) return true;
+
+      const productName = String(p.productName ?? "").toLowerCase();
+      const productId = String(p.sku ?? "").toLowerCase();
+      const barcode = String(p.barcode ?? "").toLowerCase();
+
+      return (
+        productName.includes(productSearchQuery) ||
+        productId.includes(productSearchQuery) ||
+        barcode.includes(productSearchQuery)
+      );
+    }
   );
 
+  useEffect(() => {
+    if (!open || !dropdownOpen) return;
+
+    const normalizedSearch = productSearch.trim().toLowerCase();
+    if (!normalizedSearch || filteredProducts.length !== 1) return;
+
+    const [singleMatch] = filteredProducts;
+    const matchesExactly =
+      String(singleMatch.productName ?? "").trim().toLowerCase() === normalizedSearch ||
+      String(singleMatch.sku ?? "").trim().toLowerCase() === normalizedSearch ||
+      String(singleMatch.barcode ?? "").trim().toLowerCase() === normalizedSearch;
+
+    if (!matchesExactly) return;
+
+    selectProduct(singleMatch, { focusQuantity: true });
+  }, [dropdownOpen, filteredProducts, open, productSearch]);
+
+  if (!open) return null;
+
   // -- Handlers
-  const selectProduct = (p) => {
+  const selectProduct = (p, options = {}) => {
+    const { focusQuantity = false } = options;
     if (p.supplierActive === false) {
       showToast(INACTIVE_SUPPLIER_TOAST, "error");
       return;
@@ -211,6 +241,13 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
     setProductSearch("");
     setDropdownOpen(false);
     setErrors((e) => ({ ...e, product: undefined }));
+
+    if (focusQuantity) {
+      window.requestAnimationFrame(() => {
+        quantityInputRef.current?.focus();
+        quantityInputRef.current?.select?.();
+      });
+    }
   };
 
   const handleManualStockUpdate = async (e) => {
@@ -380,9 +417,17 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                       <PiPrefixSearchInput
                         value={productSearch}
                         onChange={setProductSearch}
-                        placeholder="00001"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && filteredProducts.length === 1) {
+                            e.preventDefault();
+                            selectProduct(filteredProducts[0], { focusQuantity: true });
+                          }
+                        }}
+                        placeholder="Type Product Name, ID, or scan barcode..."
                         autoFocus
                         onClear={() => setProductSearch("")}
+                        prefixLabel={null}
+                        disablePrefixNormalization
                         className="h-9 rounded-lg shadow-none"
                       />
                     </div>
@@ -417,7 +462,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                                     {p.productName}
                                   </span>
                                   <span className="text-[11px] text-slate-500 mt-0.5">
-                                    {p.sku} &bull; {p.category}
+                                    {p.sku}{p.barcode ? ` • ${p.barcode}` : ""}
                                   </span>
                                 </span>
                                 <span className={`ml-auto flex-shrink-0 text-[12px] font-semibold ${
@@ -489,6 +534,7 @@ const AddStockModal = ({ open, onClose, products, inventoryItems = [], onStockUp
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
                   />
                   <input
+                    ref={quantityInputRef}
                     type="number"
                     step="any"
                     min="0.001"
@@ -973,9 +1019,11 @@ const InventoryStock = () => {
   const [logs,           setLogs]           = useState([]);
   const [supplierActivityById, setSupplierActivityById] = useState({});
   const [supplierActivityByEmail, setSupplierActivityByEmail] = useState({});
+  const deleteQty = Number(deleteTarget?.stockQuantity ?? deleteTarget?.quantity ?? 0);
+  const hasActiveStock = deleteQty > 0;
 
   const monthlyForecastQuery = useForecastMap(
-    inventoryItems.map((item) => item.sku ?? item.productId),
+    inventoryItems.map((item) => item.productId ?? item.sku),
     "monthly",
   );
   const forecastMap = monthlyForecastQuery.data ?? {};
@@ -1150,6 +1198,10 @@ const InventoryStock = () => {
   // -- Delete inventory record (stops tracking; does NOT delete the product)
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    if (hasActiveStock) {
+      showToast("Cannot remove: stock must be 0 before stopping tracking.", "error");
+      return;
+    }
     setDeleting(true);
     try {
       await api.delete(`/api/inventory/${deleteTarget.inventoryId}`);
@@ -1174,15 +1226,33 @@ const InventoryStock = () => {
     }
   };
 
+  const productById = new Map(
+    products.map((product) => [Number(product.id), product])
+  );
+
   // -- Derived category list for the filter dropdown
   const categoryOptions = [...new Set(inventoryItems.map((i) => i.category).filter(Boolean))].sort();
 
   // -- Filtered + Sorted Data (from /api/inventory/status -> inventoryItems only)
+  const normalizedInventorySearch = search.trim().toLowerCase();
+
   const filtered = inventoryItems
-    .filter(({ productName, category, sku }) => {
-      const suffix = search.trim();
-      const skuQuery = suffix ? `PI${suffix}`.toLowerCase() : "";
-      const matchesSearch = !skuQuery || (sku ?? "").toLowerCase().includes(skuQuery);
+    .filter((item) => {
+      const { productName, category, sku } = item;
+      const barcodeSource = item as { barcode?: string | null; product?: { barcode?: string | null } };
+      const linkedProduct = productById.get(Number(item.productId));
+      const barcode = String(
+        barcodeSource.barcode ??
+        barcodeSource.product?.barcode ??
+        linkedProduct?.barcode ??
+        ""
+      ).toLowerCase();
+      const matchesSearch =
+        !normalizedInventorySearch ||
+        String(productName ?? "").toLowerCase().includes(normalizedInventorySearch) ||
+        String(sku ?? "").toLowerCase().includes(normalizedInventorySearch) ||
+        String(item.productId ?? "").toLowerCase().includes(normalizedInventorySearch) ||
+        barcode.includes(normalizedInventorySearch);
       const matchesCategory =
         !selectedCategory || category.toLowerCase() === selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
@@ -1190,8 +1260,8 @@ const InventoryStock = () => {
     .map((item) => ({
       ...item,
       predictedDemand:
-        forecastMap[String(item.sku ?? item.productId ?? "").trim()]?.predictedDemand ?? null,
-    }))
+        forecastMap[String(item.productId ?? item.sku ?? "").trim()]?.predictedDemand ?? null,
+      }))
     .sort((a, b) => {
       const valA = sortKey === "predictedDemand" ? (a.predictedDemand ?? -1) : a[sortKey];
       const valB = sortKey === "predictedDemand" ? (b.predictedDemand ?? -1) : b[sortKey];
@@ -1302,6 +1372,13 @@ const InventoryStock = () => {
               <span className="font-semibold text-slate-900">{deleteTarget.productName}</span>?{" "}
               The product will remain in your catalogue.
             </p>
+            {hasActiveStock && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-xs font-semibold text-amber-800">
+                  Warning: This item currently has active stock ({deleteQty} items). You must adjust the stock to 0 before removing it from tracking.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -1313,8 +1390,8 @@ const InventoryStock = () => {
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={deleting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 transition-all shadow-sm"
+                disabled={deleting || hasActiveStock}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {deleting
                   ? <><Loader2 size={14} className="animate-spin" />Removing...</>
@@ -1373,8 +1450,10 @@ const InventoryStock = () => {
             <PiPrefixSearchInput
               value={search}
               onChange={setSearch}
-              placeholder="00001"
+              placeholder="Search inventory by name, ID, or scan barcode..."
               onClear={() => setSearch("")}
+              prefixLabel={null}
+              disablePrefixNormalization
               className="h-10"
             />
           </div>
@@ -1410,13 +1489,6 @@ const InventoryStock = () => {
         </div>
 
         <div className="overflow-x-auto flex-1">
-          {monthlyForecastQuery.isError && (
-            <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-sm font-semibold text-amber-800">
-                AI Engine Offline. Please start the backend server.
-              </p>
-            </div>
-          )}
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="border-b border-slate-100 sticky top-0 z-10 bg-white">
               <tr>

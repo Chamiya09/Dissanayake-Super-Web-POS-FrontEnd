@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, KeyboardEventHandler, ReactNode, RefObject } from "react";
 import {
   Pencil,
   Trash2,
@@ -6,7 +6,8 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
-  Loader2,
+  Barcode,
+  Search,
 } from "lucide-react";
 import { List, type RowComponentProps } from "react-window";
 import type { Product } from "@/data/product-management";
@@ -23,16 +24,25 @@ interface ProductTableProps {
   pageSize: number;
   searchInput: string;
   isSearching: boolean;
+  searchMode: "scan" | "text";
+  isSearchLocked: boolean;
+  showSearchStatus?: boolean;
+  inputRef?: RefObject<HTMLInputElement>;
   onSearchInputChange: (value: string) => void;
+  onSearchKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+  onSearchClear: () => void;
+  onToggleSearchMode: () => void;
   onPageChange: (nextPage: number) => void;
   onPageSizeChange: (nextSize: number) => void;
   onView: (product: Product) => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  highlightedProductId?: number | null;
 }
 
 type RowData = {
   products: Product[];
+  highlightedProductId?: number | null;
   onView: (product: Product) => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
@@ -41,17 +51,28 @@ type RowData = {
 const DESKTOP_ROW_HEIGHT = 76;
 const DESKTOP_LIST_HEIGHT = 560;
 
-function ProductRow({ index, style, products, onView, onEdit, onDelete }: RowComponentProps<RowData>) {
+function ProductRow({
+  index,
+  style,
+  products,
+  highlightedProductId,
+  onView,
+  onEdit,
+  onDelete,
+}: RowComponentProps<RowData>) {
   const product = products[index];
   if (!product) return null;
+
   const productDisplayId = getProductDisplayId(product);
+  const isHighlighted = product.id === highlightedProductId;
 
   return (
     <div
       style={style as CSSProperties}
       className={cn(
-        "grid items-center border-b border-slate-100 px-6",
-        "grid-cols-[0.9fr_1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr]"
+        "grid items-center border-b border-slate-100 px-6 transition-colors duration-700",
+        "grid-cols-[0.9fr_1.2fr_2fr_1.2fr_1fr_1fr_1fr_0.9fr]",
+        isHighlighted && "bg-teal-50",
       )}
     >
       <div className="pr-4">
@@ -124,15 +145,24 @@ export function ProductTable({
   pageSize,
   searchInput,
   isSearching,
+  searchMode,
+  isSearchLocked,
+  showSearchStatus = true,
+  inputRef,
   onSearchInputChange,
+  onSearchKeyDown,
+  onSearchClear,
+  onToggleSearchMode,
   onPageChange,
   onPageSizeChange,
   onView,
   onEdit,
   onDelete,
+  highlightedProductId,
 }: ProductTableProps) {
   const rowData: RowData = {
     products,
+    highlightedProductId,
     onView,
     onEdit,
     onDelete,
@@ -140,6 +170,10 @@ export function ProductTable({
 
   const hasData = products.length > 0;
   const pageLabel = totalPages === 0 ? 0 : page + 1;
+  const modeToggleIcon: ReactNode =
+    searchMode === "scan" ? <Barcode className="h-4 w-4" /> : <Search className="h-4 w-4" />;
+  const placeholder =
+    searchMode === "scan" ? "Ready to Scan Barcode..." : "Enter Product Name to Search...";
 
   return (
     <div className="mb-4 flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -148,16 +182,26 @@ export function ProductTable({
           <PiPrefixSearchInput
             value={searchInput}
             onChange={onSearchInputChange}
-            placeholder="00001"
-            onClear={() => onSearchInputChange("")}
+            onKeyDown={onSearchKeyDown}
+            placeholder={placeholder}
+            autoFocus
+            inputRef={inputRef}
+            onClear={onSearchClear}
+            onModeToggle={onToggleSearchMode}
+            modeToggleIcon={modeToggleIcon}
+            modeToggleLabel={searchMode === "scan" ? "Switch to text mode" : "Switch to scan mode"}
+            prefixLabel={null}
+            disablePrefixNormalization
+            readOnly={isSearchLocked}
             className="h-10"
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          <span>{isSearching ? "Searching..." : `${totalElements} products`}</span>
-        </div>
+        {showSearchStatus ? (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>{isSearching ? "Searching..." : `${totalElements} products`}</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="hidden md:block">
@@ -191,7 +235,13 @@ export function ProductTable({
       <div className="divide-y divide-slate-100 md:hidden">
         {hasData ? (
           products.map((product) => (
-            <div key={product.id} className="space-y-3 p-4">
+            <div
+              key={product.id}
+              className={cn(
+                "space-y-3 p-4 transition-colors duration-700",
+                product.id === highlightedProductId && "bg-teal-50",
+              )}
+            >
               <div className="space-y-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{product.productName}</p>
                 <p className="text-[12px] text-slate-500">{product.category}</p>

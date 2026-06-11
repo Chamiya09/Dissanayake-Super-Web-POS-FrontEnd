@@ -22,18 +22,18 @@ export default function StaffDashboard() {
   }, [user?.name]);
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900 dark:bg-background dark:text-foreground">
       <AppHeader />
 
       <main className="flex flex-1 items-center justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-5xl">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-[#2A2A40] sm:p-10">
             <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Staff Workspace</p>
-              <h1 className="mt-3 text-3xl font-bold text-slate-900 sm:text-4xl">
+              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-300">Staff Workspace</p>
+              <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-slate-100 sm:text-4xl">
                 {greetingByHour()}, {name}
               </h1>
-              <p className="mt-3 text-base text-slate-500">
+              <p className="mt-3 text-base text-slate-500 dark:text-slate-400">
                 Welcome back. Choose what you want to do next.
               </p>
             </div>
@@ -41,14 +41,14 @@ export default function StaffDashboard() {
             <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10">
               <button
                 onClick={() => navigate("/")}
-                className="group flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-indigo-200 hover:bg-slate-50"
+                className="group flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-emerald-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/30 dark:hover:border-emerald-500/30 dark:hover:bg-slate-900/50"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm dark:bg-emerald-500">
                   <ShoppingCart className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Open POS Checkout</h2>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Open POS Checkout</h2>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                     Go directly to the checkout terminal to scan items and complete customer sales.
                   </p>
                 </div>

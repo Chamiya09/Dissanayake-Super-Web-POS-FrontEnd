@@ -22,6 +22,7 @@ export interface InventoryItem {
   productId:     number;
   productName:   string;
   sku:           string;
+  barcode?:      string | null;
   category:      string;
   sellingPrice:  number;
   stockQuantity: number;

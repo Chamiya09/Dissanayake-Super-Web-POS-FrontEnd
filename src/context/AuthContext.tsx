@@ -89,12 +89,13 @@ export function AuthProvider({ children }) {
    * login(loginId, password) — async, calls POST /api/auth/login.
    * Returns { success: true, user } | { success: false, error: string }
    *
-   * Stored user shape: { token, username, loginId, name, role }
+   * Stored user shape: { token, username, loginId, name, role, isSenior }
    *   token    — JWT for API calls (auto-attached by axiosInstance interceptor)
    *   username — internal username (used for API calls like change-password)
    *   loginId  — staff/manager ID used at login
    *   name     — full display name (shown in UI, AppHeader, profile cards)
    *   role     — Owner | Manager | Staff
+   *   isSenior — true when a Staff account has senior cashier privileges
    */
   const login = useCallback(async (loginId, password) => {
     if (!loginId.trim() || !password.trim()) {
@@ -107,13 +108,14 @@ export function AuthProvider({ children }) {
         password: password.trim(),
       });
 
-      // data = { token, username, loginId, name, role }
+      // data = { token, username, loginId, name, role, isSenior? }
       const sessionUser = {
         token:    data.token,
         username: data.username,
         loginId:  data.loginId,
         name:     data.name,
         role:     data.role,
+        isSenior: data.isSenior,
       };
 
       localStorage.setItem(LS_KEY, JSON.stringify(sessionUser));

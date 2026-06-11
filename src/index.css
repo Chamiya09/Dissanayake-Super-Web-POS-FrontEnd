@@ -61,45 +61,78 @@
   }
 
   .dark {
-    --background: 222 47% 8%;           /* #0F172A */
-    --foreground: 210 40% 95%;          /* #F1F5F9 */
+    --background: 240 22% 15%;          /* #1E1E2F */
+    --foreground: 0 0% 88%;             /* #E0E0E0 */
 
-    --card: 222 47% 13%;                /* #1E293B */
-    --card-foreground: 210 40% 95%;
+    --card: 240 21% 20%;                /* #2A2A40 */
+    --card-foreground: 0 0% 88%;
 
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 95%;
+    --popover: 0 0% 12%;                /* #1E1E1E */
+    --popover-foreground: 0 0% 88%;
 
-    --primary: 175 70% 41%;             /* teal-400 for dark bg */
-    --primary-foreground: 222 47% 8%;
+    --primary: 158 42% 46%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;           /* #1E2D40 */
-    --secondary-foreground: 215 20% 65%;
+    --secondary: 240 18% 18%;
+    --secondary-foreground: 0 0% 72%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;    /* #94A3B8 */
+    --muted: 240 18% 18%;
+    --muted-foreground: 0 0% 63%;       /* #A0A0A0 */
 
-    --accent: 175 70% 41%;
-    --accent-foreground: 222 47% 8%;
+    --accent: 158 38% 34%;
+    --accent-foreground: 0 0% 92%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 25%;              /* #334155 */
-    --input: 217 33% 25%;
-    --ring: 175 70% 41%;
+    --border: 240 15% 27%;
+    --input: 240 15% 27%;
+    --ring: 158 42% 46%;
 
-    --sidebar-background: 222 47% 11%;  /* #162032 */
-    --sidebar-foreground: 210 40% 85%;
-    --sidebar-primary: 175 70% 41%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 217 33% 20%;
-    --sidebar-accent-foreground: 175 70% 50%;
-    --sidebar-border: 217 33% 22%;
-    --sidebar-ring: 175 70% 41%;
+    --sidebar-background: 240 20% 13%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: 240 18% 22%;
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 240 15% 24%;
+    --sidebar-ring: var(--ring);
 
     --success: 142 76% 55%;
     --success-foreground: 0 0% 100%;
+  }
+
+  :root[data-role-theme="owner"],
+  .dark[data-role-theme="owner"] {
+    --primary: 214 64% 57%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 214 45% 48%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 214 64% 57%;
+    --sidebar-primary: var(--primary);
+    --sidebar-ring: var(--ring);
+  }
+
+  :root[data-role-theme="manager"],
+  .dark[data-role-theme="manager"] {
+    --primary: 182 59% 42%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 182 44% 36%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 182 59% 42%;
+    --sidebar-primary: var(--primary);
+    --sidebar-ring: var(--ring);
+  }
+
+  :root[data-role-theme="staff"],
+  .dark[data-role-theme="staff"] {
+    --primary: 158 55% 40%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 158 38% 34%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 158 55% 40%;
+    --sidebar-primary: var(--primary);
+    --sidebar-ring: var(--ring);
   }
 }
 
@@ -122,6 +155,12 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { @apply rounded-full bg-primary/20; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-primary/35; }
+}
+
+/* Hide native password reveal buttons so only the custom eye toggle shows. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 @layer utilities {

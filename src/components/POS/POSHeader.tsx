@@ -1,22 +1,9 @@
 import { useState, useEffect } from "react";
-import { User, Wifi, Moon, Sun } from "lucide-react";
+import { User, Wifi } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-
-/* ── Persist dark-mode to localStorage + sync <html> class ──────── */
-function useDarkMode() {
-  const [dark, setDark] = useState(
-    () => localStorage.getItem("pos-dark") === "1"
-  );
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("pos-dark", dark ? "1" : "0");
-  }, [dark]);
-  return [dark, setDark] as const;
-}
 
 export function POSHeader() {
   const [time, setTime] = useState(new Date());
-  const [dark, setDark] = useDarkMode();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -24,9 +11,7 @@ export function POSHeader() {
   }, []);
 
   return (
-    <header className="flex h-14 shrink-0 items-center border-b border-border bg-card px-5 shadow-sm">
-
-      {/* Left — Sidebar trigger + user info */}
+    <header className="flex h-14 shrink-0 items-center border-b border-border bg-card/90 px-5 shadow-sm backdrop-blur-sm supports-[backdrop-filter]:bg-card/80">
       <div className="flex flex-1 items-center gap-3">
         <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground" />
         <div className="flex items-center gap-2.5">
@@ -34,38 +19,24 @@ export function POSHeader() {
             <User className="h-4 w-4" />
             <span className="absolute -bottom-px -right-px h-2 w-2 rounded-full border-2 border-card bg-green-500" />
           </div>
-          <div className="hidden sm:flex flex-col">
+          <div className="hidden flex-col sm:flex">
             <span className="text-[13px] font-semibold leading-none text-foreground">Sarah M.</span>
             <span className="mt-0.5 text-[11px] text-muted-foreground">Cashier</span>
           </div>
         </div>
       </div>
 
-      {/* Center — Clock */}
       <div className="flex flex-1 flex-col items-center justify-center gap-0.5 text-center">
-        <p className="text-[16px] sm:text-[20px] font-bold tabular-nums tracking-tight leading-none text-primary">
+        <p className="text-[16px] font-bold leading-none tracking-tight text-primary tabular-nums sm:text-[20px]">
           {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </p>
-        <p className="hidden sm:block text-[10px] font-medium text-muted-foreground uppercase tracking-[0.12em]">
+        <p className="hidden text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:block">
           {time.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
         </p>
       </div>
 
-      {/* Right — Dark mode toggle + Scanner status */}
       <div className="flex flex-1 items-center justify-end gap-2">
-
-        {/* Dark / Light toggle */}
-        <button
-          onClick={() => setDark((d) => !d)}
-          title={dark ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-        >
-          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-
-        {/* Scanner status pill */}
-        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600">
+        <div className="hidden items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600 dark:border-blue-900/60 dark:bg-slate-900/70 dark:text-blue-300 sm:flex">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 scanner-pulse" />
           <Wifi className="h-3 w-3" />
           <span>Scanner Ready</span>

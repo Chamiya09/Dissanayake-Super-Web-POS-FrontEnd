@@ -3,9 +3,12 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,6 +42,19 @@ type MonthlyPoint = {
   month: string;
   actual: number;
   predicted: number;
+};
+
+type CategoryForecastPoint = {
+  name: string;
+  value: number;
+  fill: string;
+};
+
+type DepletionRiskPoint = {
+  name: string;
+  stock: number;
+  demand: number;
+  status: "safe" | "risk";
 };
 
 type DateRangeKey = "3m" | "6m" | "12m";
@@ -98,6 +114,22 @@ const productHistoryMap: Record<string, MonthlyPoint[]> = {
     { month: "Apr", actual: 54, predicted: 55 },
   ],
 };
+
+const categoryForecastData: CategoryForecastPoint[] = [
+  { name: "Grocery", value: 34, fill: "#0f766e" },
+  { name: "Beverages", value: 24, fill: "#14b8a6" },
+  { name: "Bakery", value: 18, fill: "#5eead4" },
+  { name: "Sweets", value: 14, fill: "#99f6e4" },
+  { name: "Household", value: 10, fill: "#ccfbf1" },
+];
+
+const depletionRiskData: DepletionRiskPoint[] = [
+  { name: "Brown Bread", stock: 22, demand: 31, status: "risk" },
+  { name: "Fresh Milk 1L", stock: 48, demand: 62, status: "risk" },
+  { name: "Eggs Large 12pk", stock: 76, demand: 58, status: "safe" },
+  { name: "Basmati Rice 5kg", stock: 41, demand: 52, status: "risk" },
+  { name: "Cooking Oil 2L", stock: 64, demand: 39, status: "safe" },
+];
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -170,6 +202,11 @@ export default function InventoryForecastDashboard() {
       .map((row) => ({ name: row.productName, demand: row.predictedDemand }));
   }, []);
 
+  const categoryTotal = useMemo(
+    () => categoryForecastData.reduce((sum, item) => sum + item.value, 0),
+    [],
+  );
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader />
@@ -213,8 +250,8 @@ export default function InventoryForecastDashboard() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <Card className="border-border/70 shadow-sm">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <Card className="border-border/70 shadow-sm xl:col-span-2">
               <CardHeader>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -280,6 +317,135 @@ export default function InventoryForecastDashboard() {
                     <Bar dataKey="demand" fill="#14b8a6" name="Expected Demand" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="border-border/70 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Predicted Sales by Category</CardTitle>
+                <CardDescription>
+                  Forecasted category mix for the upcoming cycle based on current model output.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value: number) => [`${value}%`, "Share"]}
+                      />
+                      <Pie
+                        data={categoryForecastData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={78}
+                        outerRadius={118}
+                        paddingAngle={3}
+                        stroke="rgba(255,255,255,0.9)"
+                        strokeWidth={2}
+                      >
+                        {categoryForecastData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Total Forecast Mix</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{categoryTotal}%</p>
+                    <p className="mt-1 text-xs text-slate-500">Category share across the projected demand basket.</p>
+                  </div>
+
+                  {categoryForecastData.map((category) => (
+                    <div key={category.name} className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: category.fill }} />
+                        <span className="text-sm font-medium text-foreground">{category.name}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">{category.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/70 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Inventory Depletion Risk</CardTitle>
+                <CardDescription>
+                  Products most likely to run short when next-week demand is compared with stock on hand.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={depletionRiskData}
+                      layout="vertical"
+                      margin={{ top: 12, right: 18, left: 18, bottom: 8 }}
+                      barCategoryGap={18}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={110}
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend />
+                      <Bar dataKey="stock" name="Current Stock" fill="#14b8a6" radius={[0, 8, 8, 0]} />
+                      <Bar dataKey="demand" name="Predicted 7-Day Demand" radius={[0, 8, 8, 0]}>
+                        {depletionRiskData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.status === "risk" ? "#f97316" : "#22c55e"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {depletionRiskData.map((item) => {
+                    const variance = item.demand - item.stock;
+                    const risky = variance > 0;
+
+                    return (
+                      <div
+                        key={item.name}
+                        className={`rounded-xl border px-4 py-3 ${
+                          risky
+                            ? "border-orange-200 bg-orange-50/80"
+                            : "border-emerald-200 bg-emerald-50/80"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Stock {item.stock} vs demand {item.demand}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                              risky
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {risky ? `Risk +${variance}` : `Safe +${Math.abs(variance)}`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </div>
