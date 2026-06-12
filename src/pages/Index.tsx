@@ -188,7 +188,7 @@ const Index = () => {
     () =>
       rawProducts.map((p) => {
         const inv = inventoryItems.find((i) => i.productId === p.id);
-        const stock = inv ? inv.stockQuantity : p.stockQuantity ?? 0;
+        const stock = inv ? inv.stockQuantity : 0;
         return {
           id:       String(p.id),
           name:     p.productName,
@@ -209,9 +209,24 @@ const Index = () => {
       return;
     }
 
+    const availableStock = Number(product.stock ?? 0);
+    if (!Number.isFinite(availableStock) || availableStock <= 0) {
+      showToast(`"${product.name}" is not available in inventory`, "warning", "Out of Stock");
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
+        if (existing.quantity + 1 > availableStock) {
+          showToast(
+            `Only ${availableStock} ${product.unit ?? "unit"} available for "${product.name}"`,
+            "warning",
+            "Insufficient Stock",
+          );
+          return prev;
+        }
+
         return prev.map((i) =>
           i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
         );
@@ -233,9 +248,12 @@ const Index = () => {
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((i) =>
-          i.product.id === productId ? { ...i, quantity: i.quantity + delta } : i
-        )
+        .map((i) => {
+          if (i.product.id !== productId) return i;
+          const stock = Number(i.product.stock ?? 0);
+          const nextQuantity = i.quantity + delta;
+          return { ...i, quantity: stock > 0 ? Math.min(nextQuantity, stock) : 0 };
+        })
         .filter((i) => i.quantity > 0)
     );
   }, []);
@@ -247,7 +265,11 @@ const Index = () => {
   const setQuantity = useCallback((productId: string, value: number) => {
     setCart((prev) =>
       prev
-        .map((i) => i.product.id === productId ? { ...i, quantity: value } : i)
+        .map((i) => {
+          if (i.product.id !== productId) return i;
+          const stock = Number(i.product.stock ?? 0);
+          return { ...i, quantity: stock > 0 ? Math.min(value, stock) : 0 };
+        })
         .filter((i) => i.quantity > 0)
     );
   }, []);
@@ -399,8 +421,12 @@ const Index = () => {
         return;
       }
 
+      if (Number(product.stock ?? 0) <= 0) {
+        showToast(`"${product.name}" is not available in inventory`, "warning", "Out of Stock");
+        return;
+      }
+
       addToCart(product);
-      showToast(`Added: ${product.name}`, "success", "Item Added");
     },
     [addToCart, posProducts, showToast],
   );
